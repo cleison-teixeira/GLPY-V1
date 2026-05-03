@@ -1,143 +1,194 @@
 import { motion } from "motion/react";
-import { Flame, Target, MessageSquare, Utensils, Award, CheckCircle, Zap, ShoppingBag, Camera } from "lucide-react";
+import {
+  Flame, Target, MessageSquare, Utensils, Award,
+  CheckCircle, Zap, ShoppingBag, Camera, Calendar,
+  TrendingUp, Syringe, ChevronRight, RotateCcw, Images
+} from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const dailyScore = 75; // Mock score
+  const dailyScore = 75;
+
+  // 4 ações principais — destaque visual
+  const primaryActions = [
+    { name: 'GLPY.IA', icon: MessageSquare, route: 'chatIA', color: 'bg-violet-50 text-violet-600', border: 'border-violet-100' },
+    { name: 'Registrar Prato', icon: Camera, route: 'fotoPrato', color: 'bg-sky-50 text-sky-600', border: 'border-sky-100' },
+    { name: 'Check-in', icon: CheckCircle, route: 'checkin', color: 'bg-emerald-50 text-emerald-600', border: 'border-emerald-100' },
+    { name: 'Receitas', icon: Utensils, route: 'receitas', color: 'bg-orange-50 text-orange-500', border: 'border-orange-100' },
+  ];
+
+  // Atalhos secundários — linha compacta
+  const secondaryActions = [
+    { name: 'Progresso', icon: TrendingUp, route: 'progress' },
+    { name: 'Injeção', icon: Syringe, route: 'injecao' },
+    { name: 'ANVISA', icon: Calendar, route: 'contadorReceita' },
+    { name: 'Anti-Rebote', icon: RotateCcw, route: 'antiRebote' },
+    { name: 'Fotos', icon: Images, route: 'fotosEvolucao' },
+    { name: 'Loja', icon: ShoppingBag, route: 'loja' },
+  ];
 
   return (
-    <div id="dashboard" className="min-h-screen bg-background text-text-main p-6 pb-24">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <p className="text-text-muted text-sm font-medium">Bom dia,</p>
-          <h1 className="text-2xl font-bold">Cleison</h1>
-          {/* Level Chip and Progress */}
-          <div className="flex items-center gap-2 bg-white rounded-pill px-3 py-1 border border-border mt-2 w-fit">
-            <Zap className="w-4 h-4 text-alert" />
-            <span className="text-xs font-semibold text-text-main">Nível 3 · Adaptado · 340 XP</span>
-          </div>
-          <div className="w-full max-w-[200px] bg-border h-1.5 rounded-full mt-2">
-            <div className="bg-primary h-full w-[40%] rounded-full"></div>
-          </div>
-        </div>
-        <div className="bg-primary/10 text-primary p-2 rounded-full">
-          <Award className="w-6 h-6" />
-        </div>
-      </header>
-
-      {/* Daily Stats Section: Including Score and Streak */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {/* Score Card */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-border flex flex-col items-center">
-          <div className="relative w-24 h-24 mb-2">
-            <svg className="w-full h-full -rotate-90">
-              <circle cx="48" cy="48" r="40" className="stroke-border" strokeWidth="8" fill="none" />
-              <motion.circle
-                cx="48" cy="48" r="40"
-                className="stroke-primary"
-                strokeWidth="8"
-                fill="none"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: dailyScore / 100 }}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center font-bold text-2xl">{dailyScore}%</div>
-          </div>
-          <p className="text-text-muted text-xs">Score do dia</p>
-        </div>
-
-        {/* Streak Card */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-border flex flex-col items-center justify-center">
-          <Flame className="w-10 h-10 text-primary animate-fire mb-2" fill="currentColor" />
-          <p className="text-3xl font-bold">34</p>
-          <p className="text-text-muted text-xs">dias streak</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
       
-      {/* Quick Check-in Button */}
-      <button onClick={() => onNavigate('checkin')} className="w-full bg-primary text-white font-bold p-4 rounded-3xl shadow-lg mb-8 flex items-center justify-center gap-2 hover:bg-primary/90 transition">
-        <CheckCircle className="w-5 h-5" />
-        Registrar Check-in Diário
-      </button>
-
-      {/* Macros Card */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-border mb-8">
-        <h2 className="text-lg font-bold mb-4">Macros</h2>
-        <div className="space-y-4">
+      {/* Header — fundo branco limpo */}
+      <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
+        <div className="flex justify-between items-start">
           <div>
-            <div className="flex justify-between text-sm font-medium text-text-main mb-1"><span>Proteína</span><span className="text-text-muted">80/120g</span></div>
-            <div className="w-full bg-border h-2 rounded-full overflow-hidden"><div className="bg-primary h-full w-[66%] rounded-full"></div></div>
+            <p className="text-text-muted text-sm">Bom dia,</p>
+            <h1 className="text-2xl font-bold tracking-tight">Cleison</h1>
+            <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span className="text-xs font-semibold text-text-main">Nível 3 · Adaptado</span>
+              </div>
+              <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
+                <span className="text-xs font-bold text-text-muted">340 XP</span>
+              </div>
+            </div>
+            {/* Barra XP */}
+            <div className="w-48 bg-border h-1 rounded-full mt-2">
+              <div className="bg-amber-400 h-full w-[40%] rounded-full" />
+            </div>
           </div>
-          <div>
-            <div className="flex justify-between text-sm font-medium text-text-main mb-1"><span>Kcal</span><span className="text-text-muted">1200/1800</span></div>
-            <div className="w-full bg-border h-2 rounded-full overflow-hidden"><div className="bg-primary h-full w-[66%] rounded-full"></div></div>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm font-medium text-text-main mb-1"><span>Água</span><span className="text-text-muted">1.2/2L</span></div>
-            <div className="w-full bg-border h-2 rounded-full overflow-hidden"><div className="bg-primary h-full w-[60%] rounded-full"></div></div>
+          <div className="w-10 h-10 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
+            <Award className="w-5 h-5 text-text-muted" />
           </div>
         </div>
       </div>
 
-      {/* Daily Mission Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 rounded-3xl shadow-sm border border-border mb-8 flex items-center justify-between"
-      >
-        <div className="flex gap-4 items-center">
-          <div className="bg-alert/10 text-alert p-3 rounded-2xl">
-            <Zap className="w-6 h-6" />
+      <div className="px-5 pt-5 space-y-5">
+
+        {/* Score + Streak — 2 cards lado a lado */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Score */}
+          <div className="bg-white rounded-2xl border border-border p-4 flex flex-col items-center shadow-sm">
+            <div className="relative w-20 h-20 mb-1">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" stroke="#E2EBE7" strokeWidth="6" fill="none" />
+                <motion.circle
+                  cx="40" cy="40" r="32"
+                  stroke="#00C27A"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: dailyScore / 100 }}
+                  transition={{ duration: 1 }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center font-black text-xl text-text-main">
+                {dailyScore}%
+              </div>
+            </div>
+            <p className="text-xs text-text-muted font-medium">Score do dia</p>
           </div>
-          <div>
-            <h3 className="font-bold">Missão do Dia</h3>
-            <p className="text-text-muted text-sm">Beba 2L de água hoje 💧</p>
+
+          {/* Streak */}
+          <div className="bg-white rounded-2xl border border-border p-4 flex flex-col items-center justify-center shadow-sm">
+            <Flame className="w-9 h-9 text-orange-500 mb-1" fill="currentColor" />
+            <p className="text-3xl font-black text-text-main leading-none">34</p>
+            <p className="text-xs text-text-muted font-medium mt-1">dias streak</p>
           </div>
         </div>
-        <button className="bg-primary text-white font-bold p-3 rounded-2xl shadow-md">
-          <CheckCircle className="w-6 h-6" />
-        </button>
-      </motion.div>
 
-      {/* Active Protocol */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white p-6 rounded-3xl shadow-sm border border-border mb-8 relative overflow-hidden"
-      >
-        <div className="bg-primary/10 text-primary w-12 h-12 rounded-full flex items-center justify-center mb-4">
-          <Target className="w-6 h-6" />
+        {/* Macros — compacto */}
+        <div className="bg-white rounded-2xl border border-border p-4 shadow-sm">
+          <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Macros de hoje</p>
+          <div className="space-y-2.5">
+            {[
+              { label: "Proteína", value: "80g", total: "120g", pct: 66, color: "bg-emerald-400" },
+              { label: "Kcal", value: "1.200", total: "1.800", pct: 66, color: "bg-sky-400" },
+              { label: "Água", value: "1.2L", total: "2L", pct: 60, color: "bg-blue-400" },
+            ].map(m => (
+              <div key={m.label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-text-main">{m.label}</span>
+                  <span className="text-text-muted">{m.value} / {m.total}</span>
+                </div>
+                <div className="w-full bg-[#F4F6F8] h-1.5 rounded-full overflow-hidden">
+                  <div className={`${m.color} h-full rounded-full`} style={{ width: `${m.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <h3 className="text-lg font-bold mb-1">Sobrevivendo às Canetas</h3>
-        <p className="text-text-muted text-sm mb-4">Dia 4 de 7 · Protocolo Inicial</p>
-        <button onClick={() => onNavigate('protocolDay')} className="text-primary font-semibold flex items-center gap-1 text-sm bg-primary/5 px-4 py-2 rounded-pill hover:bg-primary/10 transition">
-           Visualizar Missões <CheckCircle className="w-4 h-4 ml-1" />
-        </button>
-      </motion.div>
 
-      {/* Quick Actions */}
-      <h2 className="text-lg font-bold mb-4">Ações Rápidas</h2>
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { name: 'GLPY.IA', icon: MessageSquare, route: 'chatIA' },
-          { name: 'Registrar Prato', icon: Camera, route: 'fotoPrato' },
-          { name: 'Plano Semanal', icon: Target, route: 'planoSemanal' },
-          { name: 'Receitas', icon: Utensils, route: 'receitas' },
-          { name: 'Injeção', icon: Zap, route: 'injecao' },
-          { name: 'Contador ANVISA', icon: CheckCircle, route: 'contadorReceita' },
-          { name: 'Alerta Injeção', icon: Zap, route: 'alertaInjecao' },
-          { name: 'Progresso', icon: Flame, route: 'progress' },
-          { name: 'Anti-Rebote', icon: Award, route: 'antiRebote' },
-          { name: 'Fotos Evolução', icon: Award, route: 'fotosEvolucao' },
-          { name: 'Loja', icon: ShoppingBag, route: 'loja' },
-        ].map((action) => (
-          <button key={action.name} onClick={() => onNavigate(action.route)} className="bg-white p-4 rounded-3xl shadow-sm border border-border flex flex-col items-center gap-2 hover:border-primary transition">
-            <action.icon className="w-6 h-6 text-primary" />
-            <span className="text-xs font-medium text-center">{action.name}</span>
+        {/* Missão do dia */}
+        <div className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Zap className="w-5 h-5 text-amber-500" />
+          </div>
+          <div className="flex-grow">
+            <p className="text-xs text-text-muted font-medium">Missão do dia</p>
+            <p className="font-bold text-sm text-text-main">Beba 2L de água hoje 💧</p>
+            <p className="text-xs text-text-muted">expira em 4h</p>
+          </div>
+          <button
+            onClick={() => onNavigate('checkin')}
+            className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-primary hover:text-white transition"
+          >
+            <CheckCircle className="w-4 h-4" />
           </button>
-        ))}
+        </div>
+
+        {/* Protocolo ativo */}
+        <div
+          onClick={() => onNavigate('protocolDay')}
+          className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-primary/30 transition"
+        >
+          <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
+            🔥
+          </div>
+          <div className="flex-grow">
+            <p className="text-xs text-text-muted font-medium">Protocolo ativo</p>
+            <p className="font-bold text-sm text-text-main">Sobrevivendo às Canetas</p>
+            {/* Progresso 7 dias */}
+            <div className="flex gap-1 mt-1.5">
+              {[1,2,3,4,5,6,7].map(i => (
+                <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= 4 ? 'bg-primary' : 'bg-border'}`} />
+              ))}
+            </div>
+            <p className="text-xs text-text-muted mt-1">Dia 4 de 7</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+        </div>
+
+        {/* Ações principais — 4 cards 2x2 */}
+        <div>
+          <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Ações rápidas</p>
+          <div className="grid grid-cols-2 gap-3">
+            {primaryActions.map(action => (
+              <button
+                key={action.name}
+                onClick={() => onNavigate(action.route)}
+                className={`bg-white border ${action.border} rounded-2xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition text-left`}
+              >
+                <div className={`w-10 h-10 ${action.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <action.icon className="w-5 h-5" />
+                </div>
+                <span className="font-semibold text-sm text-text-main">{action.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Atalhos secundários — linha horizontal scrollável */}
+        <div>
+          <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Mais recursos</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {secondaryActions.map(action => (
+              <button
+                key={action.name}
+                onClick={() => onNavigate(action.route)}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5 bg-white border border-border rounded-2xl px-4 py-3 shadow-sm hover:border-primary/30 transition min-w-[72px]"
+              >
+                <action.icon className="w-5 h-5 text-text-muted" />
+                <span className="text-xs font-medium text-text-muted whitespace-nowrap">{action.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
       </div>
 
       <BottomNav active="dashboard" onNavigate={onNavigate} />
