@@ -2,17 +2,25 @@ import { motion } from "motion/react";
 import {
   Flame, Target, MessageSquare, Utensils, Award,
   CheckCircle, Zap, ShoppingBag, Camera, Calendar,
-  TrendingUp, Syringe, ChevronRight, RotateCcw, Images
-} from "lucide-react";
-import {
-  Flame, Target, MessageSquare, Utensils, Award,
-  CheckCircle, Zap, ShoppingBag, Camera, Calendar,
   TrendingUp, Syringe, ChevronRight, RotateCcw, Images, CreditCard
 } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const dailyScore = 75;
+
+  // Protocolo ativo via localStorage
+  const protocoloAtivoRaw = localStorage.getItem("glpy_protocolo_ativo");
+  const protocoloAtivo = protocoloAtivoRaw
+    ? JSON.parse(protocoloAtivoRaw)
+    : { id: "antiRebote", nome: "Anti-Rebote", emoji: "⚖️", totalDias: 7 };
+
+  const diaAtualProtocolo = (() => {
+    if (protocoloAtivo.id === "antiRebote") {
+      return parseInt(localStorage.getItem("glpy_antirebote_dia") || "0", 10);
+    }
+    return parseInt(localStorage.getItem("glpy_protocolo_dia") || "0", 10);
+  })();
 
   // 4 ações principais — destaque visual
   const primaryActions = [
@@ -139,22 +147,23 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
 
         {/* Protocolo ativo */}
         <div
-          onClick={() => onNavigate('protocolDay')}
+          onClick={() => onNavigate(protocoloAtivo.id || 'protocolHub')}
           className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-primary/30 transition"
         >
           <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
-            🔥
+            {protocoloAtivo.emoji || "⚖️"}
           </div>
           <div className="flex-grow">
             <p className="text-xs text-text-muted font-medium">Protocolo ativo</p>
-            <p className="font-bold text-sm text-text-main">Sobrevivendo às Canetas</p>
-            {/* Progresso 7 dias */}
+            <p className="font-bold text-sm text-text-main">{protocoloAtivo.nome || "Anti-Rebote"}</p>
             <div className="flex gap-1 mt-1.5">
-              {[1,2,3,4,5,6,7].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= 4 ? 'bg-primary' : 'bg-border'}`} />
+              {Array.from({ length: protocoloAtivo.totalDias || 7 }, (_, i) => (
+                <div key={i} className={`h-1.5 flex-1 rounded-full ${i < diaAtualProtocolo ? 'bg-primary' : 'bg-border'}`} />
               ))}
             </div>
-            <p className="text-xs text-text-muted mt-1">Dia 4 de 7</p>
+            <p className="text-xs text-text-muted mt-1">
+              Dia {diaAtualProtocolo + 1} de {protocoloAtivo.totalDias || 7}
+            </p>
           </div>
           <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
         </div>
