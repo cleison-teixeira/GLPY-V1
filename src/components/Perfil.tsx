@@ -37,7 +37,13 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
   ];
 
   const menuItems = [
-    action: () => onNavigate('planos'),
+    {
+  icon: CreditCard,
+  label: "Meu Plano",
+  desc: "Plus · R$59,90/mês",
+  color: "bg-violet-50 text-violet-600",
+  action: () => onNavigate('planos')
+},
     {
       icon: Syringe,
       label: "Meu Tratamento",
