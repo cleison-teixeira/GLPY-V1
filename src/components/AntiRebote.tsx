@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Lock } from "lucide-react";
 import BottomNav from "./BottomNav";
@@ -215,12 +215,23 @@ const DIAS = [
 ];
 
 export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const [diaAtual, setDiaAtual] = useState(0);
+  const [diaAtual, setDiaAtual] = useState<number>(() =>
+    parseInt(localStorage.getItem("glpy_antirebote_dia") || "0", 10)
+  );
   const [aba, setAba] = useState<"protocolo" | "receitas">("protocolo");
   const [checkinSelecionado, setCheckinSelecionado] = useState<string | null>(null);
-  const [missoesMarcadas, setMissoesMarcadas] = useState<number[]>([]);
-  const [concluido, setConcluido] = useState(false);
+  const [missoesMarcadas, setMissoesMarcadas] = useState<number[]>(() => {
+    const s = localStorage.getItem("glpy_antirebote_missoes");
+    return s ? JSON.parse(s) : [];
+  });
+  const [concluido, setConcluido] = useState<boolean>(() =>
+    localStorage.getItem("glpy_antirebote_concluido") === "true"
+  );
   const [receitaAberta, setReceitaAberta] = useState<number | null>(null);
+
+  useEffect(() => { localStorage.setItem("glpy_antirebote_dia", String(diaAtual)); }, [diaAtual]);
+  useEffect(() => { localStorage.setItem("glpy_antirebote_missoes", JSON.stringify(missoesMarcadas)); }, [missoesMarcadas]);
+  useEffect(() => { localStorage.setItem("glpy_antirebote_concluido", String(concluido)); }, [concluido]);
 
   // Pega dados do onboarding
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");

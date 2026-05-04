@@ -6,57 +6,28 @@ import BottomNav from "./BottomNav";
 type Message = { id: number; sender: 'ia' | 'user'; text: string; };
 type Mode = "Nutri" | "Coach" | "Diagnóstico";
 
-// Contexto do usuário — depois virá do Firebase/estado global
-const USER_CONTEXT = {
-  nome: "Cleison",
-  medicamento: "Mounjaro",
-  dose: "5mg",
-  semana: 6,
-  peso: 83,
-  streak: 34,
-  protocolo: "Sobrevivendo às Canetas",
-  diaProtocolo: 4,
-  fome: 7,
-  energia: 5,
-  sintomas: ["náusea leve"],
-};
-
-const SYSTEM_PROMPTS: Record<Mode, string> = {
-  Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
-Contexto do usuário:
-- Nome: ${USER_CONTEXT.nome}
-- Medicamento: ${USER_CONTEXT.medicamento} ${USER_CONTEXT.dose}
-- Semana ${USER_CONTEXT.semana} de tratamento
-- Peso atual: ${USER_CONTEXT.peso}kg
-- Protocolo ativo: ${USER_CONTEXT.protocolo} (Dia ${USER_CONTEXT.diaProtocolo}/7)
-- Fome hoje: ${USER_CONTEXT.fome}/10
-- Energia hoje: ${USER_CONTEXT.energia}/10
-- Sintomas: ${USER_CONTEXT.sintomas.join(", ")}
-
-Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
-Respostas curtas e práticas. Máximo 3 parágrafos. Use emojis com moderação.`,
-
-  Coach: `Você é a GLPY.IA no modo Coach. Responda em português brasileiro com energia positiva e motivação real.
-Contexto do usuário:
-- Nome: ${USER_CONTEXT.nome}
-- ${USER_CONTEXT.streak} dias de streak 🔥
-- Protocolo: ${USER_CONTEXT.protocolo} (Dia ${USER_CONTEXT.diaProtocolo}/7)
-- Score de hoje: 75%
-
-Foque em: motivação, celebração de conquistas, consistência e mindset.
-Respostas energéticas mas honestas. Máximo 2 parágrafos.`,
-
-  Diagnóstico: `Você é a GLPY.IA no modo Diagnóstico. Faça perguntas inteligentes para entender o estado do usuário e adapte as recomendações.
-Contexto do usuário:
-- Nome: ${USER_CONTEXT.nome}
-- Medicamento: ${USER_CONTEXT.medicamento} ${USER_CONTEXT.dose}
-- Fome hoje: ${USER_CONTEXT.fome}/10
-- Energia: ${USER_CONTEXT.energia}/10
-- Sintomas: ${USER_CONTEXT.sintomas.join(", ")}
-
-Foque em: diagnóstico do dia, identificação de problemas, ajustes no protocolo.
-Faça 1 pergunta por vez. Seja analítico e preciso.`,
-};
+function getUserContext() {
+  const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
+  const checkin = JSON.parse(localStorage.getItem("glpy_checkin_hoje") || "{}");
+  const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
+  const tempoToSemanas: Record<string, number> = {
+    "Menos de 1 mês": 2, "1 a 3 meses": 8,
+    "3 a 6 meses": 18, "Mais de 6 meses": 30, "Ainda não comecei": 0,
+  };
+  return {
+    nome: (onboarding.nome as string) || "você",
+    medicamento: (onboarding.medicamento as string) || "GLP-1",
+    dose: (onboarding.dose as string) || "",
+    semana: tempoToSemanas[onboarding.tempo as string] ?? 4,
+    peso: parseFloat(String(onboarding.peso_atual || 80)),
+    streak,
+    protocolo: (checkin.protocolo as string) || "Sobrevivendo às Canetas",
+    diaProtocolo: (checkin.diaProtocolo as number) || 1,
+    fome: (checkin.fome as number) || 5,
+    energia: (checkin.energia as number) || 5,
+    sintomas: (checkin.sintomas as string[]) || [],
+  };
+}
 
 const QUICK_REPLIES: Record<Mode, string[]> = {
   Nutri: ["Sim, quero a receita", "Tenho náusea", "O que comer no almoço?", "Bati minha meta de proteína?"],
@@ -65,11 +36,50 @@ const QUICK_REPLIES: Record<Mode, string[]> = {
 };
 
 export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) => void }) {
+  const ctx = getUserContext();
+
+  const SYSTEM_PROMPTS: Record<Mode, string> = {
+    Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
+Contexto do usuário:
+- Nome: ${ctx.nome}
+- Medicamento: ${ctx.medicamento} ${ctx.dose}
+- Semana ${ctx.semana} de tratamento
+- Peso atual: ${ctx.peso}kg
+- Protocolo ativo: ${ctx.protocolo} (Dia ${ctx.diaProtocolo}/7)
+- Fome hoje: ${ctx.fome}/10
+- Energia hoje: ${ctx.energia}/10
+- Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
+
+Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
+Respostas curtas e práticas. Máximo 3 parágrafos. Use emojis com moderação.`,
+
+    Coach: `Você é a GLPY.IA no modo Coach. Responda em português brasileiro com energia positiva e motivação real.
+Contexto do usuário:
+- Nome: ${ctx.nome}
+- ${ctx.streak} dias de streak 🔥
+- Protocolo: ${ctx.protocolo} (Dia ${ctx.diaProtocolo}/7)
+- Score de hoje: 75%
+
+Foque em: motivação, celebração de conquistas, consistência e mindset.
+Respostas energéticas mas honestas. Máximo 2 parágrafos.`,
+
+    Diagnóstico: `Você é a GLPY.IA no modo Diagnóstico. Faça perguntas inteligentes para entender o estado do usuário e adapte as recomendações.
+Contexto do usuário:
+- Nome: ${ctx.nome}
+- Medicamento: ${ctx.medicamento} ${ctx.dose}
+- Fome hoje: ${ctx.fome}/10
+- Energia: ${ctx.energia}/10
+- Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
+
+Foque em: diagnóstico do dia, identificação de problemas, ajustes no protocolo.
+Faça 1 pergunta por vez. Seja analítico e preciso.`,
+  };
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       sender: 'ia',
-      text: `Oi ${USER_CONTEXT.nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${USER_CONTEXT.diaProtocolo} do protocolo "${USER_CONTEXT.protocolo}" e sua fome hoje está em ${USER_CONTEXT.fome}/10.\n\nComo posso te ajudar agora?`
+      text: `Oi ${ctx.nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`
     }
   ]);
   const [mode, setMode] = useState<Mode>("Nutri");
@@ -81,12 +91,11 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Muda mensagem inicial ao trocar de modo
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
     const modeMessages: Record<Mode, string> = {
-      Nutri: `Modo Nutricionista ativo 🟡\n\nSou sua nutricionista especialista em GLP-1. Posso ajudar com refeições, macros, receitas e alimentação adaptada ao ${USER_CONTEXT.medicamento}. O que precisa?`,
-      Coach: `Modo Coach ativo 🔵\n\n${USER_CONTEXT.streak} dias de streak — isso é incrível, ${USER_CONTEXT.nome}! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
+      Nutri: `Modo Nutricionista ativo 🟡\n\nSou sua nutricionista especialista em GLP-1. Posso ajudar com refeições, macros, receitas e alimentação adaptada ao ${ctx.medicamento}. O que precisa?`,
+      Coach: `Modo Coach ativo 🔵\n\n${ctx.streak} dias de streak — isso é incrível, ${ctx.nome}! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
       Diagnóstico: `Modo Diagnóstico ativo 🔴\n\nVou fazer algumas perguntas para entender melhor como você está hoje e ajustar suas recomendações.\n\nPrimeiro: como está sua disposição agora, de 1 a 10?`,
     };
     setMessages([{ id: Date.now(), sender: 'ia', text: modeMessages[newMode] }]);
@@ -101,7 +110,6 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     setLoading(true);
 
     try {
-      // Monta histórico para a API
       const history = messages.map(m => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text,
