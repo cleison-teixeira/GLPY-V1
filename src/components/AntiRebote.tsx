@@ -1,3 +1,4 @@
+// v2 - localStorage fix
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Lock } from "lucide-react";
