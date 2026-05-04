@@ -43,6 +43,13 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+      <style>{`
+        @keyframes neon-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 6px 2px #00C27A88; }
+          50%       { opacity: 0.3; transform: scale(1.4); box-shadow: 0 0 10px 4px #00C27A44; }
+        }
+        .neon-dot { animation: neon-pulse 1.8s ease-in-out infinite; }
+      `}</style>
       
       {/* Header — fundo branco limpo */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
@@ -154,7 +161,13 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
             {protocoloAtivo.emoji || "⚖️"}
           </div>
           <div className="flex-grow">
-            <p className="text-xs text-text-muted font-medium">Protocolo ativo</p>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span
+                className="neon-dot inline-block w-2 h-2 rounded-full"
+                style={{ background: "#00C27A" }}
+              />
+              <p className="text-xs text-text-muted font-medium">Protocolo ativo</p>
+            </div>
             <p className="font-bold text-sm text-text-main">{protocoloAtivo.nome || "Anti-Rebote"}</p>
             <div className="flex gap-1 mt-1.5">
               {Array.from({ length: protocoloAtivo.totalDias || 7 }, (_, i) => (
