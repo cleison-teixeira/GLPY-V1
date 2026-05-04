@@ -37,13 +37,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
   ];
 
   const menuItems = [
-    {
-      icon: CreditCard,
-      label: "Meu Plano",
-      desc: "Plus · R$59,90/mês",
-      color: "bg-violet-50 text-violet-600",
-      action: () => {}
-    },
+    action: () => onNavigate('planos'),
     {
       icon: Syringe,
       label: "Meu Tratamento",
@@ -190,8 +184,12 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
               <p className="font-bold text-sm text-primary">Plano Plus ativo</p>
               <p className="text-xs text-text-muted">Próxima cobrança: 15/Mai/2026 · R$59,90</p>
             </div>
-            <button className="text-xs font-bold text-primary border border-primary/30 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white transition">
-              Upgrade
+            
+            <button
+            onClick={() => onNavigate('planos')}
+            className="text-xs font-bold text-primary border border-primary/30 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white transition"
+            >
+            Upgrade
             </button>
           </div>
         </div>
