@@ -4,6 +4,11 @@ import {
   CheckCircle, Zap, ShoppingBag, Camera, Calendar,
   TrendingUp, Syringe, ChevronRight, RotateCcw, Images
 } from "lucide-react";
+import {
+  Flame, Target, MessageSquare, Utensils, Award,
+  CheckCircle, Zap, ShoppingBag, Camera, Calendar,
+  TrendingUp, Syringe, ChevronRight, RotateCcw, Images, CreditCard
+} from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
@@ -25,6 +30,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     { name: 'Anti-Rebote', icon: RotateCcw, route: 'antiRebote' },
     { name: 'Fotos', icon: Images, route: 'fotosEvolucao' },
     { name: 'Loja', icon: ShoppingBag, route: 'loja' },
+    { name: 'Planos', icon: CreditCard, route: 'planos' },
   ];
 
   return (
