@@ -4,12 +4,16 @@ import { ChevronLeft, ShoppingBag, CheckCircle } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 const GlpyLogo = () => (
-  <div className="flex items-center gap-1.5">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2C12 2 4 7 4 13c0 4.4 3.6 8 8 8s8-3.6 8-8c0-6-8-11-8-11z" fill="#00C27A"/>
-      <path d="M12 10v5M9.5 12.5h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-    <span className="font-black text-lg tracking-tight text-[#0A1628]">GLPY</span>
+  <div className="flex items-center gap-2">
+    <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
+      <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
+        <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="22" cy="9" r="2.5" fill="#fff"/>
+      </svg>
+    </div>
+    <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
   </div>
 );
 

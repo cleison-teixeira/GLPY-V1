@@ -116,12 +116,16 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
 
       {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
-        <div className="flex items-center gap-1.5 mb-3">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3C9 3 6 6.5 6 10.5C6 15 9 18.5 12 21C15 18.5 18 15 18 10.5C18 6.5 15 3 12 3Z" fill="#00C27A"/>
-            <path d="M12 8C12 11 10 13 10 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-          <span className="font-black text-lg tracking-tight text-[#0A1628]">GLPY</span>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
+            <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
+              <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+              <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+              <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="22" cy="9" r="2.5" fill="#fff"/>
+            </svg>
+          </div>
+          <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
         </div>
         <h1 className="font-black text-2xl text-[#0A1628] leading-tight">Protocolos</h1>
         <p className="text-sm text-text-muted mt-1">Ciência aplicada ao tratamento GLP-1</p>

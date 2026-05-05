@@ -207,11 +207,15 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
             {/* Logo no primeiro passo */}
             {currentStep === 0 && (
               <div className="flex items-center gap-2 mb-6">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3C9 3 6 6.5 6 10.5C6 15 9 18.5 12 21C15 18.5 18 15 18 10.5C18 6.5 15 3 12 3Z" fill="#00C27A"/>
-                  <path d="M12 8C12 11 10 13 10 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-                <span className="font-black text-2xl tracking-tight text-[#0A1628]">GLPY</span>
+                <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
+                  <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
+                    <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="22" cy="9" r="2.5" fill="#fff"/>
+                  </svg>
+                </div>
+                <span className="font-extrabold text-2xl text-[#0A1628]">GLPY</span>
               </div>
             )}
 
