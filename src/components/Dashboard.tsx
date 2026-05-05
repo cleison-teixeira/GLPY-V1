@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import {
   Flame, Target, MessageSquare, Utensils, Award,
@@ -21,6 +22,53 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     }
     return parseInt(localStorage.getItem("glpy_protocolo_dia") || "0", 10);
   })();
+
+  const streak = parseInt(localStorage.getItem("glpy_streak") || "34", 10);
+
+  // Alerta de risco
+  const riscoNivel = (dailyScore < 60 || streak < 2) ? "Alto"
+    : (dailyScore < 80 || streak < 7) ? "Médio" : "Baixo";
+
+  const riscoTexto = dailyScore < 80
+    ? "Você está abaixo da meta de proteína de hoje. Proteína baixa é o principal gatilho do efeito rebote."
+    : streak < 3
+    ? "Consistência abaixo de 3 dias ativa o mecanismo de recuperação de peso. Mantenha o ritmo hoje."
+    : "Score excelente! Mantenha proteína alta e sono regulado para consolidar os resultados.";
+
+  const riscoCor = riscoNivel === "Alto"
+    ? { border: "#EF4444", bg: "#FEF2F2", text: "#DC2626" }
+    : riscoNivel === "Médio"
+    ? { border: "#F59E0B", bg: "#FFFBEB", text: "#D97706" }
+    : { border: "#00C27A", bg: "#E6FBF3", text: "#009960" };
+
+  // Decisões do dia por protocolo
+  const DECISOES: Record<string, Array<{ acao: string; motivo: string }>> = {
+    antiRebote: [
+      { acao: "Bater a meta de proteína hoje", motivo: "Proteína alta é o principal sinal de segurança para o metabolismo" },
+      { acao: "20 min de caminhada leve", motivo: "Ativa GLUT4 — direciona glicose para músculo, não gordura" },
+      { acao: "Dormir 8 horas esta noite", motivo: "Sono ruim aumenta grelina em +30% e triplica a fome amanhã" },
+    ],
+    sobrevivendo: [
+      { acao: "Comer a cada 3-4 horas", motivo: "Mantém metabolismo ativo mesmo com apetite suprimido pelo GLP-1" },
+      { acao: "Registrar todos os sintomas", motivo: "Dados desta semana guiam o ajuste do protocolo" },
+      { acao: "Beber 2L de água", motivo: "Desidratação simula fome — o GLP-1 pode mascarar o sinal" },
+    ],
+    nutricao: [
+      { acao: "Proteína completa nas 3 refeições", motivo: "Leucina é essencial para síntese muscular com déficit calórico" },
+      { acao: "Fonte de gordura boa no almoço", motivo: "Ômega-3 reduz inflamação causada pelo emagrecimento rápido" },
+      { acao: "Zero carboidrato refinado hoje", motivo: "Pico de glicose sabota a preservação muscular" },
+    ],
+  };
+
+  const decisoes = DECISOES[protocoloAtivo.id] || [
+    { acao: "Completar o check-in diário", motivo: "Dados consistentes tornam o protocolo mais preciso" },
+    { acao: "Bater a meta de proteína", motivo: "Proteína é a âncora de todo o protocolo GLPY" },
+    { acao: "Zero açúcar refinado hoje", motivo: "Picos de glicose ativam o mecanismo de rebote" },
+  ];
+
+  const [decisoesMarcadas, setDecisoesMarcadas] = useState<boolean[]>([false, false, false]);
+  const toggleDecisao = (i: number) =>
+    setDecisoesMarcadas(prev => prev.map((v, idx) => idx === i ? !v : v));
 
   // 4 ações principais — destaque visual
   const primaryActions = [
@@ -109,6 +157,63 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
             <Flame className="w-9 h-9 text-orange-500 mb-1" fill="currentColor" />
             <p className="text-3xl font-black text-text-main leading-none">34</p>
             <p className="text-xs text-text-muted font-medium mt-1">dias streak</p>
+          </div>
+        </div>
+
+        {/* Alerta de Risco */}
+        <div
+          className="rounded-2xl border p-4 shadow-sm"
+          style={{ background: riscoCor.bg, borderColor: riscoCor.border + "99" }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+            <div className="flex-grow">
+              <p className="font-bold text-sm" style={{ color: riscoCor.text }}>
+                Risco de Rebote: {riscoNivel}
+              </p>
+              <p className="text-xs text-text-main leading-relaxed mt-1">{riscoTexto}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('chatIA')}
+            className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
+            style={{ background: riscoCor.text }}
+          >
+            Ver o que fazer →
+          </button>
+        </div>
+
+        {/* Decisão do Dia */}
+        <div className="bg-[#0A1628] rounded-2xl p-5">
+          <p className="text-xs font-bold text-primary uppercase tracking-wide mb-4">Hoje você precisa:</p>
+          <div className="space-y-4">
+            {decisoes.map((d, i) => (
+              <button
+                key={i}
+                onClick={() => toggleDecisao(i)}
+                className="w-full flex gap-3 text-left"
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-all ${
+                    decisoesMarcadas[i] ? 'border-primary bg-primary' : 'border-white/30'
+                  }`}
+                >
+                  {decisoesMarcadas[i] && (
+                    <svg viewBox="0 0 10 8" className="w-2.5 h-2.5" fill="none">
+                      <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className={`text-sm font-semibold leading-snug transition-all ${
+                    decisoesMarcadas[i] ? 'line-through text-white/30' : 'text-white'
+                  }`}>
+                    {d.acao}
+                  </p>
+                  <p className="text-xs text-white/45 mt-0.5 leading-snug">{d.motivo}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
