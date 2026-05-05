@@ -19,6 +19,25 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ===== DARK MODE ===== */
+html.dark {
+  --color-background: #0A1628;
+  --color-text-main: #E8F0EC;
+  --color-text-muted: #6B8E94;
+  --color-border: #1E3348;
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #0A1628;
+  color: #E8F0EC;
+}
+html.dark .bg-white { background-color: #112240 !important; }
+html.dark .bg-\[\#F4F6F8\] { background-color: #0D1B2E !important; }
+html.dark .bg-\[\#F8FAF9\] { background-color: #0D1B2E !important; }
+html.dark .text-\[\#0A1628\] { color: #E8F0EC !important; }
+html.dark .border-border { border-color: #1E3348 !important; }
+/* ===================== */
+
 @keyframes fire-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }

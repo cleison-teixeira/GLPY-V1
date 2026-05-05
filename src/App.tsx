@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
@@ -27,10 +27,14 @@ import Planos from './components/Planos';
 import Comunidade from './components/Comunidade';
 import EmBreve from './components/EmBreve';
 
-// Verifica se onboarding já foi concluído
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
 export default function App() {
+  useEffect(() => {
+    if (localStorage.getItem("glpy_tema") === "dark") {
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
   // Se onboarding já feito, começa no dashboard direto
   const [telaAtual, setTelaAtual] = useState(
     onboardingDone ? 'dashboard' : 'splash'
