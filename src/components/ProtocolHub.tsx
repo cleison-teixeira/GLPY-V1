@@ -116,6 +116,13 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
 
       {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
+        <div className="flex items-center gap-1.5 mb-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3C9 3 6 6.5 6 10.5C6 15 9 18.5 12 21C15 18.5 18 15 18 10.5C18 6.5 15 3 12 3Z" fill="#00C27A"/>
+            <path d="M12 8C12 11 10 13 10 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <span className="font-black text-lg tracking-tight text-[#0A1628]">GLPY</span>
+        </div>
         <h1 className="font-black text-2xl text-[#0A1628] leading-tight">Protocolos</h1>
         <p className="text-sm text-text-muted mt-1">Ciência aplicada ao tratamento GLP-1</p>
       </div>

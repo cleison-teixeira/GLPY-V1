@@ -24,6 +24,8 @@ import FotosEvolucao from './components/FotosEvolucao';
 import Loja from './components/Loja';
 import Perfil from './components/Perfil';
 import Planos from './components/Planos';
+import Comunidade from './components/Comunidade';
+import EmBreve from './components/EmBreve';
 
 // Verifica se onboarding já foi concluído
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
@@ -62,7 +64,9 @@ export default function App() {
       case 'antiRebote':   return <AntiRebote onNavigate={setTelaAtual} />;
       case 'fotosEvolucao': return <FotosEvolucao onNavigate={setTelaAtual} />;
       case 'loja':         return <Loja onNavigate={setTelaAtual} />;
-      case 'planos':       return <Planos onNavigate={setTelaAtual} />; 
+      case 'planos':       return <Planos onNavigate={setTelaAtual} />;
+      case 'comunidade':   return <Comunidade onNavigate={setTelaAtual} />;
+      case 'emBreve':      return <EmBreve onNavigate={setTelaAtual} />;
       default:             return <Dashboard onNavigate={setTelaAtual} />;
     }
   };

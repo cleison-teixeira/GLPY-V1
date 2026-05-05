@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Calendar, AlertTriangle, ArrowRight, CheckCircle, Clock, Shield } from "lucide-react";
+import { Calendar, AlertTriangle, ArrowRight, CheckCircle, Clock, Shield, ChevronLeft } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function ContadorReceita({ onNavigate }: { onNavigate: (screen: string) => void }) {
@@ -34,11 +34,18 @@ export default function ContadorReceita({ onNavigate }: { onNavigate: (screen: s
 
         {/* Header */}
         <header className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-xl font-bold">Contador ANVISA</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+              <ChevronLeft className="w-4 h-4 text-text-muted" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                <h1 className="text-xl font-bold">Contador ANVISA</h1>
+              </div>
+              <p className="text-text-muted text-sm">Controle de validade da receita — 90 dias</p>
+            </div>
           </div>
-          <p className="text-text-muted text-sm">Controle de validade da receita — 90 dias</p>
         </header>
 
         {/* Status chip */}
@@ -196,12 +203,13 @@ export default function ContadorReceita({ onNavigate }: { onNavigate: (screen: s
         <div className="space-y-3">
           <motion.button
             whileTap={{ scale: 0.98 }}
+            onClick={() => onNavigate('emBreve')}
             className="w-full bg-primary text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition"
           >
             🏥 Buscar Telemedicina <ArrowRight className="w-4 h-4" />
           </motion.button>
           <button
-            onClick={() => {}}
+            onClick={() => onNavigate('emBreve')}
             className="w-full bg-white border border-border text-text-main p-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 hover:border-primary transition"
           >
             🔔 Ativar lembrete de renovação

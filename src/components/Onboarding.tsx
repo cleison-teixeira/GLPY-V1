@@ -28,6 +28,13 @@ type Step = {
 
 const STEPS: Step[] = [
   {
+    id: "sexo",
+    title: "Qual o seu sexo?",
+    subtitle: "Ajuda a personalizar seu protocolo hormonal",
+    type: "options",
+    options: ["Feminino", "Masculino"],
+  },
+  {
     id: "medicamento",
     title: "Qual o seu medicamento?",
     subtitle: "Vamos personalizar seu protocolo",
@@ -143,6 +150,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
     } else {
       // Salva tudo no localStorage — não vai rodar de novo
       localStorage.setItem("glpy_onboarding", JSON.stringify(data));
+      localStorage.setItem("glpy_sexo", String(data.sexo));
       localStorage.setItem("glpy_peso_atual", String(data.peso_atual));
       localStorage.setItem("glpy_peso_sonho", String(data.peso_sonho));
       localStorage.setItem("glpy_altura", String(data.altura));
@@ -196,6 +204,17 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
             transition={{ duration: 0.25 }}
             className="flex-grow flex flex-col"
           >
+            {/* Logo no primeiro passo */}
+            {currentStep === 0 && (
+              <div className="flex items-center gap-2 mb-6">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3C9 3 6 6.5 6 10.5C6 15 9 18.5 12 21C15 18.5 18 15 18 10.5C18 6.5 15 3 12 3Z" fill="#00C27A"/>
+                  <path d="M12 8C12 11 10 13 10 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                <span className="font-black text-2xl tracking-tight text-[#0A1628]">GLPY</span>
+              </div>
+            )}
+
             {/* Título */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-text-main leading-tight mb-1">

@@ -3,6 +3,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ShoppingBag, CheckCircle } from "lucide-react";
 import BottomNav from "./BottomNav";
 
+const GlpyLogo = () => (
+  <div className="flex items-center gap-1.5">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C12 2 4 7 4 13c0 4.4 3.6 8 8 8s8-3.6 8-8c0-6-8-11-8-11z" fill="#00C27A"/>
+      <path d="M12 10v5M9.5 12.5h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+    <span className="font-black text-lg tracking-tight text-[#0A1628]">GLPY</span>
+  </div>
+);
+
 type Recipe = {
   id: number;
   nome: string;
@@ -38,9 +48,19 @@ export default function Recipes({ onNavigate }: { onNavigate: (screen: string) =
   );
 
   return (
-    <div id="recipes" className="min-h-screen bg-background text-text-main p-6 pb-24">
-      <h1 className="text-3xl font-bold mb-1">Receitas Inteligentes</h1>
-      <p className="text-text-muted mb-6">Selecionadas para seu protocolo</p>
+    <div id="recipes" className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+      <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
+            <ChevronLeft className="w-4 h-4 text-text-muted" />
+          </button>
+          <div>
+            <GlpyLogo />
+            <p className="text-xs text-text-muted">Receitas do protocolo</p>
+          </div>
+        </div>
+      </div>
+      <div className="px-5">
 
       {/* Search Filter */}
       <input 
@@ -105,12 +125,11 @@ export default function Recipes({ onNavigate }: { onNavigate: (screen: string) =
 
             <button className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-pill mb-4"><ShoppingBag className="w-5 h-5" /> Comprar ingredientes</button>
             <button className="w-full flex items-center justify-center gap-2 bg-white border border-primary text-primary font-bold py-4 rounded-pill mb-24"><CheckCircle className="w-5 h-5" /> Marcar como feita</button>
-            
-            <BottomNav active="recipes" onNavigate={onNavigate} />
           </motion.div>
         )}
       </AnimatePresence>
 
+      </div>
       <BottomNav active="recipes" onNavigate={onNavigate} />
     </div>
   );

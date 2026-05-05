@@ -1,10 +1,17 @@
 import { motion } from "motion/react";
-import { Zap, CircleCheck, Info, ArrowRight } from "lucide-react";
+import { Zap, CircleCheck, Info, ArrowRight, ChevronLeft } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function AlertaInjecao({ onNavigate }: { onNavigate: (screen: string) => void }) {
   return (
-    <div className="min-h-screen bg-background text-text-main p-6 pb-24 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 flex flex-col">
+      <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center gap-3">
+        <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+          <ChevronLeft className="w-4 h-4 text-text-muted" />
+        </button>
+        <h1 className="font-black text-xl text-[#0A1628]">Alerta de Injeção</h1>
+      </div>
+      <div className="flex-grow flex items-center justify-center p-6">
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -30,6 +37,7 @@ export default function AlertaInjecao({ onNavigate }: { onNavigate: (screen: str
       </motion.div>
 
       <BottomNav active="dashboard" onNavigate={onNavigate} />
+      </div>
     </div>
   );
 }

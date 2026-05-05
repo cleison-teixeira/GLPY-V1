@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle } from "lucide-react";
+import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 type AnalysisResult = {
@@ -23,13 +23,32 @@ const MOCK_RESULTS: AnalysisResult[] = [
   { prato: "Fruta — lanche leve", kcal: 85, proteina: 1, carbs: 22, gordura: 0, feedback: "Fruta isolada tem pouquíssima proteína. Combine sempre com uma fonte proteica.", glp1tip: "Fruta + iogurte grego ou castanhas = lanche completo que não gera pico de glicose.", aprovado: false },
 ];
 
+const LIMITES_FOTO: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
+
+function getFotosUsadas(): number {
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const saved = JSON.parse(localStorage.getItem("glpy_fotos_usadas") || '{"mes":"","count":0}');
+  return saved.mes === mesAtual ? saved.count : 0;
+}
+
+function incrementarFotos() {
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const count = getFotosUsadas() + 1;
+  localStorage.setItem("glpy_fotos_usadas", JSON.stringify({ mes: mesAtual, count }));
+}
+
 export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showLimiteModal, setShowLimiteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const plano = localStorage.getItem("glpy_plano") || "starter";
+  const limiteFotos = LIMITES_FOTO[plano] ?? 3;
+  const fotosUsadas = getFotosUsadas();
 
   const handleFile = (file: File) => {
     const reader = new FileReader();
@@ -44,6 +63,10 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
   const analyzeImage = async () => {
     if (!imageBase64) return;
+    if (fotosUsadas >= limiteFotos) {
+      setShowLimiteModal(true);
+      return;
+    }
     setAnalyzing(true);
 
     try {
@@ -73,11 +96,13 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
       const data = await response.json();
       const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
       setResult(JSON.parse(text));
+      incrementarFotos();
 
     } catch {
       // Fallback mock — simula análise quando CORS bloqueia no mobile
       await new Promise(r => setTimeout(r, 1800));
       setResult(MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)]);
+      incrementarFotos();
     } finally {
       setAnalyzing(false);
     }
@@ -89,13 +114,21 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
 
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+            <ChevronLeft className="w-4 h-4 text-text-muted" />
+          </button>
+          <div className="flex-grow">
             <h1 className="text-xl font-bold">Registrar Refeição</h1>
-            <p className="text-text-muted text-xs mt-0.5">IA analisa macros em segundos</p>
+            <p className="text-text-muted text-xs mt-0.5">
+              IA analisa macros em segundos
+              {limiteFotos !== Infinity && (
+                <span className="ml-2 text-primary font-semibold">{fotosUsadas}/{limiteFotos} este mês</span>
+              )}
+            </p>
           </div>
           {image && (
-            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-text-muted border border-border bg-white px-3 py-1.5 rounded-full">
+            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-text-muted border border-border bg-white px-3 py-1.5 rounded-full flex-shrink-0">
               <RotateCcw className="w-3.5 h-3.5" /> Nova foto
             </button>
           )}
@@ -218,6 +251,54 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
       </div>
       <BottomNav active="dashboard" onNavigate={onNavigate} />
+
+      {/* Modal limite atingido */}
+      <AnimatePresence>
+        {showLimiteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+            onClick={() => setShowLimiteModal(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2"
+            >
+              <button onClick={() => setShowLimiteModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-text-muted">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">📸</div>
+                <h2 className="font-bold text-lg text-[#0A1628]">Limite atingido</h2>
+                <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                  Você usou todas as {limiteFotos} análises do mês no seu plano atual.<br />
+                  Faça upgrade para analisar mais pratos.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLimiteModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-semibold text-text-muted"
+                >
+                  Agora não
+                </button>
+                <button
+                  onClick={() => { setShowLimiteModal(false); onNavigate('planos'); }}
+                  className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold"
+                >
+                  Ver planos
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

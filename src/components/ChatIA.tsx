@@ -1,7 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Send, Bot, Loader2 } from "lucide-react";
+import { Send, Bot, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
+
+const LIMITES_IA: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: Infinity };
+
+function getMsgsUsadas(): number {
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const mes = localStorage.getItem("glpy_ia_msgs_mes");
+  if (mes !== mesAtual) return 0;
+  return parseInt(localStorage.getItem("glpy_ia_msgs_usadas") || "0", 10);
+}
+
+function incrementarMsgs() {
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const count = getMsgsUsadas() + 1;
+  localStorage.setItem("glpy_ia_msgs_mes", mesAtual);
+  localStorage.setItem("glpy_ia_msgs_usadas", String(count));
+}
 
 type Message = { id: number; sender: 'ia' | 'user'; text: string; };
 type Mode = "Nutri" | "Coach" | "Diagnóstico";
@@ -85,7 +101,12 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
   const [mode, setMode] = useState<Mode>("Nutri");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLimiteModal, setShowLimiteModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const plano = localStorage.getItem("glpy_plano") || "starter";
+  const limiteIA = LIMITES_IA[plano] ?? 10;
+  const msgsUsadas = getMsgsUsadas();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -103,6 +124,10 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
+    if (msgsUsadas >= limiteIA) {
+      setShowLimiteModal(true);
+      return;
+    }
 
     const userMsg: Message = { id: Date.now(), sender: 'user', text };
     setMessages(prev => [...prev, userMsg]);
@@ -137,6 +162,7 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
 
       const iaMsg: Message = { id: Date.now() + 1, sender: 'ia', text: iaText };
       setMessages(prev => [...prev, iaMsg]);
+      incrementarMsgs();
     } catch (error) {
       const errMsg: Message = {
         id: Date.now() + 1,
@@ -154,6 +180,16 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm p-4 border-b border-border z-10">
         <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+            <ChevronLeft className="w-4 h-4 text-text-muted" />
+          </button>
+          <div className="flex items-center gap-2 flex-grow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3C9 3 6 6.5 6 10.5C6 15 9 18.5 12 21C15 18.5 18 15 18 10.5C18 6.5 15 3 12 3Z" fill="#00C27A"/>
+              <path d="M12 8C12 11 10 13 10 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <span className="font-black text-base tracking-tight text-[#0A1628]">GLPY</span>
+          </div>
           <div className="relative">
             <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center">
               <Bot className="w-5 h-5 text-primary" />
@@ -162,7 +198,9 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
           </div>
           <div>
             <h1 className="font-bold text-base">GLPY.IA</h1>
-            <p className="text-text-muted text-xs">Online · Especialista GLP-1</p>
+            <p className="text-text-muted text-xs">
+              Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
+            </p>
           </div>
         </div>
 
@@ -260,6 +298,54 @@ Faça 1 pergunta por vez. Seja analítico e preciso.`,
       </div>
 
       <BottomNav active="chatIA" onNavigate={onNavigate} />
+
+      {/* Modal limite atingido */}
+      <AnimatePresence>
+        {showLimiteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+            onClick={() => setShowLimiteModal(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2 relative"
+            >
+              <button onClick={() => setShowLimiteModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-text-muted">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">🤖</div>
+                <h2 className="font-bold text-lg text-[#0A1628]">Limite atingido</h2>
+                <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                  Você usou todas as {limiteIA} mensagens do mês no plano atual.<br />
+                  Faça upgrade para continuar conversando com a GLPY.IA.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLimiteModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-semibold text-text-muted"
+                >
+                  Agora não
+                </button>
+                <button
+                  onClick={() => { setShowLimiteModal(false); onNavigate('planos'); }}
+                  className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold"
+                >
+                  Ver planos
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

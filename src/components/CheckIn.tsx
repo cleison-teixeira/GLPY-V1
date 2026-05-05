@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Minus, Plus, Check, Flame } from "lucide-react";
+import { Minus, Plus, Check, Flame, ChevronLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 import BottomNav from "./BottomNav";
 
@@ -94,14 +94,19 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
       <div className="p-5">
         {/* Header */}
         <header className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+              <ChevronLeft className="w-4 h-4 text-text-muted" />
+            </button>
+            <h1 className="text-xl font-bold">Check-in de Hoje ✅</h1>
+          </div>
           <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-bold">Check-in de Hoje ✅</h1>
+            <span className="text-text-muted text-sm capitalize">{today}</span>
             <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
               <Flame className="w-4 h-4" fill="currentColor" />
               <span className="font-bold text-sm">34</span>
             </div>
           </div>
-          <p className="text-text-muted text-sm capitalize">{today}</p>
         </header>
 
         {/* Peso */}

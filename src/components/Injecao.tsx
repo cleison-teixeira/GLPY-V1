@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Zap, History, Calendar } from "lucide-react";
+import { Zap, History, Calendar, ChevronLeft } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 export default function Injecao({ onNavigate }: { onNavigate: (screen: string) => void }) {
@@ -11,8 +11,14 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
   const lastLocal = historico[0].local;
 
   return (
-    <div className="min-h-screen bg-background text-text-main p-6 pb-24">
-      <h1 className="text-3xl font-bold mb-6">Controle de Injeção</h1>
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+      <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center gap-3 mb-5">
+        <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+          <ChevronLeft className="w-4 h-4 text-text-muted" />
+        </button>
+        <h1 className="font-black text-xl text-[#0A1628]">Controle de Injeção</h1>
+      </div>
+      <div className="p-6">
 
       {/* Próxima Dose */}
       <div className="bg-primary/10 p-6 rounded-3xl mb-6 border border-primary/20">
@@ -65,6 +71,7 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
       </div>
 
       <BottomNav active="dashboard" onNavigate={onNavigate} />
+      </div>
     </div>
   );
 }
