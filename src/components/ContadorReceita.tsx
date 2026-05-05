@@ -17,6 +17,7 @@ export default function ContadorReceita({ onNavigate }: { onNavigate: (screen: s
   const isUrgent = daysRemaining <= 14;
   const isCritical = daysRemaining <= 7;
   const isOk = daysRemaining > 30;
+  const needsRenewalBanner = daysRemaining < 30;
 
   const ringColor = isCritical ? "#E8445A" : isUrgent ? "#F5A623" : "#00C27A";
   const statusLabel = isCritical ? "Crítico" : isUrgent ? "Renovar em breve" : "Em dia";
@@ -31,6 +32,28 @@ export default function ContadorReceita({ onNavigate }: { onNavigate: (screen: s
   return (
     <div className="min-h-screen bg-background text-text-main pb-24">
       <div className="p-5">
+
+        {/* Banner urgência ANVISA */}
+        {needsRenewalBanner && (
+          <motion.div
+            animate={isUrgent ? { opacity: [1, 0.55, 1] } : { opacity: 1 }}
+            transition={isUrgent ? { repeat: Infinity, duration: 1.4, ease: "easeInOut" } : {}}
+            className="bg-red-600 text-white rounded-2xl p-4 mb-5 shadow-md"
+          >
+            <p className="font-black text-sm leading-snug">
+              ⚠️ SUA RECEITA VENCE EM {daysRemaining} DIAS
+            </p>
+            <p className="text-red-100 text-xs mt-1 leading-relaxed">
+              Se vencer, você pode ficar sem o medicamento — a farmácia é obrigada a recusar a venda.
+            </p>
+            <button
+              onClick={() => onNavigate('emBreve')}
+              className="mt-3 w-full bg-white text-red-600 font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+            >
+              Renovar agora — 1 clique <ArrowRight className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
 
         {/* Header */}
         <header className="mb-6">

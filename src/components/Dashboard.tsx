@@ -10,6 +10,22 @@ import BottomNav from "./BottomNav";
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const dailyScore = 75;
 
+  // Dados do onboarding para validação da dor
+  const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
+  const tempoToSemanas: Record<string, number> = {
+    "Menos de 1 mês": 2, "1 a 3 meses": 8,
+    "3 a 6 meses": 18, "Mais de 6 meses": 30, "Ainda não comecei": 0,
+  };
+  const semanaUso = tempoToSemanas[onboarding.tempo as string] ?? 4;
+  const sexo = localStorage.getItem("glpy_sexo") || (onboarding.sexo as string) || "Feminino";
+  const statDor = semanaUso <= 2
+    ? "68% dos usuários relatam náusea nas primeiras semanas de tratamento."
+    : semanaUso <= 4
+    ? "71% sentem fadiga intensa na semana 4 — é o pico de adaptação ao GLP-1."
+    : sexo === "Feminino"
+    ? "67% das mulheres na semana 5+ relatam queda de cabelo e fadiga. É temporário e tem protocolo."
+    : "67% dos usuários na semana 5+ relatam queda de energia. O corpo está se reprogramando.";
+
   // Protocolo ativo via localStorage
   const protocoloAtivoRaw = localStorage.getItem("glpy_protocolo_ativo");
   const protocoloAtivo = protocoloAtivoRaw
@@ -194,6 +210,18 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           </button>
         </div>
 
+        {/* Validação da Dor */}
+        <div className="bg-[#0A1628] rounded-2xl p-5">
+          <p className="text-white font-bold text-base mb-1">Você não está sozinho nisso.</p>
+          <p className="text-primary text-sm font-semibold leading-snug mb-3">{statDor}</p>
+          <button
+            onClick={() => onNavigate('chatIA')}
+            className="text-white/60 text-xs flex items-center gap-1 hover:text-white/90 transition"
+          >
+            Estamos ajustando seu protocolo para isso →
+          </button>
+        </div>
+
         {/* Decisão do Dia */}
         <div className="bg-[#0A1628] rounded-2xl p-5">
           <p className="text-xs font-bold text-primary uppercase tracking-wide mb-4">Hoje você precisa:</p>
@@ -250,22 +278,26 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           </div>
         </div>
 
-        {/* Missão do dia */}
-        <div className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Zap className="w-5 h-5 text-amber-500" />
+        {/* Missão Crítica */}
+        <div className="bg-white rounded-2xl border border-amber-200 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Zap className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="flex-grow">
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">MISSÃO CRÍTICA HOJE ⚠️</p>
+              <p className="font-bold text-sm text-text-main mt-0.5">Beba 2L de água hoje 💧</p>
+              <p className="text-xs text-red-500 font-medium mt-1">
+                Se não beber 2L hoje → risco de dor de cabeça amanhã (efeito GLP-1)
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('checkin')}
+              className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-primary hover:text-white transition"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </button>
           </div>
-          <div className="flex-grow">
-            <p className="text-xs text-text-muted font-medium">Missão do dia</p>
-            <p className="font-bold text-sm text-text-main">Beba 2L de água hoje 💧</p>
-            <p className="text-xs text-text-muted">expira em 4h</p>
-          </div>
-          <button
-            onClick={() => onNavigate('checkin')}
-            className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-primary hover:text-white transition"
-          >
-            <CheckCircle className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Protocolo ativo */}

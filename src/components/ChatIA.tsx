@@ -54,6 +54,16 @@ const QUICK_REPLIES: Record<Mode, string[]> = {
 export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const ctx = getUserContext();
 
+  const alertaPreditivo = ctx.fome > 7 && ctx.energia < 5
+    ? `\n⚠️ ALERTA PREDITIVO CRÍTICO: Fome ${ctx.fome}/10 + energia ${ctx.energia}/10 = risco real de compulsão noturna nas próximas horas. Aborde isso proativamente na resposta.`
+    : ctx.fome > 7
+    ? `\n⚠️ Fome acima de 7 — usuário pode ceder a alimentos ruins em breve. Seja proativo.`
+    : ctx.energia < 4
+    ? `\n⚠️ Energia muito baixa — verifique hidratação e proteína do dia.`
+    : "";
+
+  const regraFinal = `\n\nREGRA OBRIGATÓRIA: Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas (nunca genérica como "cuide-se" ou "mantenha o foco"). Formato: "Próximas 2 horas: [ação exata]".`;
+
   const SYSTEM_PROMPTS: Record<Mode, string> = {
     Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
 Contexto do usuário:
@@ -65,30 +75,40 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
+${alertaPreditivo}
 
 Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
-Respostas curtas e práticas. Máximo 3 parágrafos. Use emojis com moderação.`,
+Se score < 60: priorize ajuste alimentar urgente na resposta.
+Respostas curtas e práticas. Máximo 3 parágrafos. Use emojis com moderação.${regraFinal}`,
 
     Coach: `Você é a GLPY.IA no modo Coach. Responda em português brasileiro com energia positiva e motivação real.
 Contexto do usuário:
 - Nome: ${ctx.nome}
 - ${ctx.streak} dias de streak 🔥
 - Protocolo: ${ctx.protocolo} (Dia ${ctx.diaProtocolo}/7)
+- Fome hoje: ${ctx.fome}/10
+- Energia hoje: ${ctx.energia}/10
 - Score de hoje: 75%
+${alertaPreditivo}
 
 Foque em: motivação, celebração de conquistas, consistência e mindset.
-Respostas energéticas mas honestas. Máximo 2 parágrafos.`,
+Se fome > 7 e energia < 5: o foco principal é evitar compulsão — seja direto sobre isso.
+Respostas energéticas mas honestas. Máximo 2 parágrafos.${regraFinal}`,
 
-    Diagnóstico: `Você é a GLPY.IA no modo Diagnóstico. Faça perguntas inteligentes para entender o estado do usuário e adapte as recomendações.
+    Diagnóstico: `Você é a GLPY.IA no modo Diagnóstico. Analise os sinais do usuário e entregue diagnóstico preciso com recomendações imediatas.
 Contexto do usuário:
 - Nome: ${ctx.nome}
 - Medicamento: ${ctx.medicamento} ${ctx.dose}
+- Semana ${ctx.semana} de tratamento
 - Fome hoje: ${ctx.fome}/10
 - Energia: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
+${alertaPreditivo}
 
-Foque em: diagnóstico do dia, identificação de problemas, ajustes no protocolo.
-Faça 1 pergunta por vez. Seja analítico e preciso.`,
+Análise preditiva obrigatória:
+- Fome > 7 + energia < 5 = risco de compulsão noturna — alerte o usuário diretamente
+- Score < 60 = ajuste alimentar urgente necessário
+- Faça 1 pergunta de acompanhamento por vez. Seja analítico e preciso.${regraFinal}`,
   };
 
   const [messages, setMessages] = useState<Message[]>([
