@@ -4,6 +4,9 @@
  */
 
 import { useState, useEffect } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from './firebase.js';
+import Login from './components/Login';
 import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
@@ -30,11 +33,29 @@ import EmBreve from './components/EmBreve';
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   useEffect(() => {
     if (localStorage.getItem("glpy_tema") === "dark") {
       document.documentElement.classList.add("dark");
     }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        localStorage.setItem("glpy_user", JSON.stringify({
+          uid: firebaseUser.uid,
+          displayName: firebaseUser.displayName,
+          email: firebaseUser.email,
+        }));
+      } else {
+        localStorage.removeItem("glpy_user");
+      }
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
   }, []);
+
   // Se onboarding já feito, começa no dashboard direto
   const [telaAtual, setTelaAtual] = useState(
     onboardingDone ? 'dashboard' : 'splash'
@@ -74,6 +95,18 @@ export default function App() {
       default:             return <Dashboard onNavigate={setTelaAtual} />;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return <>{renderScreen()}</>;
 }

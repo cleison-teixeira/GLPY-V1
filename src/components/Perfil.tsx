@@ -1,4 +1,6 @@
 import { useState, useEffect, ChangeEvent } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase.js";
 import { jsPDF } from "jspdf";
 import {
   CreditCard, FileText, Settings, LogOut, ChevronRight,
@@ -499,7 +501,13 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
         </div>
 
         {/* Sair */}
-        <button className="w-full p-4 text-red-500 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-2xl transition">
+        <button
+          onClick={async () => {
+            await signOut(auth);
+            localStorage.removeItem("glpy_user");
+          }}
+          className="w-full p-4 text-red-500 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-2xl transition"
+        >
           <LogOut className="w-4 h-4" />
           Sair da conta
         </button>
