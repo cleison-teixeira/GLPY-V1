@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, Lock, Play } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { saveProtocolProgress } from "../services/firestore";
 
 type Protocolo = {
   id: string;
@@ -108,12 +109,19 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
 
   const confirmarTroca = () => {
     if (!confirmar) return;
-    localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({
+    const protocoloData = {
       id: confirmar.id,
       nome: confirmar.nome,
       emoji: confirmar.emoji,
       totalDias: confirmar.dias,
-    }));
+    };
+    localStorage.setItem("glpy_protocolo_ativo", JSON.stringify(protocoloData));
+    saveProtocolProgress({
+      protocoloId: confirmar.id,
+      protocoloNome: confirmar.nome,
+      diaAtual: 0,
+      totalDias: confirmar.dias,
+    }).catch(() => {});
     setConfirmar(null);
     onNavigate(confirmar.rota);
   };

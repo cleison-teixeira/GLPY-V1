@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from './firebase.js';
+import { syncFromFirestore } from './services/firestore';
 import Login from './components/Login';
 import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
@@ -61,6 +62,9 @@ export default function App() {
       }
       setUser(firebaseUser);
       setAuthLoading(false);
+      if (firebaseUser) {
+        syncFromFirestore().catch(() => {});
+      }
     });
     return unsubscribe;
   }, []);

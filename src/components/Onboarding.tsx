@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, ChevronLeft, Minus, Plus } from "lucide-react";
+import { saveUserProfile } from "../services/firestore";
 
-// Verifica se onboarding já foi feito
 export function isOnboardingDone(): boolean {
   return localStorage.getItem("glpy_onboarding") !== null;
 }
 
-// Recupera dados do onboarding
 export function getOnboardingData() {
   const data = localStorage.getItem("glpy_onboarding");
   return data ? JSON.parse(data) : null;
 }
 
+type StepType = "options" | "number" | "text" | "phone" | "date";
+
 type Step = {
   id: string;
   title: string;
   subtitle?: string;
-  type: "options" | "number";
+  type: StepType;
   options?: string[];
+  placeholder?: string;
   unit?: string;
   min?: number;
   max?: number;
@@ -27,6 +29,26 @@ type Step = {
 };
 
 const STEPS: Step[] = [
+  {
+    id: "nome",
+    title: "Como você se chama?",
+    subtitle: "Vamos personalizar tudo para você",
+    type: "text",
+    placeholder: "Seu nome completo",
+  },
+  {
+    id: "whatsapp",
+    title: "Qual seu WhatsApp?",
+    subtitle: "Para te enviar lembretes importantes do tratamento",
+    type: "phone",
+    placeholder: "(11) 99999-9999",
+  },
+  {
+    id: "data_nascimento",
+    title: "Qual sua data de nascimento?",
+    subtitle: "Usamos para personalizar seu protocolo por faixa etária",
+    type: "date",
+  },
   {
     id: "sexo",
     title: "Qual o seu sexo?",
@@ -103,25 +125,34 @@ const STEPS: Step[] = [
   },
 ];
 
+function calcularIdade(dataNasc: string): number {
+  const nasc = new Date(dataNasc);
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
+
+function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
 export default function Onboarding({ onNext }: { onNext: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, string | number>>({});
-  const [numberValue, setNumberValue] = useState<number>(
-    STEPS[0].default ?? 165
-  );
+  const [numberValue, setNumberValue] = useState<number>(STEPS[0].default ?? 165);
+  const [textValue, setTextValue] = useState("");
+  const [dateValue, setDateValue] = useState("");
+  const [textError, setTextError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const step = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
-
-  // Calcula projeção de perda (semanas)
-  const getProjection = () => {
-    const pesoAtual = Number(formData.peso_atual ?? 85);
-    const pesoSonho = Number(formData.peso_sonho ?? 70);
-    const diff = pesoAtual - pesoSonho;
-    if (diff <= 0) return null;
-    const semanas = Math.round(diff / 0.5); // ~0.5kg/semana com GLP-1
-    return { diff: diff.toFixed(1), semanas };
-  };
 
   const handleOption = (value: string) => {
     const newData = { ...formData, [step.id]: value };
@@ -132,7 +163,6 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
   const handleNumber = () => {
     const newData = { ...formData, [step.id]: numberValue };
     setFormData(newData);
-    // Atualiza default da próxima etapa numérica
     const nextStep = STEPS[currentStep + 1];
     if (nextStep?.type === "number" && nextStep.default) {
       setNumberValue(nextStep.default);
@@ -140,21 +170,67 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
     advance(newData);
   };
 
+  const handleText = () => {
+    const val = textValue.trim();
+    if (!val) { setTextError("Por favor, preencha este campo."); return; }
+    setTextError("");
+    const newData = { ...formData, [step.id]: val };
+    setFormData(newData);
+    setTextValue("");
+    advance(newData);
+  };
+
+  const handlePhone = () => {
+    const digits = textValue.replace(/\D/g, "");
+    if (digits.length < 10) { setTextError("Digite um número válido com DDD."); return; }
+    setTextError("");
+    const newData = { ...formData, [step.id]: textValue };
+    setFormData(newData);
+    setTextValue("");
+    advance(newData);
+  };
+
+  const handleDate = () => {
+    if (!dateValue) { setTextError("Selecione uma data."); return; }
+    const idade = calcularIdade(dateValue);
+    if (idade < 16 || idade > 100) { setTextError("Data inválida."); return; }
+    setTextError("");
+    const newData = { ...formData, data_nascimento: dateValue, idade };
+    setFormData(newData);
+    setDateValue("");
+    advance(newData);
+  };
+
   const advance = (data: Record<string, string | number>) => {
     if (currentStep < STEPS.length - 1) {
-      const nextStep = STEPS[currentStep + 1];
-      if (nextStep.type === "number") {
-        setNumberValue(nextStep.default ?? 165);
-      }
+      const next = STEPS[currentStep + 1];
+      if (next.type === "number") setNumberValue(next.default ?? 165);
+      if (next.type === "text" || next.type === "phone") setTextValue("");
+      if (next.type === "date") setDateValue("");
       setCurrentStep(currentStep + 1);
     } else {
-      // Salva tudo no localStorage — não vai rodar de novo
+      // Finaliza onboarding
       localStorage.setItem("glpy_onboarding", JSON.stringify(data));
-      localStorage.setItem("glpy_sexo", String(data.sexo));
-      localStorage.setItem("glpy_peso_atual", String(data.peso_atual));
-      localStorage.setItem("glpy_peso_sonho", String(data.peso_sonho));
-      localStorage.setItem("glpy_altura", String(data.altura));
-      localStorage.setItem("glpy_medicamento", String(data.medicamento));
+      if (data.nome)   localStorage.setItem("glpy_nome", String(data.nome));
+      if (data.sexo)   localStorage.setItem("glpy_sexo", String(data.sexo));
+      if (data.peso_atual) localStorage.setItem("glpy_peso_atual", String(data.peso_atual));
+      if (data.peso_sonho) localStorage.setItem("glpy_peso_sonho", String(data.peso_sonho));
+      if (data.altura) localStorage.setItem("glpy_altura", String(data.altura));
+      if (data.medicamento) localStorage.setItem("glpy_medicamento", String(data.medicamento));
+
+      // Sincroniza no Firestore em background (não bloqueia)
+      const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
+      saveUserProfile({
+        onboarding: data,
+        nome: data.nome,
+        whatsapp: data.whatsapp,
+        dataNascimento: data.data_nascimento,
+        idade: data.idade,
+        email: glpyUser.email ?? null,
+        displayName: glpyUser.displayName ?? null,
+        updatedAt: new Date().toISOString(),
+      }).catch(() => {});
+
       onNext();
     }
   };
@@ -162,16 +238,19 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      const prevStep = STEPS[currentStep - 1];
-      if (prevStep.type === "number") {
-        setNumberValue(Number(formData[prevStep.id] ?? prevStep.default));
+      setTextError("");
+      const prev = STEPS[currentStep - 1];
+      if (prev.type === "number") {
+        setNumberValue(Number(formData[prev.id] ?? prev.default));
+      }
+      if (prev.type === "text" || prev.type === "phone") {
+        setTextValue(String(formData[prev.id] ?? ""));
+      }
+      if (prev.type === "date") {
+        setDateValue(String(formData["data_nascimento"] ?? ""));
       }
     }
   };
-
-  const projection = step.id === "peso_sonho" && formData.peso_atual
-    ? getProjection()
-    : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -229,7 +308,101 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
               )}
             </div>
 
-            {/* Opções */}
+            {/* ── TEXT input ── */}
+            {step.type === "text" && (
+              <div className="space-y-4">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={textValue}
+                  onChange={e => { setTextValue(e.target.value); setTextError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleText()}
+                  placeholder={step.placeholder}
+                  autoFocus
+                  className="w-full bg-white border-2 border-border rounded-2xl px-4 py-4 text-text-main text-base font-medium placeholder:text-text-muted focus:outline-none focus:border-primary transition"
+                />
+                {textError && <p className="text-red-500 text-xs px-1">{textError}</p>}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleText}
+                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base"
+                >
+                  Continuar →
+                </motion.button>
+              </div>
+            )}
+
+            {/* ── PHONE input ── */}
+            {step.type === "phone" && (
+              <div className="space-y-4">
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={textValue}
+                  onChange={e => {
+                    setTextValue(maskPhone(e.target.value));
+                    setTextError("");
+                  }}
+                  onKeyDown={e => e.key === "Enter" && handlePhone()}
+                  placeholder={step.placeholder}
+                  autoFocus
+                  className="w-full bg-white border-2 border-border rounded-2xl px-4 py-4 text-text-main text-base font-medium placeholder:text-text-muted focus:outline-none focus:border-primary transition tracking-wider"
+                />
+                {textError && <p className="text-red-500 text-xs px-1">{textError}</p>}
+                <p className="text-xs text-text-muted px-1">
+                  🔒 Seus dados são privados e usados apenas para suporte ao tratamento.
+                </p>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePhone}
+                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base"
+                >
+                  Continuar →
+                </motion.button>
+              </div>
+            )}
+
+            {/* ── DATE input ── */}
+            {step.type === "date" && (
+              <div className="space-y-4">
+                <input
+                  type="date"
+                  value={dateValue}
+                  onChange={e => { setDateValue(e.target.value); setTextError(""); }}
+                  max={new Date().toISOString().split("T")[0]}
+                  min="1920-01-01"
+                  className="w-full bg-white border-2 border-border rounded-2xl px-4 py-4 text-text-main text-base font-medium focus:outline-none focus:border-primary transition"
+                />
+                {dateValue && (() => {
+                  const idade = calcularIdade(dateValue);
+                  if (idade >= 16 && idade <= 100) {
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-primary/5 border border-primary/15 rounded-2xl p-3 text-center"
+                      >
+                        <p className="text-sm font-bold text-primary">{idade} anos</p>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Protocolo ajustado para sua faixa etária
+                        </p>
+                      </motion.div>
+                    );
+                  }
+                  return null;
+                })()}
+                {textError && <p className="text-red-500 text-xs px-1">{textError}</p>}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDate}
+                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base"
+                >
+                  Continuar →
+                </motion.button>
+              </div>
+            )}
+
+            {/* ── OPTIONS ── */}
             {step.type === "options" && step.options && (
               <div className="space-y-3">
                 {step.options.map((option) => (
@@ -246,10 +419,9 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
               </div>
             )}
 
-            {/* Input numérico */}
+            {/* ── NUMBER ── */}
             {step.type === "number" && (
               <div className="flex flex-col items-center flex-grow justify-center">
-                {/* Controle */}
                 <div className="flex items-center gap-6 mb-6">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
@@ -280,47 +452,40 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                   </motion.button>
                 </div>
 
-                {/* Projeção após peso dos sonhos */}
-                {step.id === "peso_sonho" && formData.peso_atual && (
-                  (() => {
-                    const diff = Number(formData.peso_atual) - numberValue;
-                    if (diff > 0) {
-                      const semanas = Math.round(diff / 0.5);
-                      return (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center mb-4 w-full"
-                        >
-                          <p className="text-xs text-text-muted mb-1">Sua projeção GLPY</p>
-                          <p className="font-bold text-primary text-sm">
-                            -{diff.toFixed(1)}kg em aprox. {semanas} semanas
-                          </p>
-                          <p className="text-xs text-text-muted mt-1">
-                            com suporte GLP-1 + protocolos
-                          </p>
-                        </motion.div>
-                      );
-                    }
-                    return null;
-                  })()
-                )}
+                {/* Projeção peso dos sonhos */}
+                {step.id === "peso_sonho" && formData.peso_atual && (() => {
+                  const diff = Number(formData.peso_atual) - numberValue;
+                  if (diff > 0) {
+                    const semanas = Math.round(diff / 0.5);
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center mb-4 w-full"
+                      >
+                        <p className="text-xs text-text-muted mb-1">Sua projeção GLPY</p>
+                        <p className="font-bold text-primary text-sm">
+                          -{diff.toFixed(1)}kg em aprox. {semanas} semanas
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">com suporte GLP-1 + protocolos</p>
+                      </motion.div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* IMC preview */}
-                {step.id === "peso_atual" && formData.altura && (
-                  (() => {
-                    const altura = Number(formData.altura) / 100;
-                    const imc = (numberValue / (altura * altura)).toFixed(1);
-                    return (
-                      <div className="bg-[#F4F6F8] border border-border rounded-2xl p-3 text-center w-full mb-4">
-                        <p className="text-xs text-text-muted">Seu IMC atual</p>
-                        <p className="font-bold text-text-main text-lg">{imc}</p>
-                      </div>
-                    );
-                  })()
-                )}
+                {step.id === "peso_atual" && formData.altura && (() => {
+                  const altura = Number(formData.altura) / 100;
+                  const imc = (numberValue / (altura * altura)).toFixed(1);
+                  return (
+                    <div className="bg-[#F4F6F8] border border-border rounded-2xl p-3 text-center w-full mb-4">
+                      <p className="text-xs text-text-muted">Seu IMC atual</p>
+                      <p className="font-bold text-text-main text-lg">{imc}</p>
+                    </div>
+                  );
+                })()}
 
-                {/* Botão confirmar */}
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={handleNumber}
@@ -330,6 +495,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                 </motion.button>
               </div>
             )}
+
           </motion.div>
         </AnimatePresence>
       </div>

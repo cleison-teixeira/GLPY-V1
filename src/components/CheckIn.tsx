@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, Check, Flame, ChevronLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 import BottomNav from "./BottomNav";
+import { saveCheckin, saveGamification } from "../services/firestore";
 
 const SYMPTOM_OPTIONS = [
   { label: "Náusea", emoji: "🤢" },
@@ -91,7 +92,13 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
 
     // XP +10
     const xpAtual = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
-    localStorage.setItem("glpy_xp", String(xpAtual + 10));
+    const novoXP = xpAtual + 10;
+    localStorage.setItem("glpy_xp", String(novoXP));
+
+    // Sincroniza no Firestore
+    const nivelCalc = novoXP < 100 ? 1 : novoXP < 300 ? 2 : novoXP < 600 ? 3 : novoXP < 1000 ? 4 : 5;
+    saveCheckin(checkinData).catch(() => {});
+    saveGamification({ xp: novoXP, streak: novoStreak, nivel: nivelCalc }).catch(() => {});
 
     confetti({
       particleCount: 60,
