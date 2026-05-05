@@ -10,6 +10,20 @@ import BottomNav from "./BottomNav";
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const dailyScore = 75;
 
+  const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
+  const nomeUsuario = (glpyUser.displayName as string)?.split(" ")[0]
+    || (glpyUser.email as string)?.split("@")[0]
+    || "Usuário";
+
+  const xpTotal = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+  const nivel = xpTotal < 100 ? 1 : xpTotal < 300 ? 2 : xpTotal < 600 ? 3 : xpTotal < 1000 ? 4 : 5;
+  const nivelNomes = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
+  const xpProxNivel = [100, 300, 600, 1000, Infinity];
+  const xpAtualNivel = [0, 100, 300, 600, 1000][nivel - 1];
+  const xpPct = nivel < 5
+    ? Math.round(((xpTotal - xpAtualNivel) / (xpProxNivel[nivel - 1] - xpAtualNivel)) * 100)
+    : 100;
+
   // Dados do onboarding para validação da dor
   const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
   const tempoToSemanas: Record<string, number> = {
@@ -39,7 +53,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     return parseInt(localStorage.getItem("glpy_protocolo_dia") || "0", 10);
   })();
 
-  const streak = parseInt(localStorage.getItem("glpy_streak") || "34", 10);
+  const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
 
   // Alerta de risco
   const riscoNivel = (dailyScore < 60 || streak < 2) ? "Alto"
@@ -131,19 +145,19 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
               <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
             </div>
             <p className="text-text-muted text-sm">Bom dia,</p>
-            <h1 className="text-2xl font-bold tracking-tight">Cleison</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{nomeUsuario}</h1>
             <div className="flex items-center gap-1.5 mt-2">
               <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs font-semibold text-text-main">Nível 3 · Adaptado</span>
+                <span className="text-xs font-semibold text-text-main">Nível {nivel} · {nivelNomes[nivel]}</span>
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
-                <span className="text-xs font-bold text-text-muted">340 XP</span>
+                <span className="text-xs font-bold text-text-muted">{xpTotal} XP</span>
               </div>
             </div>
             {/* Barra XP */}
             <div className="w-48 bg-border h-1 rounded-full mt-2">
-              <div className="bg-amber-400 h-full w-[40%] rounded-full" />
+              <div className="bg-amber-400 h-full rounded-full" style={{ width: `${xpPct}%` }} />
             </div>
           </div>
           <div className="w-10 h-10 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
@@ -182,7 +196,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           {/* Streak */}
           <div className="bg-white rounded-2xl border border-border p-4 flex flex-col items-center justify-center shadow-sm">
             <Flame className="w-9 h-9 text-orange-500 mb-1" fill="currentColor" />
-            <p className="text-3xl font-black text-text-main leading-none">34</p>
+            <p className="text-3xl font-black text-text-main leading-none">{streak}</p>
             <p className="text-xs text-text-muted font-medium mt-1">dias streak</p>
           </div>
         </div>

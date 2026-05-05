@@ -60,7 +60,8 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     );
 
     const today = new Date().toLocaleDateString('pt-BR');
-    const nome = (onboarding.nome as string) || "Usuário GLPY";
+    const glpyU = JSON.parse(localStorage.getItem("glpy_user") || "{}");
+    const nome = (glpyU.displayName as string) || (onboarding.nome as string) || "Usuário GLPY";
     const medicamento = (onboarding.medicamento as string) || "GLP-1";
     const dose = (onboarding.dose as string) || "";
     const tempo = (onboarding.tempo as string) || "N/A";
@@ -112,9 +113,12 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
+    const xpPDF = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    const nivelPDF = xpPDF < 100 ? 1 : xpPDF < 300 ? 2 : xpPDF < 600 ? 3 : xpPDF < 1000 ? 4 : 5;
+    const nivelNomesPDF = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
     const stats = [
       { label: "Streak atual", value: `${streak} dias consecutivos` },
-      { label: "XP Total", value: "340 XP — Nível 3 (Adaptado)" },
+      { label: "XP Total", value: `${xpPDF} XP — Nível ${nivelPDF} (${nivelNomesPDF[nivelPDF]})` },
       { label: "Protocolo ativo", value: protocloNome },
       { label: "Badges desbloqueados", value: "3 de 6" },
     ];
@@ -200,10 +204,10 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     doc.setFont("courier", "normal");
     const streakN = Math.min(parseInt(streak), 30);
     const streakBar = "#".repeat(streakN) + "-".repeat(30 - streakN);
-    const xpN = Math.min(Math.floor(340 / 17), 30);
+    const xpN = Math.min(Math.floor(xpPDF / 17), 30);
     const xpBar = "#".repeat(xpN) + "-".repeat(30 - xpN);
     doc.text(`Streak  [${streakBar}] ${streak} dias`, 14, y); y += 6;
-    doc.text(`XP      [${xpBar}] 340 XP (Nivel 3)`, 14, y); y += 10;
+    doc.text(`XP      [${xpBar}] ${xpPDF} XP (Nivel ${nivelPDF})`, 14, y); y += 10;
 
     // ── Observações médicas ──
     doc.setFont("helvetica", "bold");
@@ -235,12 +239,35 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     doc.save(`GLPY-Relatorio-${nomeClean}-${dateClean}.pdf`);
   };
 
-  const defaultAvatar = "https://ui-avatars.com/api/?name=Cleison&background=00C27A&color=fff&size=128";
+  const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
+  const nomeCompleto = (glpyUser.displayName as string) || "Usuário GLPY";
+  const emailUsuario = (glpyUser.email as string) || "";
+  const primeiroNome = nomeCompleto.split(" ")[0];
+
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNome)}&background=00C27A&color=fff&size=128`;
+
+  const streakAtual = localStorage.getItem("glpy_streak") || "0";
+  const xpTotalN = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+  const nivel = xpTotalN < 100 ? 1 : xpTotalN < 300 ? 2 : xpTotalN < 600 ? 3 : xpTotalN < 1000 ? 4 : 5;
+  const nivelNomes = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
+  const xpProxNivel = [100, 300, 600, 1000, Infinity];
+  const xpAtualNivel = [0, 100, 300, 600, 1000][nivel - 1];
+  const xpFaltam = nivel < 5 ? xpProxNivel[nivel - 1] - xpTotalN : 0;
+  const xpPct = nivel < 5
+    ? Math.round(((xpTotalN - xpAtualNivel) / (xpProxNivel[nivel - 1] - xpAtualNivel)) * 100)
+    : 100;
+
+  const onboardingData = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
+  const pesoAtual = parseFloat((onboardingData.peso_atual as string) || "0");
+  const pesoInicial = parseFloat((onboardingData.peso_inicial as string) || "0");
+  const kgPerdidos = pesoInicial > pesoAtual && pesoInicial > 0
+    ? (pesoInicial - pesoAtual).toFixed(1)
+    : "0";
 
   const stats = [
-    { label: "Streak", value: "34", unit: "dias", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
-    { label: "Perdidos", value: "8.4", unit: "kg", icon: TrendingDown, color: "text-primary", bg: "bg-primary/8" },
-    { label: "XP Total", value: "340", unit: "xp", icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
+    { label: "Streak", value: streakAtual, unit: "dias", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
+    { label: "Perdidos", value: kgPerdidos, unit: "kg", icon: TrendingDown, color: "text-primary", bg: "bg-primary/8" },
+    { label: "XP Total", value: String(xpTotalN), unit: "xp", icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
     { label: "Badges", value: "3", unit: "itens", icon: Award, color: "text-violet-500", bg: "bg-violet-50" },
   ];
 
@@ -325,11 +352,11 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
             <input id="upload-avatar" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
           </div>
           <div className="flex-grow min-w-0">
-            <h1 className="font-bold text-lg leading-tight truncate">Cleison I Marketing</h1>
-            <p className="text-text-muted text-xs truncate">cleisonimarketing@gmail.com</p>
+            <h1 className="font-bold text-lg leading-tight truncate">{nomeCompleto}</h1>
+            <p className="text-text-muted text-xs truncate">{emailUsuario}</p>
             <div className="flex gap-1.5 mt-2 flex-wrap">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">Nível 3 · Adaptado</span>
-              <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-bold border border-orange-100">🔥 34 dias</span>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">Nível {nivel} · {nivelNomes[nivel]}</span>
+              <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-bold border border-orange-100">🔥 {streakAtual} dias</span>
             </div>
           </div>
         </div>
@@ -337,11 +364,11 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
         {/* Barra XP */}
         <div className="mt-4">
           <div className="flex justify-between text-xs text-text-muted mb-1.5">
-            <span>340 XP · Nível 3</span>
-            <span>160 XP para Nível 4</span>
+            <span>{xpTotalN} XP · Nível {nivel}</span>
+            <span>{nivel < 5 ? `${xpFaltam} XP para Nível ${nivel + 1}` : "Nível máximo!"}</span>
           </div>
           <div className="w-full bg-[#F4F6F8] h-2 rounded-full overflow-hidden">
-            <div className="bg-amber-400 h-full rounded-full" style={{ width: '68%' }} />
+            <div className="bg-amber-400 h-full rounded-full" style={{ width: `${xpPct}%` }} />
           </div>
         </div>
       </div>

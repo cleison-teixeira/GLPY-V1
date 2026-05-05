@@ -43,7 +43,10 @@ const getIAResponse = (hunger: number, mood: number | null, symptoms: string[]):
 };
 
 export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const [weight, setWeight] = useState(83.0);
+  const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
+  const pesoInicial = parseFloat((onboarding.peso_atual as string) || "83.0");
+
+  const [weight, setWeight] = useState(pesoInicial || 83.0);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [hunger, setHunger] = useState(5);
   const [satiety, setSatiety] = useState(5);
@@ -51,6 +54,8 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
   const [saved, setSaved] = useState(false);
   const [showXP, setShowXP] = useState(false);
   const [iaResponse, setIaResponse] = useState<string | null>(null);
+
+  const streakAtual = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
 
   const toggleSymptom = (s: string) => {
     setSymptoms(prev => prev.includes(s) ? prev.filter(i => i !== s) : [...prev, s]);
@@ -62,6 +67,32 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
     setShowXP(true);
     setIaResponse(getIAResponse(hunger, mood, symptoms));
     setTimeout(() => setShowXP(false), 2000);
+
+    const today = new Date().toLocaleDateString('pt-BR');
+    const checkinData = {
+      data: today,
+      peso: weight.toFixed(1),
+      fome: hunger,
+      saciedade: satiety,
+      humor: mood,
+      sintomas: symptoms,
+    };
+    localStorage.setItem("glpy_checkin_hoje", JSON.stringify(checkinData));
+
+    const historico: unknown[] = JSON.parse(localStorage.getItem("glpy_checkin_historico") || "[]");
+    historico.unshift(checkinData);
+    localStorage.setItem("glpy_checkin_historico", JSON.stringify(historico.slice(0, 30)));
+
+    // streak
+    const ultimoCheckin = localStorage.getItem("glpy_checkin_data");
+    const novoStreak = ultimoCheckin === today ? streakAtual : streakAtual + 1;
+    localStorage.setItem("glpy_streak", String(novoStreak));
+    localStorage.setItem("glpy_checkin_data", today);
+
+    // XP +10
+    const xpAtual = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    localStorage.setItem("glpy_xp", String(xpAtual + 10));
+
     confetti({
       particleCount: 60,
       spread: 50,
@@ -104,7 +135,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
             <span className="text-text-muted text-sm capitalize">{today}</span>
             <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
               <Flame className="w-4 h-4" fill="currentColor" />
-              <span className="font-bold text-sm">34</span>
+              <span className="font-bold text-sm">{streakAtual}</span>
             </div>
           </div>
         </header>
@@ -246,7 +277,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
             className="mt-4 text-center"
           >
             <p className="text-xs text-text-muted">
-              🔥 Streak mantido! Volte amanhã para não perder os <strong>34 dias</strong>.
+              🔥 Streak mantido! Volte amanhã para não perder os <strong>{streakAtual + 1} dias</strong>.
             </p>
             <button
               onClick={() => onNavigate('dashboard')}
