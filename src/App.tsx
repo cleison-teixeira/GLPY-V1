@@ -29,6 +29,15 @@ import Perfil from './components/Perfil';
 import Planos from './components/Planos';
 import Comunidade from './components/Comunidade';
 import EmBreve from './components/EmBreve';
+import Protocolo1 from './components/Protocolo1';
+import Protocolo2 from './components/Protocolo2';
+import Protocolo3 from './components/Protocolo3';
+import Protocolo5 from './components/Protocolo5';
+import Protocolo6 from './components/Protocolo6';
+import Protocolo7 from './components/Protocolo7';
+import Protocolo8 from './components/Protocolo8';
+import Protocolo9 from './components/Protocolo9';
+import Protocolo10 from './components/Protocolo10';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
@@ -90,9 +99,18 @@ export default function App() {
       case 'fotosEvolucao': return <FotosEvolucao onNavigate={setTelaAtual} />;
       case 'loja':         return <Loja onNavigate={setTelaAtual} />;
       case 'planos':       return <Planos onNavigate={setTelaAtual} />;
-      case 'comunidade':   return <Comunidade onNavigate={setTelaAtual} />;
-      case 'emBreve':      return <EmBreve onNavigate={setTelaAtual} />;
-      default:             return <Dashboard onNavigate={setTelaAtual} />;
+      case 'comunidade':            return <Comunidade onNavigate={setTelaAtual} />;
+      case 'emBreve':               return <EmBreve onNavigate={setTelaAtual} />;
+      case 'sobrevivendoCanetas':   return <Protocolo1 onNavigate={setTelaAtual} />;
+      case 'efeitosColaterais':     return <Protocolo2 onNavigate={setTelaAtual} />;
+      case 'antiQuedaCabelo':       return <Protocolo3 onNavigate={setTelaAtual} />;
+      case 'psicologiaEmagrecimento': return <Protocolo5 onNavigate={setTelaAtual} />;
+      case 'alimentacaoBaixoApetite': return <Protocolo6 onNavigate={setTelaAtual} />;
+      case 'naoPerdaMusculos':      return <Protocolo7 onNavigate={setTelaAtual} />;
+      case 'energiaBaixa':          return <Protocolo8 onNavigate={setTelaAtual} />;
+      case 'ajusteMetabolico':      return <Protocolo9 onNavigate={setTelaAtual} />;
+      case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
+      default:                      return <Dashboard onNavigate={setTelaAtual} />;
     }
   };
 

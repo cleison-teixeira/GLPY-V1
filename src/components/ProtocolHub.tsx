@@ -11,73 +11,80 @@ type Protocolo = {
   nome: string;
   desc: string;
   dias: number;
-  desbloqueado: boolean;
+  planoMinimo: string;
   cor: string;
   corLight: string;
 };
 
 const PROTOCOLOS: Protocolo[] = [
   {
+    id: "sobrevivendoCanetas", rota: "sobrevivendoCanetas", n: 1,
+    emoji: "💉", nome: "Sobrevivendo às Canetas",
+    desc: "Adaptação nos primeiros dias — náusea, timing e o que comer",
+    dias: 7, planoMinimo: "starter", cor: "#7660FF", corLight: "#F0EEFF",
+  },
+  {
+    id: "efeitosColaterais", rota: "efeitosColaterais", n: 2,
+    emoji: "🩺", nome: "Controle de Efeitos Colaterais",
+    desc: "Náusea, constipação, fadiga e tontura — soluções práticas",
+    dias: 7, planoMinimo: "starter", cor: "#3B82F6", corLight: "#EFF6FF",
+  },
+  {
+    id: "antiQuedaCabelo", rota: "antiQuedaCabelo", n: 3,
+    emoji: "💇", nome: "Anti-Queda de Cabelo",
+    desc: "Zinco, biotina, ferro e telogen effluvium no GLP-1",
+    dias: 7, planoMinimo: "plus", cor: "#EC4899", corLight: "#FDF2F8",
+  },
+  {
     id: "antiRebote", rota: "antiRebote", n: 4,
     emoji: "⚖️", nome: "Anti-Rebote",
     desc: "Trave o efeito rebote em 7 dias com ciência",
-    dias: 7, desbloqueado: true, cor: "#00C27A", corLight: "#E6FBF3",
+    dias: 7, planoMinimo: "starter", cor: "#00C27A", corLight: "#E6FBF3",
   },
   {
-    id: "sobrevivendo", rota: "protocolDay", n: 1,
-    emoji: "💉", nome: "Sobrevivendo às Canetas",
-    desc: "Protocolo de adaptação — primeiras semanas",
-    dias: 7, desbloqueado: true, cor: "#7660FF", corLight: "#F0EEFF",
+    id: "psicologiaEmagrecimento", rota: "psicologiaEmagrecimento", n: 5,
+    emoji: "🧠", nome: "Psicologia do Emagrecimento",
+    desc: "Fome emocional, gatilhos, identidade e sabotagem",
+    dias: 7, planoMinimo: "plus", cor: "#8B5CF6", corLight: "#F5F3FF",
   },
   {
-    id: "nutricao", rota: "protocolDay", n: 2,
-    emoji: "🥗", nome: "Nutrição Anti-Perda Muscular",
-    desc: "Preserva músculo durante o emagrecimento rápido",
-    dias: 7, desbloqueado: true, cor: "#F5A623", corLight: "#FFF8ED",
+    id: "alimentacaoBaixoApetite", rota: "alimentacaoBaixoApetite", n: 6,
+    emoji: "🥗", nome: "Alimentação para Baixo Apetite",
+    desc: "Alta nutrição em porções mínimas — timing e densidade",
+    dias: 7, planoMinimo: "plus", cor: "#10B981", corLight: "#ECFDF5",
   },
   {
-    id: "cabelo", rota: "planos", n: 3,
-    emoji: "🧠", nome: "Anti-Queda de Cabelo",
-    desc: "Protocolo nutricional para queda causada por GLP-1",
-    dias: 7, desbloqueado: false, cor: "#E8445A", corLight: "#FEF0F2",
+    id: "naoPerdaMusculos", rota: "naoPerdaMusculos", n: 7,
+    emoji: "💪", nome: "Não Perca Músculo",
+    desc: "Leucina, síntese proteica e exercício no déficit",
+    dias: 7, planoMinimo: "pro", cor: "#F5A623", corLight: "#FFF8ED",
   },
   {
-    id: "sono", rota: "planos", n: 5,
-    emoji: "😴", nome: "Sono e Recuperação",
-    desc: "Melhora o sono prejudicado pelo GLP-1",
-    dias: 7, desbloqueado: false, cor: "#3B82F6", corLight: "#EFF6FF",
+    id: "energiaBaixa", rota: "energiaBaixa", n: 8,
+    emoji: "⚡", nome: "Energia Baixa",
+    desc: "Ferro, B12, sono, hidratação e tireoide no GLP-1",
+    dias: 7, planoMinimo: "pro", cor: "#EF4444", corLight: "#FEF2F2",
   },
   {
-    id: "massa", rota: "planos", n: 6,
-    emoji: "💪", nome: "Massa Muscular no GLP-1",
-    desc: "Construa músculo enquanto emagrece",
-    dias: 7, desbloqueado: false, cor: "#10B981", corLight: "#ECFDF5",
+    id: "ajusteMetabolico", rota: "ajusteMetabolico", n: 9,
+    emoji: "📊", nome: "Ajuste Metabólico",
+    desc: "TDEE, termogênese adaptativa e reverse dieting",
+    dias: 7, planoMinimo: "top", cor: "#F59E0B", corLight: "#FFFBEB",
   },
   {
-    id: "hormonal", rota: "planos", n: 7,
-    emoji: "🧬", nome: "Regulação Hormonal",
-    desc: "Equilibra os hormônios impactados pelo tratamento",
-    dias: 7, desbloqueado: false, cor: "#8B5CF6", corLight: "#F5F3FF",
-  },
-  {
-    id: "metabolica", rota: "planos", n: 8,
-    emoji: "🫁", nome: "Saúde Metabólica",
-    desc: "Otimiza resistência à insulina e inflamação",
-    dias: 7, desbloqueado: false, cor: "#EC4899", corLight: "#FDF2F8",
-  },
-  {
-    id: "manutencao", rota: "planos", n: 9,
-    emoji: "📊", nome: "Manutenção Inteligente",
-    desc: "Estratégias para manter o peso após a meta",
-    dias: 14, desbloqueado: false, cor: "#F59E0B", corLight: "#FFFBEB",
-  },
-  {
-    id: "transicao", rota: "planos", n: 10,
+    id: "transicaoParar", rota: "transicaoParar", n: 10,
     emoji: "🔄", nome: "Transição — Parar a Caneta",
-    desc: "Como sair do GLP-1 sem recuperar o peso",
-    dias: 21, desbloqueado: false, cor: "#EF4444", corLight: "#FEF2F2",
+    desc: "Desmame gradual, manutenção e plano de 90 dias",
+    dias: 7, planoMinimo: "top", cor: "#06B6D4", corLight: "#ECFEFF",
   },
 ];
+
+const PLANO_ORDEM = ["starter", "plus", "pro", "top"];
+
+function estaDesbloqueado(planoMinimo: string): boolean {
+  const planoAtual = localStorage.getItem("glpy_plano") || "plus";
+  return PLANO_ORDEM.indexOf(planoAtual) >= PLANO_ORDEM.indexOf(planoMinimo);
+}
 
 export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [confirmar, setConfirmar] = useState<Protocolo | null>(null);
@@ -88,7 +95,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
   })();
 
   const handleClick = (p: Protocolo) => {
-    if (!p.desbloqueado) {
+    if (!estaDesbloqueado(p.planoMinimo)) {
       onNavigate("planos");
       return;
     }
@@ -135,36 +142,35 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
       <div className="px-4 pt-4 space-y-3">
         {PROTOCOLOS.map((p) => {
           const isAtivo = p.id === idAtivo;
+          const desbloqueado = estaDesbloqueado(p.planoMinimo);
           return (
             <motion.button
               key={p.id}
-              whileTap={{ scale: p.desbloqueado ? 0.98 : 1 }}
+              whileTap={{ scale: desbloqueado ? 0.98 : 1 }}
               onClick={() => handleClick(p)}
               className="w-full text-left"
             >
               <div
                 className="bg-white border rounded-2xl p-4 flex items-center gap-3 shadow-sm"
-                style={{ borderColor: isAtivo ? p.cor : p.desbloqueado ? p.cor + "40" : "#E2EBE7" }}
+                style={{ borderColor: isAtivo ? p.cor : desbloqueado ? p.cor + "40" : "#E2EBE7" }}
               >
-                {/* Número */}
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-base font-black"
-                  style={{ background: p.desbloqueado ? p.corLight : "#F4F6F8", color: p.desbloqueado ? p.cor : "#9CB3BF" }}
+                  style={{ background: desbloqueado ? p.corLight : "#F4F6F8", color: desbloqueado ? p.cor : "#9CB3BF" }}
                 >
                   {p.n}
                 </div>
 
-                {/* Emoji + Texto */}
                 <div className="flex-grow min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-lg leading-none">{p.emoji}</span>
-                    <p className={`font-bold text-sm truncate ${p.desbloqueado ? "text-[#0A1628]" : "text-text-muted"}`}>
+                    <p className={`font-bold text-sm truncate ${desbloqueado ? "text-[#0A1628]" : "text-text-muted"}`}>
                       {p.nome}
                     </p>
                   </div>
                   <p className="text-xs text-text-muted mt-0.5 leading-snug line-clamp-1">{p.desc}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs" style={{ color: p.desbloqueado ? p.cor : "#9CB3BF" }}>
+                    <p className="text-xs" style={{ color: desbloqueado ? p.cor : "#9CB3BF" }}>
                       {p.dias} dias
                     </p>
                     {isAtivo && (
@@ -175,12 +181,16 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
                         ▶ Em andamento
                       </span>
                     )}
+                    {!desbloqueado && (
+                      <span className="text-xs text-text-muted bg-[#F4F6F8] px-2 py-0.5 rounded-full">
+                        Plano {p.planoMinimo.charAt(0).toUpperCase() + p.planoMinimo.slice(1)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Ação */}
                 <div className="flex-shrink-0">
-                  {!p.desbloqueado
+                  {!desbloqueado
                     ? <Lock className="w-4 h-4 text-text-muted opacity-50" />
                     : isAtivo
                     ? <Play className="w-4 h-4" style={{ color: p.cor }} />

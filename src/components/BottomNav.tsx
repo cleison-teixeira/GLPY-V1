@@ -1,5 +1,4 @@
-
-import { Home, List, Utensils, User, Users } from "lucide-react";
+import { House, BookOpen, ChefHat, Users, UserCircle } from "lucide-react";
 
 interface BottomNavProps {
   active: string;
@@ -8,20 +7,21 @@ interface BottomNavProps {
 
 export default function BottomNav({ active, onNavigate }: BottomNavProps) {
   const items = [
-    { id: 'dashboard',   name: 'Home',       icon: Home },
-    { id: 'protocolHub', name: 'Protocolos', icon: List },
-    { id: 'recipes',     name: 'Receitas',   icon: Utensils },
-    { id: 'comunidade',  name: 'Comunidade', icon: Users },
-    { id: 'perfil',      name: 'Perfil',     icon: User },
+    { id: "dashboard",   name: "Home",       icon: House },
+    { id: "protocolHub", name: "Protocolos", icon: BookOpen },
+    { id: "receitas",    name: "Receitas",   icon: ChefHat },
+    { id: "comunidade",  name: "Comunidade", icon: Users },
+    { id: "perfil",      name: "Perfil",     icon: UserCircle },
   ];
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 flex justify-around z-50"
       style={{
-        background: "#F8FAF9",
-        borderTop: "1px solid #C8F0E0",
-        padding: "10px 0 14px",
+        background: "#F0FAF5",
+        borderTop: "2px solid #C8F0E0",
+        padding: "10px 0 16px",
+        boxShadow: "0 -4px 12px rgba(0,194,122,0.08)",
       }}
     >
       {items.map((item) => {
@@ -31,11 +31,21 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className="flex flex-col items-center gap-1 flex-1 transition-all"
-            style={{ color: isActive ? "#00C27A" : "#A0B8B0" }}
+            className="flex flex-col items-center flex-1"
+            style={{ gap: 2 }}
           >
-            <Icon className="w-5 h-5" />
-            <span className={`text-[10px] font-${isActive ? "bold" : "medium"}`}>{item.name}</span>
+            <Icon style={{ width: 22, height: 22, color: isActive ? "#00C27A" : "#A0B8AF" }} />
+            <div style={{ width: 4, height: 4, borderRadius: "50%", background: isActive ? "#00C27A" : "transparent" }} />
+            <span
+              style={{
+                fontSize: 10,
+                color: isActive ? "#00C27A" : "#A0B8AF",
+                fontWeight: isActive ? 700 : 500,
+                lineHeight: 1,
+              }}
+            >
+              {item.name}
+            </span>
           </button>
         );
       })}
