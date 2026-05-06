@@ -452,27 +452,6 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                   </motion.button>
                 </div>
 
-                {/* Projeção peso dos sonhos */}
-                {step.id === "peso_sonho" && formData.peso_atual && (() => {
-                  const diff = Number(formData.peso_atual) - numberValue;
-                  if (diff > 0) {
-                    const semanas = Math.round(diff / 0.5);
-                    return (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center mb-4 w-full"
-                      >
-                        <p className="text-xs text-text-muted mb-1">Sua projeção GLPY</p>
-                        <p className="font-bold text-primary text-sm">
-                          -{diff.toFixed(1)}kg em aprox. {semanas} semanas
-                        </p>
-                        <p className="text-xs text-text-muted mt-1">com suporte GLP-1 + protocolos</p>
-                      </motion.div>
-                    );
-                  }
-                  return null;
-                })()}
 
                 {/* IMC preview */}
                 {step.id === "peso_atual" && formData.altura && (() => {

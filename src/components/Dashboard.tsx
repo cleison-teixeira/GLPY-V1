@@ -8,7 +8,26 @@ import {
 import BottomNav from "./BottomNav";
 
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const dailyScore = 75;
+  // Bug 3: score dinâmico baseado no check-in de hoje
+  const checkinHoje = (() => {
+    try { return JSON.parse(localStorage.getItem("glpy_checkin_hoje") || "null"); } catch { return null; }
+  })();
+  const dailyScore = (() => {
+    if (!checkinHoje) return 0;
+    let s = 100;
+    const fome: number = checkinHoje.fome ?? 5;
+    const humor: number | null = checkinHoje.humor ?? null;
+    const sintomas: string[] = checkinHoje.sintomas ?? [];
+    if (fome >= 8) s -= 20; else if (fome <= 2) s -= 10;
+    if (humor !== null) { if (humor <= 1) s -= 20; else if (humor === 2) s -= 10; }
+    if (sintomas.includes("Náusea")) s -= 15;
+    if (sintomas.includes("Enjôo")) s -= 10;
+    if (sintomas.includes("Cansaço")) s -= 10;
+    if (sintomas.includes("Energia")) s += 5;
+    if (sintomas.includes("Bem-estar")) s += 5;
+    if (sintomas.includes("Foco")) s += 5;
+    return Math.min(100, Math.max(0, s));
+  })();
 
   const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
   const nomeUsuario = (glpyUser.displayName as string)?.split(" ")[0]
@@ -71,30 +90,100 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     ? { border: "#F59E0B", bg: "#FFFBEB", text: "#D97706" }
     : { border: "#00C27A", bg: "#E6FBF3", text: "#009960" };
 
-  // Decisões do dia por protocolo
+  // Bug 12: decisões dinâmicas por protocolo + rotação semanal
   const DECISOES: Record<string, Array<{ acao: string; motivo: string }>> = {
     antiRebote: [
       { acao: "Bater a meta de proteína hoje", motivo: "Proteína alta é o principal sinal de segurança para o metabolismo" },
       { acao: "20 min de caminhada leve", motivo: "Ativa GLUT4 — direciona glicose para músculo, não gordura" },
       { acao: "Dormir 8 horas esta noite", motivo: "Sono ruim aumenta grelina em +30% e triplica a fome amanhã" },
     ],
-    sobrevivendo: [
+    sobrevivendoCanetas: [
       { acao: "Comer a cada 3-4 horas", motivo: "Mantém metabolismo ativo mesmo com apetite suprimido pelo GLP-1" },
       { acao: "Registrar todos os sintomas", motivo: "Dados desta semana guiam o ajuste do protocolo" },
       { acao: "Beber 2L de água", motivo: "Desidratação simula fome — o GLP-1 pode mascarar o sinal" },
     ],
-    nutricao: [
-      { acao: "Proteína completa nas 3 refeições", motivo: "Leucina é essencial para síntese muscular com déficit calórico" },
-      { acao: "Fonte de gordura boa no almoço", motivo: "Ômega-3 reduz inflamação causada pelo emagrecimento rápido" },
-      { acao: "Zero carboidrato refinado hoje", motivo: "Pico de glicose sabota a preservação muscular" },
+    efeitosColaterais: [
+      { acao: "Comer antes de tomar a injeção", motivo: "Estômago vazio potencializa náusea no GLP-1" },
+      { acao: "Evitar alimentos gordurosos hoje", motivo: "GLP-1 retarda esvaziamento gástrico — gordura piora o desconforto" },
+      { acao: "Registrar sintomas de hoje", motivo: "O histórico guia o ajuste da dose com seu médico" },
+    ],
+    antiQuedaCabelo: [
+      { acao: "Garantir 1,5g de proteína por kg corporal", motivo: "Deficiência proteica é a causa #1 de queda de cabelo no GLP-1" },
+      { acao: "Tomar biotina e zinco hoje", motivo: "GLP-1 pode comprometer absorção de micronutrientes essenciais" },
+      { acao: "Evitar déficit calórico extremo", motivo: "Menos de 1200 kcal acelera queda de cabelo" },
+    ],
+    psicologiaEmagrecimento: [
+      { acao: "Registre 1 vitória do dia hoje", motivo: "Celebrar pequenas conquistas sustenta a motivação a longo prazo" },
+      { acao: "Evite comparações no espelho hoje", motivo: "O progresso real é medido em semanas, não dias" },
+      { acao: "Converse com alguém sobre sua jornada", motivo: "Suporte social multiplica a adesão ao tratamento" },
+    ],
+    alimentacaoBaixoApetite: [
+      { acao: "Coma mesmo sem fome — 3 refeições mínimo", motivo: "GLP-1 suprime apetite, mas seus músculos precisam de nutrição" },
+      { acao: "Prefira alimentos de alta densidade nutricional", motivo: "Pouco volume, máximo de nutrientes por refeição" },
+      { acao: "Use o timer de 3h para lembrar de comer", motivo: "Sem lembretes, o GLP-1 faz você esquecer de se alimentar" },
+    ],
+    naoPerdaMusculos: [
+      { acao: "Proteína em todas as refeições (20g+)", motivo: "Leucina estimula síntese proteica e preserva massa magra" },
+      { acao: "Fazer exercício de resistência hoje", motivo: "Músculo só é preservado quando é estimulado" },
+      { acao: "Não pular o café da manhã", motivo: "Síntese proteica é maior pela manhã — aproveite esse janela" },
+    ],
+    energiaBaixa: [
+      { acao: "Verificar se bebeu água hoje", motivo: "Desidratação leve de 2% causa queda de 20% na energia" },
+      { acao: "Comer carboidrato complexo no almoço", motivo: "Sem carboidrato, o cérebro funciona em modo de economia" },
+      { acao: "Dormir antes da meia-noite esta noite", motivo: "GH e cortisol são regulados pelo horário do sono" },
+    ],
+    ajusteMetabolico: [
+      { acao: "Pesar-se em jejum e registrar", motivo: "Medições consistentes revelam o padrão metabólico real" },
+      { acao: "Manter calorias acima de 1200 hoje", motivo: "Comer muito pouco ativa o modo de poupança metabólica" },
+      { acao: "Variar os alimentos para evitar adaptação", motivo: "Mesmos alimentos todo dia = estagnação metabólica" },
+    ],
+    transicaoParar: [
+      { acao: "Manter a proteína alta mesmo sem o GLP-1", motivo: "A proteína é o principal freio do efeito rebote" },
+      { acao: "Aumentar gradualmente as calorias (+100 por semana)", motivo: "Aumento brusco de calorias pós-GLP-1 = rebote imediato" },
+      { acao: "Registrar fome e saciedade hoje", motivo: "Monitorar sinais de fome é essencial na transição" },
     ],
   };
 
-  const decisoes = DECISOES[protocoloAtivo.id] || [
-    { acao: "Completar o check-in diário", motivo: "Dados consistentes tornam o protocolo mais preciso" },
-    { acao: "Bater a meta de proteína", motivo: "Proteína é a âncora de todo o protocolo GLPY" },
-    { acao: "Zero açúcar refinado hoje", motivo: "Picos de glicose ativam o mecanismo de rebote" },
+  const DECISOES_SEMANA: Array<Array<{ acao: string; motivo: string }>> = [
+    [ // Dom
+      { acao: "Planejar refeições da semana", motivo: "Planejamento elimina decisões ruins na hora da fome" },
+      { acao: "Fazer um descanso ativo (caminhada leve)", motivo: "Recuperação ativa é tão importante quanto o exercício" },
+      { acao: "Revisar seu progresso da semana", motivo: "Consciência do progresso sustenta a motivação" },
+    ],
+    [ // Seg
+      { acao: "Bater a meta de proteína hoje", motivo: "Segunda é o dia mais crítico para reestabelecer o ritmo" },
+      { acao: "Check-in completo de hoje", motivo: "Dados da segunda definem a trajetória da semana" },
+      { acao: "Beber 2L de água", motivo: "Hidratação é base de tudo no protocolo GLP-1" },
+    ],
+    [ // Ter
+      { acao: "Exercício de força hoje", motivo: "Terça é o melhor dia para treino de resistência da semana" },
+      { acao: "Registrar prato do almoço", motivo: "Consistência no registro é o hábito mais poderoso" },
+      { acao: "Zero açúcar refinado hoje", motivo: "Pico de glicose na terça afeta o metabolismo até quinta" },
+    ],
+    [ // Qua
+      { acao: "Ajustar macros se necessário", motivo: "Quarta é o ponto ideal para corrigir a rota semanal" },
+      { acao: "Verificar sintomas desta semana", motivo: "Padrões de sintomas aparecem no meio da semana" },
+      { acao: "Dormir 8h esta noite", motivo: "Sono da quarta impacta diretamente o metabolismo de gordura" },
+    ],
+    [ // Qui
+      { acao: "Manter proteína e ignorar a fome aumentada", motivo: "Quinta tem pico natural de grelina — é biológico, não fraqueza" },
+      { acao: "Caminhada de 20 min após o jantar", motivo: "Blunts o pico de cortisol noturno da quinta" },
+      { acao: "Registrar peso hoje", motivo: "Peso da quinta é o mais representativo da semana" },
+    ],
+    [ // Sex
+      { acao: "Preparar proteína para o fim de semana", motivo: "Fim de semana sem prep = mais chance de erro alimentar" },
+      { acao: "Checar fome real vs. fome emocional", motivo: "Sexta tem gatilho social forte — consciência é proteção" },
+      { acao: "Completar o check-in desta semana", motivo: "Fechar a semana com dados completos otimiza o protocolo" },
+    ],
+    [ // Sáb
+      { acao: "Manter horários de refeição mesmo no sábado", motivo: "Desregular o ritmo no fim de semana = fome dobrada na segunda" },
+      { acao: "Priorizar proteína antes de sair", motivo: "Comer proteína antes do social protege de escolhas ruins" },
+      { acao: "Registrar o quanto comeu ontem", motivo: "Consciência calórica do sábado é raramente monitorada" },
+    ],
   ];
+
+  const diaSemanaIdx = new Date().getDay();
+  const decisoes = DECISOES[protocoloAtivo.id] || DECISOES_SEMANA[diaSemanaIdx];
 
   const [decisoesMarcadas, setDecisoesMarcadas] = useState<boolean[]>([false, false, false]);
   const toggleDecisao = (i: number) =>
@@ -144,7 +233,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
               </div>
               <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
             </div>
-            <p className="text-text-muted text-sm">Bom dia,</p>
+            <p className="text-text-muted text-sm">Olá,</p>
             <h1 className="text-2xl font-bold tracking-tight">{nomeUsuario}</h1>
             <div className="flex items-center gap-1.5 mt-2">
               <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
@@ -216,7 +305,10 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
             </div>
           </div>
           <button
-            onClick={() => onNavigate('chatIA')}
+            onClick={() => {
+              if (riscoNivel === "Alto") localStorage.setItem("glpy_chat_initial_mode", "Diagnóstico");
+              onNavigate('chatIA');
+            }}
             className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: riscoCor.text }}
           >
@@ -292,27 +384,39 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           </div>
         </div>
 
-        {/* Missão Crítica */}
-        <div className="bg-white rounded-2xl border border-amber-200 p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Zap className="w-5 h-5 text-amber-500" />
+        {/* Bug 9: Missão Crítica dinâmica por dia da semana */}
+        {(() => {
+          const MISSOES = [
+            { missao: "Beba 2L de água hoje 💧", consequencia: "Desidratação com GLP-1 causa dor de cabeça intensa" },
+            { missao: "Bata a meta de proteína hoje 🥩", consequencia: "Proteína baixa hoje = perda muscular e fome triplicada amanhã" },
+            { missao: "Durma 8h esta noite 😴", consequencia: "Sono < 7h aumenta grelina em 30% e sabota o GLP-1" },
+            { missao: "Evite açúcar refinado hoje 🚫", consequencia: "Um pico de glicose desfaz 3 dias de progresso metabólico" },
+            { missao: "Faça 15 min de caminhada hoje 🚶", consequencia: "Sem NEAT, a glicose vai para gordura — não músculo" },
+            { missao: "Coma devagar, mastigue bem hoje 🍽️", consequencia: "Comer rápido com GLP-1 = náusea e refluxo garantidos" },
+            { missao: "Registre seu prato no app 📸", consequencia: "Sem registro, o erro alimentar se repete sem perceber" },
+          ];
+          const m = MISSOES[new Date().getDay()];
+          return (
+            <div className="bg-white rounded-2xl border border-amber-200 p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                </div>
+                <div className="flex-grow">
+                  <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">MISSÃO CRÍTICA HOJE ⚠️</p>
+                  <p className="font-bold text-sm text-text-main mt-0.5">{m.missao}</p>
+                  <p className="text-xs text-red-500 font-medium mt-1">{m.consequencia}</p>
+                </div>
+                <button
+                  onClick={() => onNavigate('checkin')}
+                  className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-primary hover:text-white transition"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex-grow">
-              <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">MISSÃO CRÍTICA HOJE ⚠️</p>
-              <p className="font-bold text-sm text-text-main mt-0.5">Beba 2L de água hoje 💧</p>
-              <p className="text-xs text-red-500 font-medium mt-1">
-                Se não beber 2L hoje → risco de dor de cabeça amanhã (efeito GLP-1)
-              </p>
-            </div>
-            <button
-              onClick={() => onNavigate('checkin')}
-              className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-primary hover:text-white transition"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Protocolo ativo */}
         <div

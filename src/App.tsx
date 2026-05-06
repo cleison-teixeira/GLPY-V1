@@ -50,21 +50,24 @@ export default function App() {
     if (localStorage.getItem("glpy_tema") === "dark") {
       document.documentElement.classList.add("dark");
     }
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         localStorage.setItem("glpy_user", JSON.stringify({
           uid: firebaseUser.uid,
           displayName: firebaseUser.displayName,
           email: firebaseUser.email,
         }));
+        try { await syncFromFirestore(); } catch {}
+        // Bloqueia acesso sem plano pago (verificado via Firestore)
+        const plano = localStorage.getItem("glpy_plano");
+        if (!plano && onboardingDone) {
+          setTelaAtual('planos');
+        }
       } else {
         localStorage.removeItem("glpy_user");
       }
       setUser(firebaseUser);
       setAuthLoading(false);
-      if (firebaseUser) {
-        syncFromFirestore().catch(() => {});
-      }
     });
     return unsubscribe;
   }, []);
@@ -83,7 +86,7 @@ export default function App() {
             onDashboard={() => setTelaAtual('dashboard')}
           />
         );
-      case 'onboarding':   return <Onboarding onNext={() => setTelaAtual('dashboard')} />;
+      case 'onboarding':   return <Onboarding onNext={() => setTelaAtual('planos')} />;
       case 'dashboard':    return <Dashboard onNavigate={setTelaAtual} />;
       case 'protocolHub':  return <ProtocolHub onNavigate={setTelaAtual} />;
       case 'protocolDay':  return <ProtocolDay onNavigate={setTelaAtual} />;

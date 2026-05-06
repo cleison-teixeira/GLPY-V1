@@ -39,8 +39,9 @@ function getUserContext() {
     streak,
     protocolo: (checkin.protocolo as string) || "Sobrevivendo às Canetas",
     diaProtocolo: (checkin.diaProtocolo as number) || 1,
-    fome: (checkin.fome as number) || 5,
-    energia: (checkin.energia as number) || 5,
+    fome: (checkin.fome as number) ?? 5,
+    // Bug 11: saciedade (não energia) é o campo salvo no check-in
+    energia: (checkin.saciedade as number) ?? 5,
     sintomas: (checkin.sintomas as string[]) || [],
   };
 }
@@ -111,14 +112,22 @@ Análise preditiva obrigatória:
 - Faça 1 pergunta de acompanhamento por vez. Seja analítico e preciso.${regraFinal}`,
   };
 
+  // Bug 8: lê modo inicial do localStorage (setado pelo Dashboard ao clicar em Risco Alto)
+  const _savedMode = localStorage.getItem("glpy_chat_initial_mode");
+  const _initialMode: Mode = (_savedMode === "Nutri" || _savedMode === "Coach" || _savedMode === "Diagnóstico")
+    ? (_savedMode as Mode) : "Nutri";
+  if (_savedMode) localStorage.removeItem("glpy_chat_initial_mode");
+
+  const INITIAL_TEXTS: Record<Mode, string> = {
+    Nutri: `Oi ${ctx.nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`,
+    Coach: `Modo Coach ativo 🔵\n\n${ctx.streak} dias de streak — isso é incrível, ${ctx.nome}! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
+    Diagnóstico: `Modo Diagnóstico ativo 🔴\n\nVou analisar seus dados e entregar um diagnóstico direto.\n\nFome atual: ${ctx.fome}/10 · Saciedade: ${ctx.energia}/10 · Streak: ${ctx.streak} dias\n\nQual sintoma está te preocupando agora?`,
+  };
+
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: 'ia',
-      text: `Oi ${ctx.nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`
-    }
+    { id: 1, sender: 'ia', text: INITIAL_TEXTS[_initialMode] }
   ]);
-  const [mode, setMode] = useState<Mode>("Nutri");
+  const [mode, setMode] = useState<Mode>(_initialMode);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLimiteModal, setShowLimiteModal] = useState(false);
@@ -199,32 +208,24 @@ Análise preditiva obrigatória:
     <div className="min-h-screen bg-background text-text-main flex flex-col pb-24">
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm p-4 border-b border-border z-10">
+        {/* Bug 6: removida logo duplicada — só GLPY.IA */}
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
             <ChevronLeft className="w-4 h-4 text-text-muted" />
           </button>
           <div className="flex items-center gap-2 flex-grow">
-            <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
-              <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
-                <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                <circle cx="22" cy="9" r="2.5" fill="#fff"/>
-              </svg>
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background animate-pulse" />
             </div>
-            <span className="font-extrabold text-base text-[#0A1628]">GLPY</span>
-          </div>
-          <div className="relative">
-            <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-primary" />
+            <div>
+              <h1 className="font-bold text-base">GLPY.IA</h1>
+              <p className="text-text-muted text-xs">
+                Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
+              </p>
             </div>
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background animate-pulse" />
-          </div>
-          <div>
-            <h1 className="font-bold text-base">GLPY.IA</h1>
-            <p className="text-text-muted text-xs">
-              Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
-            </p>
           </div>
         </div>
 

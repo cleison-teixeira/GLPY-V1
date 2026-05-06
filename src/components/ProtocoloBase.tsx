@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 function calcMetas(peso: number, altura: number) {
@@ -93,6 +93,27 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     setMissoesMarcadas([]);
   };
 
+  const handleShare = async () => {
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const el = document.getElementById("protocol-share-card");
+      if (!el) return;
+      const canvas = await html2canvas(el, { backgroundColor: "#ffffff", scale: 2 });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], "progresso-glpy.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title: `${emoji} ${nome} — Dia ${diaAtual + 1}/7`, files: [file] });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = "progresso-glpy.png"; a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, "image/png");
+    } catch {}
+  };
+
   const proximoDia = () => {
     if (diaAtual < 6) {
       setDiaAtual(diaAtual + 1);
@@ -106,7 +127,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
 
       {/* Header */}
-      <div className="bg-white px-5 pt-12 pb-4 border-b border-border">
+      <div id="protocol-share-card" className="bg-white px-5 pt-12 pb-4 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => onNavigate("protocolHub")} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
             <ChevronLeft className="w-4 h-4 text-text-muted" />
@@ -118,6 +139,9 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
           <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
             Dia {diaAtual + 1}/7
           </div>
+          <button onClick={handleShare} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
+            <Share2 className="w-4 h-4 text-text-muted" />
+          </button>
         </div>
 
         <div className="flex gap-1.5">

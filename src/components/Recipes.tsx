@@ -31,12 +31,78 @@ type Recipe = {
 };
 
 const recipes: Recipe[] = [
-  { id: 1, nome: "Panqueca Proteica", categoria: "Emagrecimento", emoji: "🥞", kcal: 280, proteina: 22, carbs: 15, gordura: 8, ingredientes: ["Ovo", "Aveia", "Whey"], preparo: "Misturar tudo e grelhar..." },
-  { id: 2, nome: "Shake Anti-Fraqueza", categoria: "Energia", emoji: "🥤", kcal: 280, proteina: 26, carbs: 20, gordura: 6, ingredientes: ["Leite vegetal", "Whey", "Banana"], preparo: "Bater tudo no liquidificador..." },
-  { id: 3, nome: "Bowl Anti-Rebote", categoria: "Emagrecimento", emoji: "🥗", kcal: 380, proteina: 35, carbs: 25, gordura: 15, ingredientes: ["Frango", "Quinoa", "Abacate"], preparo: "Montar o bowl..." },
-  { id: 4, nome: "Mousse de Cacau", categoria: "Doce Fit", emoji: "🍫", kcal: 180, proteina: 18, carbs: 10, gordura: 5, ingredientes: ["Iogurte Grego", "Cacau"], preparo: "Misturar e gelar..." },
-  { id: 5, nome: "Omelete Fit", categoria: "Proteína", emoji: "🍳", kcal: 240, proteina: 28, carbs: 5, gordura: 10, ingredientes: ["3 Ovos", "Espinafre"], preparo: "Grelhar omelete..." },
-  { id: 6, nome: "Sorvete de Banana", categoria: "Doce Fit", emoji: "🍌", kcal: 200, proteina: 20, carbs: 25, gordura: 2, ingredientes: ["Banana congelada", "Whey"], preparo: "Triturar..." },
+  {
+    id: 1, nome: "Panqueca Proteica de Aveia", categoria: "Emagrecimento", emoji: "🥞",
+    kcal: 280, proteina: 22, carbs: 18, gordura: 8,
+    ingredientes: ["2 ovos inteiros", "4 colheres de aveia em flocos", "1 scoop de whey sabor baunilha (30g)", "1 banana pequena madura", "Canela a gosto"],
+    preparo: "1. Amasse a banana com garfo. 2. Misture todos os ingredientes até formar uma massa homogênea. 3. Aqueça frigideira antiaderente em fogo médio-baixo com fio de azeite. 4. Despeje porções médias e cozinhe 2 min de cada lado. 5. Sirva com frutas vermelhas ou mel.",
+  },
+  {
+    id: 2, nome: "Bowl Anti-Rebote", categoria: "Emagrecimento", emoji: "🥗",
+    kcal: 380, proteina: 35, carbs: 22, gordura: 14,
+    ingredientes: ["150g de frango grelhado desfiado", "50g de quinoa cozida", "½ abacate pequeno (70g)", "Folhas de rúcula a vontade", "½ tomate cereja", "Limão, sal e azeite extravirgem"],
+    preparo: "1. Cozinhe a quinoa conforme embalagem (fica pronta em 15 min). 2. Grelhe o frango temperado com sal, pimenta e alho em pó. 3. Monte o bowl: quinoa na base, frango, abacate fatiado, rúcula e tomates. 4. Tempere com suco de limão, fio de azeite e sal. 5. Consuma imediatamente.",
+  },
+  {
+    id: 3, nome: "Frango com Batata-Doce", categoria: "Emagrecimento", emoji: "🍗",
+    kcal: 420, proteina: 38, carbs: 35, gordura: 9,
+    ingredientes: ["200g de filé de frango", "150g de batata-doce", "1 colher de azeite", "Alho, sal, páprica e orégano"],
+    preparo: "1. Corte a batata-doce em cubos e asse no forno a 200°C por 25 min com fio de azeite e sal. 2. Tempere o frango com alho amassado, páprica, orégano e sal. 3. Grelhe em frigideira quente 5-7 min de cada lado. 4. Sirva com a batata e legumes cozidos.",
+  },
+  {
+    id: 4, nome: "Omelete Fit de Espinafre", categoria: "Proteína", emoji: "🍳",
+    kcal: 240, proteina: 28, carbs: 4, gordura: 12,
+    ingredientes: ["3 ovos inteiros", "1 xícara de espinafre fresco", "30g de queijo cottage", "½ tomate picado", "Sal, pimenta e azeite"],
+    preparo: "1. Bata os ovos com sal e pimenta. 2. Refogue espinafre no azeite por 2 min até murchar. 3. Despeje os ovos sobre o espinafre. 4. Adicione tomate e cottage. 5. Dobre ao meio quando as bordas firmarem. Cozinhe mais 1 min e sirva.",
+  },
+  {
+    id: 5, nome: "Peito de Peru com Ovo", categoria: "Proteína", emoji: "🥚",
+    kcal: 210, proteina: 30, carbs: 2, gordura: 9,
+    ingredientes: ["3 fatias de peito de peru (80g)", "2 ovos mexidos", "Folhas de alface", "Tomate", "Mostarda sem açúcar"],
+    preparo: "1. Mexa os ovos em frigideira antiaderente com sal. 2. Disponha as fatias de peito de peru. 3. Monte o prato com alface, tomate e uma colher de mostarda. Refeição pronta em 5 minutos.",
+  },
+  {
+    id: 6, nome: "Shake Anti-Fraqueza", categoria: "Energia", emoji: "🥤",
+    kcal: 290, proteina: 26, carbs: 24, gordura: 6,
+    ingredientes: ["200ml de leite vegetal (amêndoas ou aveia)", "1 scoop de whey baunilha (30g)", "1 banana pequena congelada", "1 colher de pasta de amendoim integral", "Cubos de gelo"],
+    preparo: "1. Congele a banana com antecedência (mínimo 2h). 2. Coloque todos os ingredientes no liquidificador. 3. Bata por 30 segundos até cremoso. 4. Consuma imediatamente — ideal como pré-treino ou café da manhã rápido.",
+  },
+  {
+    id: 7, nome: "Café Proteico com Aveia", categoria: "Energia", emoji: "☕",
+    kcal: 260, proteina: 18, carbs: 28, gordura: 7,
+    ingredientes: ["200ml de café coado forte (frio)", "1 scoop de whey sabor café ou chocolate", "4 colheres de aveia em flocos finos", "100ml de leite desnatado", "Gelo"],
+    preparo: "1. Prepare o café e deixe esfriar. 2. Bata no liquidificador com o leite, whey e gelo. 3. Sirva sobre a aveia no copo. 4. Misture com colher antes de beber. Ótimo para manhãs sem fome (efeito GLP-1).",
+  },
+  {
+    id: 8, nome: "Mousse de Cacau com Whey", categoria: "Doce Fit", emoji: "🍫",
+    kcal: 185, proteina: 19, carbs: 12, gordura: 5,
+    ingredientes: ["200g de iogurte grego integral (0% adição de açúcar)", "1 scoop de whey chocolate (25g)", "1 colher de cacau em pó 100%", "Gotas de adoçante steviosídeo", "Granola sem açúcar para finalizar (opcional)"],
+    preparo: "1. Misture iogurte, whey e cacau em um pote com garfo ou fouet. 2. Ajuste o dulçor com adoçante. 3. Leve à geladeira por 30 min para firmar. 4. Finalize com granola antes de servir. Guarda bem por até 2 dias na geladeira.",
+  },
+  {
+    id: 9, nome: "Sorvete de Banana com Whey", categoria: "Doce Fit", emoji: "🍌",
+    kcal: 200, proteina: 20, carbs: 22, gordura: 3,
+    ingredientes: ["2 bananas maduras congeladas", "1 scoop de whey baunilha (25g)", "2 colheres de leite desnatado", "Canela a gosto"],
+    preparo: "1. Congele as bananas fatiadas (mínimo 4h, idealmente de véspera). 2. Coloque no processador com leite e whey. 3. Processe até cremoso — raspe as bordas se necessário. 4. Sirva imediatamente (textura de sorvete mole) ou leve ao freezer por mais 1h.",
+  },
+  {
+    id: 10, nome: "Shake Verde Detox", categoria: "Shakes", emoji: "🌿",
+    kcal: 195, proteina: 22, carbs: 16, gordura: 4,
+    ingredientes: ["1 xícara de espinafre fresco (40g)", "½ pepino com casca", "½ limão (suco)", "1 scoop de whey sabor neutro ou baunilha", "200ml de água de coco", "1 pedaço de gengibre (1cm)"],
+    preparo: "1. Higienize bem o espinafre e o pepino. 2. Bata todos os ingredientes no liquidificador por 40 segundos. 3. Não coe para preservar as fibras. 4. Beba imediatamente — antioxidantes se degradam em contato com o ar.",
+  },
+  {
+    id: 11, nome: "Shake Pós-Treino Rápido", categoria: "Shakes", emoji: "💪",
+    kcal: 310, proteina: 32, carbs: 28, gordura: 6,
+    ingredientes: ["1 scoop de whey concentrado ou isolado (30g)", "250ml de leite semidesnatado", "1 banana média (100g)", "1 colher de mel puro", "Gelo a gosto"],
+    preparo: "1. Bata tudo no liquidificador por 20 segundos. 2. Consuma nos primeiros 30 minutos após o treino — esse é a janela ideal de absorção de proteína e carboidrato. 3. Se não tiver liquidificador, use coqueteleira com banana amassada.",
+  },
+  {
+    id: 12, nome: "Shake Noturno Anti-Catabolismo", categoria: "Shakes", emoji: "🌙",
+    kcal: 220, proteina: 24, carbs: 10, gordura: 8,
+    ingredientes: ["200ml de leite integral morno", "1 scoop de caseína ou whey (25g)", "1 colher de pasta de amendoim integral", "Canela e baunilha"],
+    preparo: "1. Aqueça o leite (não ferver). 2. Misture a proteína no leite morno com fouet. 3. Adicione pasta de amendoim e temperos. 4. Beba 30 min antes de dormir. A caseína libera aminoácidos lentamente — perfeito para proteger o músculo durante o sono.",
+  },
 ];
 
 const categories = ["Emagrecimento", "Proteína", "Energia", "Doce Fit", "Shakes"];

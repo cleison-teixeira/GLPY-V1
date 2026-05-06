@@ -90,9 +90,11 @@ export async function syncFromFirestore(): Promise<void> {
   if (data.onboarding) {
     localStorage.setItem("glpy_onboarding", JSON.stringify(data.onboarding));
   }
-  if (data.nome)    localStorage.setItem("glpy_nome", String(data.nome));
-  if (data.xp)      localStorage.setItem("glpy_xp", String(data.xp));
-  if (data.streak)  localStorage.setItem("glpy_streak", String(data.streak));
+  if (data.nome)   localStorage.setItem("glpy_nome", String(data.nome));
+  if (data.plano)  localStorage.setItem("glpy_plano", String(data.plano));
+  if (data.email)  localStorage.setItem("glpy_email", String(data.email));
+  if (data.xp)     localStorage.setItem("glpy_xp", String(data.xp));
+  if (data.streak) localStorage.setItem("glpy_streak", String(data.streak));
   if (data.protocoloAtivo) {
     localStorage.setItem("glpy_protocolo_ativo", JSON.stringify(data.protocoloAtivo));
   }

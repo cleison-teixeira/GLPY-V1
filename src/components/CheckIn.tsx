@@ -136,7 +136,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
             <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
               <ChevronLeft className="w-4 h-4 text-text-muted" />
             </button>
-            <h1 className="text-xl font-bold">Check-in de Hoje ✅</h1>
+            <h1 className="text-xl font-bold">Meu peso de hoje ⚖️</h1>
           </div>
           <div className="flex items-center justify-between mb-1">
             <span className="text-text-muted text-sm capitalize">{today}</span>
