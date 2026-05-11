@@ -1,7 +1,25 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle } from "lucide-react";
+import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, X } from "lucide-react";
 import BottomNav from "./BottomNav";
+
+const LIMITES: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
+
+function getFotosHoje(): number {
+  const hoje = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem("glpy_fotos_data") !== hoje) {
+    localStorage.setItem("glpy_fotos_data", hoje);
+    localStorage.setItem("glpy_fotos_hoje", "0");
+    return 0;
+  }
+  return parseInt(localStorage.getItem("glpy_fotos_hoje") || "0", 10);
+}
+
+function incrementarFotos() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  localStorage.setItem("glpy_fotos_data", hoje);
+  localStorage.setItem("glpy_fotos_hoje", String(getFotosHoje() + 1));
+}
 
 type AnalysisResult = {
   prato: string;
@@ -28,8 +46,13 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showLimiteModal, setShowLimiteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const plano = localStorage.getItem("glpy_plano") || "starter";
+  const limite = LIMITES[plano] ?? 3;
+  const fotosHoje = getFotosHoje();
 
   const handleFile = (file: File) => {
     const reader = new FileReader();
@@ -44,6 +67,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
   const analyzeImage = async () => {
     if (!imageBase64) return;
+    if (fotosHoje >= limite) { setShowLimiteModal(true); return; }
     setAnalyzing(true);
 
     try {
@@ -73,10 +97,12 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
       const data = await response.json();
       const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
       setResult(JSON.parse(text));
+      incrementarFotos();
 
     } catch {
       await new Promise(r => setTimeout(r, 1800));
       setResult(MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)]);
+      incrementarFotos();
     } finally {
       setAnalyzing(false);
     }
@@ -90,7 +116,12 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">Registrar Refeição</h1>
-            <p className="text-text-muted text-xs mt-0.5">IA analisa macros em segundos</p>
+            <p className="text-text-muted text-xs mt-0.5">
+              IA analisa macros em segundos
+              {limite !== Infinity && (
+                <span className="ml-2 font-semibold text-primary">{fotosHoje}/{limite} hoje</span>
+              )}
+            </p>
           </div>
           {image && (
             <button onClick={reset} className="flex items-center gap-1.5 text-xs text-text-muted border border-border bg-white px-3 py-1.5 rounded-full">
@@ -213,6 +244,45 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
         </AnimatePresence>
       </div>
       <BottomNav active="dashboard" onNavigate={onNavigate} />
+
+      <AnimatePresence>
+        {showLimiteModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+            onClick={() => setShowLimiteModal(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2 relative"
+            >
+              <button onClick={() => setShowLimiteModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-text-muted">
+                <X className="w-5 h-5" />
+              </button>
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">📸</div>
+                <h2 className="font-bold text-lg text-[#0A1628]">Limite diário atingido</h2>
+                <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                  Você usou suas {limite} fotos de hoje no plano {plano}.<br />
+                  Upgrade para Plus ({LIMITES.plus}/dia) ou Pro ({LIMITES.pro}/dia).
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowLimiteModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-semibold text-text-muted">
+                  Agora não
+                </button>
+                <button onClick={() => { setShowLimiteModal(false); onNavigate('planos'); }}
+                  className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold">
+                  Ver planos
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
