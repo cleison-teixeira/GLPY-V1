@@ -42,5 +42,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const data = await anthropicRes.json();
+  const raw = data.content?.[0]?.text ?? "";
+  console.log("RAW RESPONSE:", raw);
+  try {
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    console.log("PARSED:", JSON.parse(cleaned));
+  } catch (e) {
+    console.log("PARSE ERROR:", e);
+  }
   return res.status(200).json(data);
 }
