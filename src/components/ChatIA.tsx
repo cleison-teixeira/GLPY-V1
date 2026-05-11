@@ -193,6 +193,12 @@ Análise preditiva obrigatória:
       setMessages(prev => [...prev, iaMsg]);
       incrementarMsgs();
     } catch (error) {
+      console.error("[ChatIA] DeepSeek fetch error:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        key_defined: !!import.meta.env.DEEPSEEK_KEY,
+        mode,
+      });
       const errMsg: Message = {
         id: Date.now() + 1,
         sender: 'ia',
