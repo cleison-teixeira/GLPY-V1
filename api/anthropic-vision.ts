@@ -68,9 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!anthropicRes.ok) {
-    const errText = await anthropicRes.text();
-    console.error("ANTHROPIC ERROR:", errText);
-    return res.status(anthropicRes.status).json({ error: errText });
+    const errorText = await anthropicRes.text();
+    console.error("ANTHROPIC ERROR:", errorText);
+    return res.status(anthropicRes.status).json({ error: errorText, imageSize: imageBase64.length });
   }
 
   const data = await anthropicRes.json();
