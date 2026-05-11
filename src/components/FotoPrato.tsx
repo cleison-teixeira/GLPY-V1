@@ -68,25 +68,30 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
     setAnalyzing(true);
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${import.meta.env.GEMINI_KEY || ""}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: `Analise a foto com atenção. Identifique TODOS os alimentos visíveis. Estime porções realistas (não subestime). Se vir arroz branco, conte 150-200g. Carne, conte 100-150g. Batata frita, conte 80-100g. Responda APENAS JSON sem markdown:\n{"nome":"[nome do prato]","proteina":X,"carboidrato":X,"gordura":X,"kcal":X,"avaliacao":"[avaliação nutricional com dica GLP-1]"}` },
-                { inline_data: { mime_type: "image/jpeg", data: imageBase64 } },
-              ],
-            }],
-          }),
-        }
-      );
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": (import.meta.env.VITE_ANTHROPIC_KEY || "").trim(),
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5",
+          max_tokens: 400,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
+              { type: "text", text: `Analise a foto com atenção. Identifique TODOS os alimentos visíveis. Estime porções realistas (não subestime). Se vir arroz branco, conte 150-200g. Carne, conte 100-150g. Batata frita, conte 80-100g. Responda APENAS JSON sem markdown:\n{"nome":"[nome do prato]","proteina":X,"carboidrato":X,"gordura":X,"kcal":X,"avaliacao":"[avaliação nutricional com dica GLP-1]"}` },
+            ],
+          }],
+        }),
+      });
 
-      if (!response.ok) throw new Error("API error");
+      if (!response.ok) throw new Error("CORS");
       const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
+      const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
       setResult(JSON.parse(text));
       incrementarFotos();
 
