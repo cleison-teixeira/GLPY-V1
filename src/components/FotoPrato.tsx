@@ -68,7 +68,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
     setAnalyzing(true);
 
     try {
-      const response = await fetch("/api/clarifai-food", {
+      const response = await fetch("/api/anthropic-vision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageBase64 }),
@@ -82,7 +82,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
         proteina:    data.protein,
         carboidrato: data.carbs,
         gordura:     data.fat,
-        avaliacao:   `Estimativa nutricional para ${data.dish}. Priorize proteína e controle os carboidratos com GLP-1.`,
+        avaliacao:   data.review,
       });
       incrementarFotos();
 
