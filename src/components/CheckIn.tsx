@@ -80,6 +80,19 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
     };
     localStorage.setItem("glpy_checkin_hoje", JSON.stringify(checkinData));
 
+    const enjoo = symptoms.includes("Enjôo") ? 8 : symptoms.includes("Náusea") ? 7 : 1;
+    const fraqueza = symptoms.includes("Cansaço") ? 8 : 1;
+    const energia = symptoms.includes("Energia") ? 8 : satiety;
+    localStorage.setItem("glpy_ultimo_checkin", JSON.stringify({
+      data: today,
+      enjoo,
+      fraqueza,
+      fome: hunger,
+      energia,
+      peso: weight.toFixed(1),
+      sintomas: symptoms,
+    }));
+
     const historico: unknown[] = JSON.parse(localStorage.getItem("glpy_checkin_historico") || "[]");
     historico.unshift(checkinData);
     localStorage.setItem("glpy_checkin_historico", JSON.stringify(historico.slice(0, 30)));

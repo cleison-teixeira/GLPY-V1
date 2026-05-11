@@ -46,6 +46,24 @@ function getUserContext() {
   };
 }
 
+function getCheckinContext(): string {
+  const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null");
+  if (!c) return "";
+  return `
+CONTEXTO DO USUÁRIO (check-in de hoje):
+- Enjoo: ${c.enjoo}/10
+- Fraqueza: ${c.fraqueza}/10
+- Fome: ${c.fome}/10
+- Energia: ${c.energia}/10
+- Sintomas: ${c.sintomas?.length ? c.sintomas.join(", ") : "nenhum"}
+
+REGRAS DE ADAPTAÇÃO:
+- Se enjoo ≥ 7 → sugerir apenas refeições leves (caldo, frutas, torradas)
+- Se fraqueza ≥ 7 → ativar protocolo proteção muscular (proteína + descanso)
+- Se fome ≤ 3 → porções menores, alimentos densos em nutrientes
+- Se energia ≤ 4 → sugerir carboidratos de baixo índice glicêmico`;
+}
+
 const QUICK_REPLIES: Record<Mode, string[]> = {
   Nutri: ["Sim, quero a receita", "Tenho náusea", "O que comer no almoço?", "Bati minha meta de proteína?"],
   Coach: ["Estou desmotivado", "Quero manter o streak", "Me ajuda a focar", "Hoje foi difícil"],
@@ -65,6 +83,8 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
 
   const regraFinal = `\n\nREGRA OBRIGATÓRIA: Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas (nunca genérica como "cuide-se" ou "mantenha o foco"). Formato: "Próximas 2 horas: [ação exata]".`;
 
+  const checkinCtx = getCheckinContext();
+
   const SYSTEM_PROMPTS: Record<Mode, string> = {
     Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
 Contexto do usuário:
@@ -76,7 +96,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}
+${alertaPreditivo}${checkinCtx}
 
 Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
 Se score < 60: priorize ajuste alimentar urgente na resposta.
@@ -90,7 +110,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Score de hoje: 75%
-${alertaPreditivo}
+${alertaPreditivo}${checkinCtx}
 
 Foque em: motivação, celebração de conquistas, consistência e mindset.
 Se fome > 7 e energia < 5: o foco principal é evitar compulsão — seja direto sobre isso.
@@ -104,9 +124,10 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}
+${alertaPreditivo}${checkinCtx}
 
 Análise preditiva obrigatória:
+- SEMPRE mencione os dados do check-in de hoje na sua análise
 - Fome > 7 + energia < 5 = risco de compulsão noturna — alerte o usuário diretamente
 - Score < 60 = ajuste alimentar urgente necessário
 - Faça 1 pergunta de acompanhamento por vez. Seja analítico e preciso.${regraFinal}`,
