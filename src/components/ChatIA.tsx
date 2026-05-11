@@ -174,7 +174,7 @@ Análise preditiva obrigatória:
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.DEEPSEEK_KEY || ""}`,
+          "Authorization": `Bearer ${import.meta.env.VITE_DEEPSEEK_KEY || ""}`,
         },
         body: JSON.stringify({
           model: "deepseek-chat",
@@ -196,7 +196,7 @@ Análise preditiva obrigatória:
       console.error("[ChatIA] DeepSeek fetch error:", {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        key_defined: !!import.meta.env.DEEPSEEK_KEY,
+        key_defined: !!import.meta.env.VITE_DEEPSEEK_KEY,
         mode,
       });
       const errMsg: Message = {
