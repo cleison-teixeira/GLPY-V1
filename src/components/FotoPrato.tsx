@@ -70,31 +70,28 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
     setAnalyzing(true);
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": import.meta.env.ANTHROPIC_KEY || "",
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
+          "Authorization": `Bearer ${import.meta.env.DEEPSEEK_KEY || ""}`,
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "deepseek-chat",
           max_tokens: 400,
           messages: [{
             role: "user",
             content: [
-              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
-              { type: "text", text: `Analise essa foto de refeição. Responda APENAS JSON sem markdown:
-{"prato":"nome curto","kcal":número,"proteina":número,"carbs":número,"gordura":número,"feedback":"avaliação 1 frase","glp1tip":"dica GLP-1 1 frase","aprovado":true/false}` },
+              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+              { type: "text", text: `Analise essa foto de refeição. Responda APENAS JSON sem markdown:\n{"prato":"nome curto","kcal":número,"proteina":número,"carbs":número,"gordura":número,"feedback":"avaliação 1 frase","glp1tip":"dica GLP-1 1 frase","aprovado":true/false}` },
             ],
           }],
         }),
       });
 
-      if (!response.ok) throw new Error("CORS");
+      if (!response.ok) throw new Error("API error");
       const data = await response.json();
-      const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
+      const text = data.choices?.[0]?.message?.content?.replace(/```json|```/g, "").trim() || "";
       setResult(JSON.parse(text));
       incrementarFotos();
 

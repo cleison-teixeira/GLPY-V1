@@ -170,24 +170,24 @@ Análise preditiva obrigatória:
       }));
       history.push({ role: 'user', content: text });
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": import.meta.env.ANTHROPIC_KEY || "",
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
+          "Authorization": `Bearer ${import.meta.env.DEEPSEEK_KEY || ""}`,
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "deepseek-chat",
           max_tokens: 500,
-          system: SYSTEM_PROMPTS[mode],
-          messages: history,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPTS[mode] },
+            ...history,
+          ],
         }),
       });
 
       const data = await response.json();
-      const iaText = data.content?.[0]?.text || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
+      const iaText = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
 
       const iaMsg: Message = { id: Date.now() + 1, sender: 'ia', text: iaText };
       setMessages(prev => [...prev, iaMsg]);
