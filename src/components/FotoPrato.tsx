@@ -70,7 +70,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
     try {
       const PROMPT = `Analise a foto com atenção. Identifique TODOS os alimentos visíveis. Estime porções realistas (não subestime). Se vir arroz branco, conte 150-200g. Carne, conte 100-150g. Batata frita, conte 80-100g. Responda APENAS JSON sem markdown:\n{"nome":"[nome do prato]","proteina":X,"carboidrato":X,"gordura":X,"kcal":X,"avaliacao":"[avaliação nutricional com dica GLP-1]"}`;
 
-      const response = await fetch("/api/anthropic-proxy", {
+      const response = await fetch("/api/openai-proxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, prompt: PROMPT }),
@@ -78,7 +78,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
       if (!response.ok) throw new Error("proxy error");
       const data = await response.json();
-      const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
+      const text = data.choices?.[0]?.message?.content?.replace(/```json|```/g, "").trim() || "";
       setResult(JSON.parse(text));
       incrementarFotos();
 
