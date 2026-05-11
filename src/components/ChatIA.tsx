@@ -174,7 +174,7 @@ Análise preditiva obrigatória:
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_DEEPSEEK_KEY || ""}`,
+          "Authorization": `Bearer ${(import.meta.env.VITE_DEEPSEEK_KEY || "").trim()}`,
         },
         body: JSON.stringify({
           model: "deepseek-chat",
