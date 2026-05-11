@@ -1,52 +1,35 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, ChevronLeft, X } from "lucide-react";
+import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 type AnalysisResult = {
-  nome: string;
+  prato: string;
   kcal: number;
   proteina: number;
-  carboidrato: number;
+  carbs: number;
   gordura: number;
-  avaliacao: string;
+  feedback: string;
+  glp1tip: string;
+  aprovado: boolean;
 };
 
 const MOCK_RESULTS: AnalysisResult[] = [
-  { nome: "Frango grelhado com legumes", kcal: 320, proteina: 38, carboidrato: 18, gordura: 8, avaliacao: "Excelente escolha! Alta proteína e baixo carboidrato — ideal para preservar músculo com GLP-1." },
-  { nome: "Salada com atum", kcal: 280, proteina: 32, carboidrato: 12, gordura: 10, avaliacao: "Refeição leve e nutritiva. Boa combinação de proteína e fibras — mastigue devagar para maximizar saciedade." },
-  { nome: "Omelete com queijo", kcal: 350, proteina: 28, carboidrato: 4, gordura: 24, avaliacao: "Rica em proteína e gordura boa. Baixo carboidrato favorece a perda de peso." },
-  { nome: "Bowl proteico", kcal: 410, proteina: 35, carboidrato: 42, gordura: 9, avaliacao: "Refeição completa e balanceada. Carboidrato complexo + proteína = energia estável." },
-  { nome: "Iogurte grego com frutas", kcal: 220, proteina: 18, carboidrato: 28, gordura: 4, avaliacao: "Lanche perfeito para GLP-1. Proteína + probióticos + vitaminas com digestão suave." },
-  { nome: "Fruta — lanche leve", kcal: 85, proteina: 1, carboidrato: 22, gordura: 0, avaliacao: "Fruta isolada tem pouquíssima proteína. Combine com iogurte grego ou castanhas." },
+  { prato: "Frango grelhado com legumes", kcal: 320, proteina: 38, carbs: 18, gordura: 8, feedback: "Excelente escolha! Alta proteína e baixo carboidrato — ideal para preservar músculo.", glp1tip: "Com o apetite reduzido pelo GLP-1, priorize sempre a proteína primeiro no prato.", aprovado: true },
+  { prato: "Salada com atum", kcal: 280, proteina: 32, carbs: 12, gordura: 10, feedback: "Refeição leve e nutritiva. Boa combinação de proteína e fibras.", glp1tip: "Mastigue devagar — o GLP-1 já reduz seu apetite, comer devagar maximiza a saciedade.", aprovado: true },
+  { prato: "Omelete com queijo", kcal: 350, proteina: 28, carbs: 4, gordura: 24, feedback: "Rica em proteína e gordura boa. Baixo carboidrato favorece a perda de peso.", glp1tip: "Ovos são a proteína mais biodisponível — perfeita para quem tem apetite reduzido.", aprovado: true },
+  { prato: "Bowl proteico", kcal: 410, proteina: 35, carbs: 42, gordura: 9, feedback: "Refeição completa e balanceada. Carboidrato complexo + proteína = energia estável.", glp1tip: "Arroz integral libera energia gradualmente, evitando picos de glicose que aumentam a fome.", aprovado: true },
+  { prato: "Iogurte grego com frutas", kcal: 220, proteina: 18, carbs: 28, gordura: 4, feedback: "Lanche perfeito para quem usa GLP-1. Proteína + probióticos + vitaminas.", glp1tip: "Iogurte grego no café da manhã reduz náusea e entrega proteína de forma suave ao estômago.", aprovado: true },
+  { prato: "Fruta — lanche leve", kcal: 85, proteina: 1, carbs: 22, gordura: 0, feedback: "Fruta isolada tem pouquíssima proteína. Combine sempre com uma fonte proteica.", glp1tip: "Fruta + iogurte grego ou castanhas = lanche completo que não gera pico de glicose.", aprovado: false },
 ];
-
-const LIMITES_FOTO: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
-
-function getFotosUsadas(): number {
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const saved = JSON.parse(localStorage.getItem("glpy_fotos_usadas") || '{"mes":"","count":0}');
-  return saved.mes === mesAtual ? saved.count : 0;
-}
-
-function incrementarFotos() {
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const count = getFotosUsadas() + 1;
-  localStorage.setItem("glpy_fotos_usadas", JSON.stringify({ mes: mesAtual, count }));
-}
 
 export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [showLimiteModal, setShowLimiteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  const plano = localStorage.getItem("glpy_plano") || "starter";
-  const limiteFotos = LIMITES_FOTO[plano] ?? 3;
-  const fotosUsadas = getFotosUsadas();
 
   const handleFile = (file: File) => {
     const reader = new FileReader();
@@ -61,36 +44,39 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
   const analyzeImage = async () => {
     if (!imageBase64) return;
-    if (fotosUsadas >= limiteFotos) {
-      setShowLimiteModal(true);
-      return;
-    }
     setAnalyzing(true);
 
     try {
-      const response = await fetch("/api/anthropic-vision", {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageBase64 }),
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 400,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
+              { type: "text", text: `Analise essa foto de refeição. Responda APENAS JSON sem markdown:
+{"prato":"nome curto","kcal":número,"proteina":número,"carbs":número,"gordura":número,"feedback":"avaliação 1 frase","glp1tip":"dica GLP-1 1 frase","aprovado":true/false}` },
+            ],
+          }],
+        }),
       });
 
-      if (!response.ok) throw new Error("proxy error");
+      if (!response.ok) throw new Error("CORS");
       const data = await response.json();
-      setResult({
-        nome:        data.dish,
-        kcal:        data.kcal,
-        proteina:    data.protein,
-        carboidrato: data.carbs,
-        gordura:     data.fat,
-        avaliacao:   data.review,
-      });
-      incrementarFotos();
+      const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
+      setResult(JSON.parse(text));
 
     } catch {
-      // Fallback mock — simula análise quando CORS bloqueia no mobile
       await new Promise(r => setTimeout(r, 1800));
       setResult(MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)]);
-      incrementarFotos();
     } finally {
       setAnalyzing(false);
     }
@@ -98,33 +84,16 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
   const reset = () => { setImage(null); setImageBase64(null); setResult(null); };
 
-  function getBadge(r: AnalysisResult) {
-    if (r.proteina < 15 || r.carboidrato > 60 || r.gordura > 25 || r.kcal > 700)
-      return { label: "🚫 Evitar", color: "#E8445A", bg: "#FFF0F2" };
-    if (r.proteina >= 25 && r.carboidrato <= 40 && r.gordura <= 15 && r.kcal <= 500)
-      return { label: "✅ Ideal GLP-1", color: "#00C27A", bg: "#F0FBF6" };
-    return { label: "⚠️ Atenção", color: "#F5A623", bg: "#FFFBF0" };
-  }
-
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
-
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
-            <ChevronLeft className="w-4 h-4 text-text-muted" />
-          </button>
-          <div className="flex-grow">
+        <div className="flex items-center justify-between">
+          <div>
             <h1 className="text-xl font-bold">Registrar Refeição</h1>
-            <p className="text-text-muted text-xs mt-0.5">
-              IA analisa macros em segundos
-              {limiteFotos !== Infinity && (
-                <span className="ml-2 text-primary font-semibold">{fotosUsadas}/{limiteFotos} este mês</span>
-              )}
-            </p>
+            <p className="text-text-muted text-xs mt-0.5">IA analisa macros em segundos</p>
           </div>
           {image && (
-            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-text-muted border border-border bg-white px-3 py-1.5 rounded-full flex-shrink-0">
+            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-text-muted border border-border bg-white px-3 py-1.5 rounded-full">
               <RotateCcw className="w-3.5 h-3.5" /> Nova foto
             </button>
           )}
@@ -132,7 +101,6 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
       </div>
 
       <div className="px-5 pt-5 space-y-4">
-
         {!image ? (
           <div className="space-y-3">
             <div className="bg-white border border-border rounded-2xl p-4 shadow-sm text-center">
@@ -193,25 +161,21 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
         <AnimatePresence>
           {result && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-
-              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-xs text-text-muted font-medium mb-0.5">Identificado</p>
-                  <p className="font-bold text-base text-text-main">{result.nome}</p>
+                  <p className="font-bold text-base text-text-main">{result.prato}</p>
                 </div>
-                {(() => { const b = getBadge(result); return (
-                  <span className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
-                    style={{ color: b.color, backgroundColor: b.bg }}>
-                    {b.label}
-                  </span>
-                ); })()}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${result.aprovado ? 'bg-primary/10 text-primary' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
+                  {result.aprovado ? <><CheckCircle className="w-3.5 h-3.5" /> Ideal GLP-1</> : <>⚠️ Atenção</>}
+                </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { label: "Kcal", value: result.kcal, unit: "", color: "text-red-500", bg: "bg-red-50" },
                   { label: "Prot", value: result.proteina, unit: "g", color: "text-primary", bg: "bg-primary/8" },
-                  { label: "Carbs", value: result.carboidrato, unit: "g", color: "text-amber-500", bg: "bg-amber-50" },
+                  { label: "Carbs", value: result.carbs, unit: "g", color: "text-amber-500", bg: "bg-amber-50" },
                   { label: "Gord", value: result.gordura, unit: "g", color: "text-violet-500", bg: "bg-violet-50" },
                 ].map(m => (
                   <div key={m.label} className={`${m.bg} rounded-2xl p-3 text-center border border-border`}>
@@ -221,12 +185,17 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
                 ))}
               </div>
 
+              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Avaliação</p>
+                <p className="text-sm text-text-main leading-relaxed">{result.feedback}</p>
+              </div>
+
               <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
                 <div className="flex gap-2 mb-1.5">
                   <span>🤖</span>
                   <span className="text-xs font-bold text-primary">GLPY.IA</span>
                 </div>
-                <p className="text-sm text-text-main leading-relaxed">{result.avaliacao}</p>
+                <p className="text-sm text-text-main leading-relaxed">{result.glp1tip}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pb-2">
@@ -242,57 +211,8 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
       <BottomNav active="dashboard" onNavigate={onNavigate} />
-
-      {/* Modal limite atingido */}
-      <AnimatePresence>
-        {showLimiteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
-            onClick={() => setShowLimiteModal(false)}
-          >
-            <motion.div
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={e => e.stopPropagation()}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2"
-            >
-              <button onClick={() => setShowLimiteModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-text-muted">
-                <X className="w-5 h-5" />
-              </button>
-              <div className="text-center mb-5">
-                <div className="text-4xl mb-3">📸</div>
-                <h2 className="font-bold text-lg text-[#0A1628]">Limite atingido</h2>
-                <p className="text-sm text-text-muted mt-2 leading-relaxed">
-                  Você usou todas as {limiteFotos} análises do mês no seu plano atual.<br />
-                  Faça upgrade para analisar mais pratos.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowLimiteModal(false)}
-                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-semibold text-text-muted"
-                >
-                  Agora não
-                </button>
-                <button
-                  onClick={() => { setShowLimiteModal(false); onNavigate('planos'); }}
-                  className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold"
-                >
-                  Ver planos
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
