@@ -1,26 +1,24 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, ChevronLeft, X } from "lucide-react";
+import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 type AnalysisResult = {
-  prato: string;
+  nome: string;
   kcal: number;
   proteina: number;
-  carbs: number;
+  carboidrato: number;
   gordura: number;
-  feedback: string;
-  glp1tip: string;
-  aprovado: boolean;
+  avaliacao: string;
 };
 
 const MOCK_RESULTS: AnalysisResult[] = [
-  { prato: "Frango grelhado com legumes", kcal: 320, proteina: 38, carbs: 18, gordura: 8, feedback: "Excelente escolha! Alta proteína e baixo carboidrato — ideal para preservar músculo.", glp1tip: "Com o apetite reduzido pelo GLP-1, priorize sempre a proteína primeiro no prato.", aprovado: true },
-  { prato: "Salada com atum", kcal: 280, proteina: 32, carbs: 12, gordura: 10, feedback: "Refeição leve e nutritiva. Boa combinação de proteína e fibras.", glp1tip: "Mastigue devagar — o GLP-1 já reduz seu apetite, comer devagar maximiza a saciedade.", aprovado: true },
-  { prato: "Omelete com queijo", kcal: 350, proteina: 28, carbs: 4, gordura: 24, feedback: "Rica em proteína e gordura boa. Baixo carboidrato favorece a perda de peso.", glp1tip: "Ovos são a proteína mais biodisponível — perfeita para quem tem apetite reduzido.", aprovado: true },
-  { prato: "Bowl proteico", kcal: 410, proteina: 35, carbs: 42, gordura: 9, feedback: "Refeição completa e balanceada. Carboidrato complexo + proteína = energia estável.", glp1tip: "Arroz integral libera energia gradualmente, evitando picos de glicose que aumentam a fome.", aprovado: true },
-  { prato: "Iogurte grego com frutas", kcal: 220, proteina: 18, carbs: 28, gordura: 4, feedback: "Lanche perfeito para quem usa GLP-1. Proteína + probióticos + vitaminas.", glp1tip: "Iogurte grego no café da manhã reduz náusea e entrega proteína de forma suave ao estômago.", aprovado: true },
-  { prato: "Fruta — lanche leve", kcal: 85, proteina: 1, carbs: 22, gordura: 0, feedback: "Fruta isolada tem pouquíssima proteína. Combine sempre com uma fonte proteica.", glp1tip: "Fruta + iogurte grego ou castanhas = lanche completo que não gera pico de glicose.", aprovado: false },
+  { nome: "Frango grelhado com legumes", kcal: 320, proteina: 38, carboidrato: 18, gordura: 8, avaliacao: "Excelente escolha! Alta proteína e baixo carboidrato — ideal para preservar músculo com GLP-1." },
+  { nome: "Salada com atum", kcal: 280, proteina: 32, carboidrato: 12, gordura: 10, avaliacao: "Refeição leve e nutritiva. Boa combinação de proteína e fibras — mastigue devagar para maximizar saciedade." },
+  { nome: "Omelete com queijo", kcal: 350, proteina: 28, carboidrato: 4, gordura: 24, avaliacao: "Rica em proteína e gordura boa. Baixo carboidrato favorece a perda de peso." },
+  { nome: "Bowl proteico", kcal: 410, proteina: 35, carboidrato: 42, gordura: 9, avaliacao: "Refeição completa e balanceada. Carboidrato complexo + proteína = energia estável." },
+  { nome: "Iogurte grego com frutas", kcal: 220, proteina: 18, carboidrato: 28, gordura: 4, avaliacao: "Lanche perfeito para GLP-1. Proteína + probióticos + vitaminas com digestão suave." },
+  { nome: "Fruta — lanche leve", kcal: 85, proteina: 1, carboidrato: 22, gordura: 0, avaliacao: "Fruta isolada tem pouquíssima proteína. Combine com iogurte grego ou castanhas." },
 ];
 
 const LIMITES_FOTO: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
@@ -78,7 +76,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
           body: JSON.stringify({
             contents: [{
               parts: [
-                { text: `Analise essa foto de refeição. Responda APENAS JSON sem markdown:\n{"prato":"nome curto","kcal":número,"proteina":número,"carbs":número,"gordura":número,"feedback":"avaliação 1 frase","glp1tip":"dica GLP-1 1 frase","aprovado":true/false}` },
+                { text: `Analise a foto com atenção. Identifique TODOS os alimentos visíveis. Estime porções realistas (não subestime). Se vir arroz branco, conte 150-200g. Carne, conte 100-150g. Batata frita, conte 80-100g. Responda APENAS JSON sem markdown:\n{"nome":"[nome do prato]","proteina":X,"carboidrato":X,"gordura":X,"kcal":X,"avaliacao":"[avaliação nutricional com dica GLP-1]"}` },
                 { inline_data: { mime_type: "image/jpeg", data: imageBase64 } },
               ],
             }],
@@ -192,21 +190,16 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
           {result && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
 
-              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-text-muted font-medium mb-0.5">Identificado</p>
-                  <p className="font-bold text-base text-text-main">{result.prato}</p>
-                </div>
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${result.aprovado ? 'bg-primary/10 text-primary' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
-                  {result.aprovado ? <><CheckCircle className="w-3.5 h-3.5" /> Ideal GLP-1</> : <>⚠️ Atenção</>}
-                </div>
+              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
+                <p className="text-xs text-text-muted font-medium mb-0.5">Identificado</p>
+                <p className="font-bold text-base text-text-main">{result.nome}</p>
               </div>
 
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { label: "Kcal", value: result.kcal, unit: "", color: "text-red-500", bg: "bg-red-50" },
                   { label: "Prot", value: result.proteina, unit: "g", color: "text-primary", bg: "bg-primary/8" },
-                  { label: "Carbs", value: result.carbs, unit: "g", color: "text-amber-500", bg: "bg-amber-50" },
+                  { label: "Carbs", value: result.carboidrato, unit: "g", color: "text-amber-500", bg: "bg-amber-50" },
                   { label: "Gord", value: result.gordura, unit: "g", color: "text-violet-500", bg: "bg-violet-50" },
                 ].map(m => (
                   <div key={m.label} className={`${m.bg} rounded-2xl p-3 text-center border border-border`}>
@@ -216,17 +209,12 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
                 ))}
               </div>
 
-              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Avaliação</p>
-                <p className="text-sm text-text-main leading-relaxed">{result.feedback}</p>
-              </div>
-
               <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
                 <div className="flex gap-2 mb-1.5">
                   <span>🤖</span>
                   <span className="text-xs font-bold text-primary">GLPY.IA</span>
                 </div>
-                <p className="text-sm text-text-main leading-relaxed">{result.glp1tip}</p>
+                <p className="text-sm text-text-main leading-relaxed">{result.avaliacao}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pb-2">
