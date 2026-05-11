@@ -94,6 +94,14 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
 
   const reset = () => { setImage(null); setImageBase64(null); setResult(null); };
 
+  function getBadge(r: AnalysisResult) {
+    if (r.proteina < 15 || r.carboidrato > 60 || r.gordura > 25 || r.kcal > 700)
+      return { label: "🚫 Evitar", color: "#E8445A", bg: "#FFF0F2" };
+    if (r.proteina >= 25 && r.carboidrato <= 40 && r.gordura <= 15 && r.kcal <= 500)
+      return { label: "✅ Ideal GLP-1", color: "#00C27A", bg: "#F0FBF6" };
+    return { label: "⚠️ Atenção", color: "#F5A623", bg: "#FFFBF0" };
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
 
@@ -182,9 +190,17 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
           {result && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
 
-              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
-                <p className="text-xs text-text-muted font-medium mb-0.5">Identificado</p>
-                <p className="font-bold text-base text-text-main">{result.nome}</p>
+              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-text-muted font-medium mb-0.5">Identificado</p>
+                  <p className="font-bold text-base text-text-main">{result.nome}</p>
+                </div>
+                {(() => { const b = getBadge(result); return (
+                  <span className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold"
+                    style={{ color: b.color, backgroundColor: b.bg }}>
+                    {b.label}
+                  </span>
+                ); })()}
               </div>
 
               <div className="grid grid-cols-4 gap-2">
