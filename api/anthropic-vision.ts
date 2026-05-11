@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-            { type: "text", text: "Analise esta foto de comida. Identifique o prato EXATAMENTE (ex: 'Hambúrguer com fritas', 'Salada Caesar', 'Omelete de queijo'). Estime macros por porção. Retorne APENAS JSON: {\"dish\":\"nome exato\",\"kcal\":N,\"protein\":N,\"carbs\":N,\"fat\":N,\"review\":\"avaliação GLP-1 em 1 frase\"}" },
+            { type: "text", text: "Você é um nutricionista expert. Analise esta foto com MÁXIMA ATENÇÃO aos detalhes visuais.\n\nCRÍTICO: Identifique EXATAMENTE o que você VÊ:\n- Hambúrguer = pão + carne + vegetais em camadas\n- Omelete = ovos mexidos dobrados/enrolados\n- Salada = vegetais crus predominantes\n- Bowl = tigela com grãos/proteína misturados\n\nSeja ESPECÍFICO no nome: 'Hambúrguer artesanal com batata' não 'Omelete'.\n\nEstime macros realistas da porção fotografada.\n\nRetorne APENAS JSON limpo (sem markdown):\n{\"dish\":\"nome exato do prato\",\"kcal\":número,\"protein\":número,\"carbs\":número,\"fat\":número,\"review\":\"avaliação GLP-1 em 1 frase curta\"}" },
           ],
         }],
       }),
