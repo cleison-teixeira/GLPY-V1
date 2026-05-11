@@ -77,7 +77,7 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
           "anthropic-dangerous-direct-browser-access": "true",
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 400,
           messages: [{
             role: "user",
