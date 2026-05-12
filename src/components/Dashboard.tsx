@@ -66,11 +66,11 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     : null;
 
   const diasFeitosProtocolo = (() => {
-    if (!protocoloAtivo?.id) return 0;
+    if (!protocoloAtivo?.id) return 1;
     try {
       const prog = JSON.parse(localStorage.getItem(`glpy_protocolo_${protocoloAtivo.id}_progresso`) || "null");
-      return prog?.diasConcluidos?.length ?? 0;
-    } catch { return 0; }
+      return (prog?.diasConcluidos?.length ?? 0) + 1;
+    } catch { return 1; }
   })();
 
   const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
@@ -450,12 +450,12 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
               <div className="flex-grow">
                 <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">EM ANDAMENTO</span>
                 <p className="font-bold text-sm text-text-main mt-1">{protocoloAtivo.nome}</p>
-                <p className="text-xs text-text-muted mt-0.5">Dia {diasFeitosProtocolo + 1}/{protocoloAtivo.totalDias || 7}</p>
+                <p className="text-xs text-text-muted mt-0.5">Dia {diasFeitosProtocolo}/{protocoloAtivo.totalDias || 7}</p>
               </div>
             </div>
             <div className="flex gap-1 mb-3">
               {Array.from({ length: protocoloAtivo.totalDias || 7 }, (_, i) => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full ${i < diasFeitosProtocolo ? 'bg-primary' : 'bg-border'}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full ${i < diasFeitosProtocolo - 1 ? 'bg-primary' : 'bg-border'}`} />
               ))}
             </div>
             <button

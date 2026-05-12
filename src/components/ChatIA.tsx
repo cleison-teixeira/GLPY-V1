@@ -402,19 +402,19 @@ Análise preditiva obrigatória:
 
       {/* Input */}
       <div className="sticky bottom-16 px-4 py-3 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="flex gap-2">
-          <input
-            type="text"
+        <div className="relative">
+          <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Pergunte qualquer coisa..."
-            className="flex-grow p-3.5 bg-white border border-border rounded-full text-sm focus:outline-none focus:border-primary transition"
+            rows={1}
+            className="w-full p-3.5 pr-14 bg-white border border-border rounded-2xl text-sm focus:outline-none focus:border-primary transition resize-none max-h-32 overflow-y-auto"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading || !input.trim()}
-            className="bg-primary text-white p-3.5 rounded-full shadow-md hover:bg-primary/90 transition disabled:opacity-50"
+            className="absolute bottom-2 right-2 bg-primary text-white p-2.5 rounded-xl shadow-md hover:bg-primary/90 transition disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
           </button>

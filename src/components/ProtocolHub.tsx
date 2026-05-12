@@ -158,6 +158,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
             } catch { return null; }
           })();
           const diasFeitos: number = progresso?.diasConcluidos?.length ?? 0;
+          const diaAtual: number = diasFeitos + 1;
           const iniciado = diasFeitos > 0;
           return (
             <motion.button
@@ -188,7 +189,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
                   <div className="flex items-center gap-2 mt-1">
                     {iniciado ? (
                       <span className="text-xs font-bold" style={{ color: p.cor }}>
-                        ✅ {diasFeitos}/{p.dias} dias
+                        ✅ {diaAtual}/{p.dias} dias
                       </span>
                     ) : (
                       <p className="text-xs" style={{ color: desbloqueado ? p.cor : "#9CB3BF" }}>
