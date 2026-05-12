@@ -484,15 +484,18 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 controls
                 playsInline
                 {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
-                preload="metadata"
+                preload="auto"
                 onPlay={handlePlay}
+                onLoadedMetadata={() => {
+                  if (videoRef.current) videoRef.current.currentTime = 0.1;
+                }}
                 style={{
                   width: '100%',
                   minHeight: '420px',
-                  maxHeight: '60vh',
                   borderRadius: '16px',
                   background: '#0A1628',
-                  objectFit: 'cover',
+                  objectFit: 'contain',
+                  objectPosition: 'top',
                   display: 'block',
                 }}
               />
