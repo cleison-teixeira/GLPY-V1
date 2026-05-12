@@ -39,10 +39,8 @@ import Protocolo7 from './components/Protocolo7';
 import Protocolo8 from './components/Protocolo8';
 import Protocolo9 from './components/Protocolo9';
 import Protocolo10 from './components/Protocolo10';
-import AdminPanel from './components/AdminPanel';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
-const isAdminRoute = window.location.pathname === "/admin";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -75,7 +73,7 @@ export default function App() {
   }, []);
 
   const [telaAtual, setTelaAtual] = useState(
-    isAdminRoute ? 'admin' : (onboardingDone ? 'dashboard' : 'splash')
+    onboardingDone ? 'dashboard' : 'splash'
   );
 
   const renderScreen = () => {
@@ -118,15 +116,9 @@ export default function App() {
       case 'energiaBaixa':          return <Protocolo8 onNavigate={setTelaAtual} />;
       case 'ajusteMetabolico':      return <Protocolo9 onNavigate={setTelaAtual} />;
       case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
-      case 'admin':                 return <AdminPanel onNavigate={setTelaAtual} />;
       default:                      return <Dashboard onNavigate={setTelaAtual} />;
     }
   };
-
-  // Rota /admin é completamente independente — não passa pelos guards de auth
-  if (isAdminRoute || telaAtual === 'admin') {
-    return <AdminPanel onNavigate={setTelaAtual} />;
-  }
 
   if (authLoading) {
     return (
