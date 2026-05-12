@@ -34,11 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Verificação opcional de token
   const token =
     req.headers["x-kiwify-token"] ?? (req.query.token as string | undefined);
-  if (
-    process.env.KIWIFY_WEBHOOK_TOKEN &&
-    token !== process.env.KIWIFY_WEBHOOK_TOKEN
-  ) {
-    return res.status(401).json({ error: "Unauthorized" });
+  const VALID_TOKENS = ["glpy_kiwify_2026", "2o0698iikwi"];
+  if (process.env.KIWIFY_WEBHOOK_TOKEN) {
+    const tokenValido = VALID_TOKENS.includes(token as string) ||
+      token === process.env.KIWIFY_WEBHOOK_TOKEN;
+    if (!tokenValido) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
   }
 
   const body = req.body as KiwifyPayload;
