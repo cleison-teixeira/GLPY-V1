@@ -1,7 +1,7 @@
 // v3 - Firestore sync + once-per-day guard
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
@@ -217,6 +217,16 @@ const DIAS = [
   },
 ];
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia1-anti-rebote.mp4",
+  2: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia2-anti-rebote.mp4",
+  3: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia3-anti-rebote.mp4",
+  4: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia4-anti-rebote.mp4",
+  5: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia5-anti-rebote.mp4",
+  6: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia6-anti-rebote.mp4",
+  7: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia7-anti-rebote.mp4",
+};
+
 export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const progressoKey = "glpy_protocolo_antiRebote_progresso";
 
@@ -234,6 +244,8 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const [protocoloConcluido, setProtocoloConcluido] = useState(false);
   const [showXP, setShowXP] = useState(false);
   const [xpValor, setXpValor] = useState(0);
+  const [videoAssistido, setVideoAssistido] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // ── Carrega progresso: Firestore → localStorage → padrão ──
   useEffect(() => {
@@ -289,6 +301,14 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
   const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
   const metas = calcMetas(peso, altura);
+
+  const videoUrl = VIDEOS[diaAtual + 1] ?? "";
+
+  const handlePlay = () => {
+    setVideoAssistido(true);
+    const v = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    v?.requestFullscreen?.() ?? v?.webkitEnterFullscreen?.();
+  };
 
   const dia = DIAS[diaAtual];
   const receita = RECEITAS.find(r => r.id === dia.receita_id)!;
@@ -458,13 +478,29 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
 
             {/* Vídeo */}
             <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
-              <div className="relative bg-[#0A1628] h-40 flex items-center justify-center">
-                <div className="absolute top-3 right-3 bg-white/10 text-white text-xs px-2 py-1 rounded-full">35s</div>
-                <button className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                  <Play className="w-6 h-6 text-white fill-white" />
-                </button>
-                <div className="absolute bottom-3 left-3 text-white text-xs font-medium opacity-70">Roteiro do dia</div>
-              </div>
+              {videoUrl ? (
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  controls
+                  playsInline
+                  {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
+                  preload="metadata"
+                  onPlay={handlePlay}
+                  style={{
+                    width: '100%',
+                    borderRadius: '12px',
+                    background: '#0A1628',
+                    aspectRatio: '16/9',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <div className="bg-[#0A1628] h-40 flex items-center justify-center rounded-xl">
+                  <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
+                </div>
+              )}
               <div className="p-4">
                 <p className="text-sm text-text-muted leading-relaxed italic whitespace-pre-line">{dia.video}</p>
               </div>
