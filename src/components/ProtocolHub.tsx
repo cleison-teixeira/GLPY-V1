@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronRight, Lock, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Play } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { saveProtocolProgress } from "../services/firestore";
 
@@ -132,6 +132,12 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
 
       {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
+        <button
+          onClick={() => onNavigate('dashboard')}
+          className="mb-3 flex items-center justify-center w-9 h-9 -ml-1 rounded-full bg-transparent"
+        >
+          <ChevronLeft size={24} color="#0A1628" />
+        </button>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
             <svg width="18" height="16" viewBox="0 0 32 28" fill="none">

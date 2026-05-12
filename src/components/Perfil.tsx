@@ -3,7 +3,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../firebase.js";
 import { jsPDF } from "jspdf";
 import {
-  CreditCard, FileText, Settings, LogOut, ChevronRight,
+  CreditCard, FileText, Settings, LogOut, ChevronLeft, ChevronRight,
   Camera, Flame, Zap, Award, Shield, Syringe, TrendingDown,
   RotateCcw, Calendar, Moon, Sun, Globe, ChevronDown
 } from "lucide-react";
@@ -336,6 +336,12 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
 
       {/* Header com avatar */}
       <div className="bg-white px-5 pt-12 pb-6 border-b border-border">
+        <button
+          onClick={() => onNavigate('dashboard')}
+          className="mb-3 flex items-center justify-center w-9 h-9 -ml-1 rounded-full bg-transparent"
+        >
+          <ChevronLeft size={24} color="#0A1628" />
+        </button>
         <div className="flex items-center gap-4">
           <div className="relative flex-shrink-0">
             <img

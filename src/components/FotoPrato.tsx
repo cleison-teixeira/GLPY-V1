@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Camera, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, X } from "lucide-react";
+import { Camera, ChevronLeft, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, X } from "lucide-react";
 import BottomNav from "./BottomNav";
 
 const LIMITES: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
@@ -113,6 +113,12 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
+        <button
+          onClick={() => onNavigate('dashboard')}
+          className="mb-3 flex items-center justify-center w-9 h-9 -ml-1 rounded-full bg-transparent"
+        >
+          <ChevronLeft size={24} color="#0A1628" />
+        </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">Registrar Refeição</h1>
