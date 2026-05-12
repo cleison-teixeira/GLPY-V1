@@ -49,11 +49,11 @@ const STORAGE_KEY_TO_ID: Record<string, string> = {
   "glpy_efeitos": "efeitosColaterais",
   "glpy_cabelo": "antiQuedaCabelo",
   "glpy_psicologia": "psicologiaEmagrecimento",
-  "glpy_baixoapetite": "baixoApetite",
-  "glpy_musculos": "naoPercaMúsculo",
+  "glpy_baixoapetite": "alimentacaoBaixoApetite",
+  "glpy_musculos": "naoPerdaMusculos",
   "glpy_energia": "energiaBaixa",
   "glpy_metabolico": "ajusteMetabolico",
-  "glpy_transicao": "transicao",
+  "glpy_transicao": "transicaoParar",
 };
 
 interface Props {
