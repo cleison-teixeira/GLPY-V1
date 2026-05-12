@@ -384,6 +384,30 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           </div>
         </div>
 
+        {/* Banner proteína baixa */}
+        {(() => {
+          const proteina = parseInt(localStorage.getItem("glpy_proteina_hoje") || "80", 10);
+          if (proteina >= 60) return null;
+          return (
+            <div style={{ backgroundColor: "#FEF0F2", borderColor: "#F5C0C8" }}
+              className="rounded-2xl border p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="text-xl flex-shrink-0">⚠️</span>
+                <div className="flex-grow">
+                  <p className="font-bold text-sm text-red-700">Proteína abaixo do ideal — risco metabólico</p>
+                  <p className="text-xs text-red-500 mt-0.5">Meta: 80-120g/dia para preservar músculo</p>
+                  <button
+                    onClick={() => onNavigate('receitas')}
+                    className="mt-3 bg-primary text-white text-xs font-bold px-4 py-2 rounded-xl"
+                  >
+                    Ver receitas ricas em proteína
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Bug 9: Missão Crítica dinâmica por dia da semana */}
         {(() => {
           const MISSOES = [
