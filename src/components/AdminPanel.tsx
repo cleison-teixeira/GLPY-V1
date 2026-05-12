@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase.js";
 import {
   buscarUidPorEmail,
@@ -34,6 +35,8 @@ function fmt(d: Date) {
 }
 
 export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => void }) {
+  const [verificando, setVerificando] = useState(true);
+  const [autorizado, setAutorizado] = useState(false);
   const [email, setEmail] = useState("");
   const [plano, setPlano] = useState<string>("plus");
   const [duracao, setDuracao] = useState("30d");
@@ -43,12 +46,16 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
   const [loadingGrants, setLoadingGrants] = useState(true);
   const [revogando, setRevogando] = useState<string | null>(null);
 
-  // Guard: só o admin pode ver esta tela
   useEffect(() => {
-    const currentEmail = auth.currentUser?.email;
-    if (currentEmail !== ADMIN_EMAIL) {
-      onNavigate("dashboard");
-    }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user?.email === ADMIN_EMAIL) {
+        setAutorizado(true);
+      } else if (user) {
+        onNavigate("dashboard");
+      }
+      setVerificando(false);
+    });
+    return () => unsub();
   }, [onNavigate]);
 
   useEffect(() => {
@@ -93,6 +100,16 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
       setRevogando(null);
     }
   };
+
+  if (verificando) {
+    return (
+      <div className="min-h-screen bg-[#F4F6F8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!autorizado) return null;
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] pb-12">
