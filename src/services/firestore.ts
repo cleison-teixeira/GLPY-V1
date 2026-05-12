@@ -1,6 +1,7 @@
 import {
   doc, setDoc, getDoc, collection, addDoc,
   serverTimestamp, updateDoc, increment,
+  query, where, getDocs, Timestamp, orderBy, limit,
 } from "firebase/firestore";
 import { db, auth } from "../firebase.js";
 
@@ -217,6 +218,7 @@ export async function carregarContextoIA(): Promise<ContextoIA | null> {
 // Popula localStorage a partir do Firestore
 // ─────────────────────────────────────────────
 export async function syncFromFirestore(): Promise<void> {
+  const id = uid();
   const data = await loadUserData();
   if (!data) return;
 
@@ -224,11 +226,134 @@ export async function syncFromFirestore(): Promise<void> {
     localStorage.setItem("glpy_onboarding", JSON.stringify(data.onboarding));
   }
   if (data.nome)   localStorage.setItem("glpy_nome", String(data.nome));
-  if (data.plano)  localStorage.setItem("glpy_plano", String(data.plano));
   if (data.email)  localStorage.setItem("glpy_email", String(data.email));
   if (data.xp)     localStorage.setItem("glpy_xp", String(data.xp));
   if (data.streak) localStorage.setItem("glpy_streak", String(data.streak));
   if (data.protocoloAtivo) {
     localStorage.setItem("glpy_protocolo_ativo", JSON.stringify(data.protocoloAtivo));
   }
+
+  // Plano: suporta string legada e objeto {tipo, dataExpiracao}
+  if (data.plano) {
+    if (typeof data.plano === "object") {
+      const planoObj = data.plano as Record<string, unknown>;
+      const expTs = planoObj.dataExpiracao as { toDate?: () => Date } | null;
+      if (expTs?.toDate) {
+        const exp = expTs.toDate();
+        if (exp < new Date() && id) {
+          // Plano expirado — rebaixa para Starter
+          await updateDoc(doc(db, "users", id), {
+            "plano.tipo": "starter",
+            "plano.status": "active",
+            updatedAt: serverTimestamp(),
+          });
+          localStorage.setItem("glpy_plano", "starter");
+          return;
+        }
+      }
+      if (planoObj.tipo) localStorage.setItem("glpy_plano", String(planoObj.tipo));
+    } else {
+      localStorage.setItem("glpy_plano", String(data.plano));
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Admin — liberação manual de acesso
+// ─────────────────────────────────────────────
+const DURACAO_DIAS: Record<string, number | null> = {
+  "7d": 7, "15d": 15, "30d": 30, "90d": 90, "vitalicio": null,
+};
+
+export type Grant = {
+  id: string;
+  uid: string;
+  email: string;
+  plano: string;
+  duracao: string;
+  dataExpiracao: Date | null;
+  liberadoEm: Date;
+};
+
+export async function buscarUidPorEmail(email: string): Promise<string | null> {
+  const snap = await getDocs(
+    query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()))
+  );
+  if (snap.empty) return null;
+  return snap.docs[0].id;
+}
+
+export async function liberarAcesso(
+  uid: string,
+  email: string,
+  plano: string,
+  duracao: string,
+): Promise<string> {
+  const dias = DURACAO_DIAS[duracao];
+  let dataExpiracao: Date | null = null;
+  if (dias !== null && dias !== undefined) {
+    dataExpiracao = new Date();
+    dataExpiracao.setDate(dataExpiracao.getDate() + dias);
+  }
+
+  const planoData = {
+    tipo: plano,
+    status: "active",
+    origem: "manual",
+    dataExpiracao: dataExpiracao ? Timestamp.fromDate(dataExpiracao) : null,
+    liberadoPor: "admin",
+  };
+
+  await updateDoc(doc(db, "users", uid), {
+    plano: planoData,
+    updatedAt: serverTimestamp(),
+  });
+
+  const ref = await addDoc(collection(db, "admin_grants"), {
+    uid,
+    email,
+    plano,
+    duracao,
+    dataExpiracao: dataExpiracao ? Timestamp.fromDate(dataExpiracao) : null,
+    liberadoEm: serverTimestamp(),
+    status: "active",
+  });
+  return ref.id;
+}
+
+export async function revogarAcesso(targetUid: string, grantId: string): Promise<void> {
+  await updateDoc(doc(db, "users", targetUid), {
+    plano: {
+      tipo: "starter",
+      status: "active",
+      origem: "manual",
+      dataExpiracao: null,
+      liberadoPor: "admin",
+    },
+    updatedAt: serverTimestamp(),
+  });
+  await updateDoc(doc(db, "admin_grants", grantId), { status: "revoked" });
+}
+
+export async function listarAcessosManuais(): Promise<Grant[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "admin_grants"),
+      where("status", "==", "active"),
+      orderBy("liberadoEm", "desc"),
+      limit(10),
+    )
+  );
+  return snap.docs.map(d => {
+    const data = d.data();
+    return {
+      id: d.id,
+      uid: data.uid,
+      email: data.email,
+      plano: data.plano,
+      duracao: data.duracao,
+      dataExpiracao: data.dataExpiracao?.toDate?.() ?? null,
+      liberadoEm: data.liberadoEm?.toDate?.() ?? new Date(),
+    };
+  });
 }
