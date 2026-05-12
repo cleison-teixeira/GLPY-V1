@@ -84,6 +84,12 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_concluido`, String(concluido)); }, [concluido, storageKey]);
+  useEffect(() => {
+    try {
+      const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
+      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, dia: diaAtual }));
+    } catch {}
+  }, []); // mount-only: registra protocolo como ativo ao abrir
 
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
   const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
@@ -119,6 +125,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     }));
 
     if (diaAtual === 6) {
+      localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
       confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff', '#FFD700'] });
       setTimeout(() => onNavigate('checkin'), 3000);

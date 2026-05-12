@@ -62,14 +62,15 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
   // Protocolo ativo via localStorage
   const protocoloAtivoRaw = localStorage.getItem("glpy_protocolo_ativo");
   const protocoloAtivo = protocoloAtivoRaw
-    ? JSON.parse(protocoloAtivoRaw)
-    : { id: "antiRebote", nome: "Anti-Rebote", emoji: "⚖️", totalDias: 7 };
+    ? (() => { try { return JSON.parse(protocoloAtivoRaw); } catch { return null; } })()
+    : null;
 
-  const diaAtualProtocolo = (() => {
-    if (protocoloAtivo.id === "antiRebote") {
-      return parseInt(localStorage.getItem("glpy_antirebote_dia") || "0", 10);
-    }
-    return parseInt(localStorage.getItem("glpy_protocolo_dia") || "0", 10);
+  const diasFeitosProtocolo = (() => {
+    if (!protocoloAtivo?.id) return 0;
+    try {
+      const prog = JSON.parse(localStorage.getItem(`glpy_protocolo_${protocoloAtivo.id}_progresso`) || "null");
+      return prog?.diasConcluidos?.length ?? 0;
+    } catch { return 0; }
   })();
 
   const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
@@ -183,7 +184,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
   ];
 
   const diaSemanaIdx = new Date().getDay();
-  const decisoes = DECISOES[protocoloAtivo.id] || DECISOES_SEMANA[diaSemanaIdx];
+  const decisoes = (protocoloAtivo?.id ? DECISOES[protocoloAtivo.id] : null) || DECISOES_SEMANA[diaSemanaIdx];
 
   const [decisoesMarcadas, setDecisoesMarcadas] = useState<boolean[]>([false, false, false]);
   const toggleDecisao = (i: number) =>
@@ -440,33 +441,49 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
         })()}
 
         {/* Protocolo ativo */}
-        <div
-          onClick={() => onNavigate(protocoloAtivo.id || 'protocolHub')}
-          className="bg-white rounded-2xl border border-border p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-primary/30 transition"
-        >
-          <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
-            {protocoloAtivo.emoji || "⚖️"}
-          </div>
-          <div className="flex-grow">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span
-                className="neon-dot inline-block w-2 h-2 rounded-full"
-                style={{ background: "#00C27A" }}
-              />
-              <p className="text-xs text-text-muted font-medium">Protocolo ativo</p>
+        {protocoloAtivo ? (
+          <div className="bg-white rounded-2xl border-2 border-primary p-4 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
+                {protocoloAtivo.emoji || "⚖️"}
+              </div>
+              <div className="flex-grow">
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">EM ANDAMENTO</span>
+                <p className="font-bold text-sm text-text-main mt-1">{protocoloAtivo.nome}</p>
+                <p className="text-xs text-text-muted mt-0.5">Dia {diasFeitosProtocolo + 1}/{protocoloAtivo.totalDias || 7}</p>
+              </div>
             </div>
-            <p className="font-bold text-sm text-text-main">{protocoloAtivo.nome || "Anti-Rebote"}</p>
-            <div className="flex gap-1 mt-1.5">
+            <div className="flex gap-1 mb-3">
               {Array.from({ length: protocoloAtivo.totalDias || 7 }, (_, i) => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full ${i < diaAtualProtocolo ? 'bg-primary' : 'bg-border'}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full ${i < diasFeitosProtocolo ? 'bg-primary' : 'bg-border'}`} />
               ))}
             </div>
-            <p className="text-xs text-text-muted mt-1">
-              Dia {diaAtualProtocolo + 1} de {protocoloAtivo.totalDias || 7}
-            </p>
+            <button
+              onClick={() => onNavigate(protocoloAtivo.id || 'protocolHub')}
+              className="w-full bg-primary text-white font-bold py-2.5 rounded-xl text-sm"
+            >
+              Continuar Protocolo →
+            </button>
           </div>
-          <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-border p-4 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#F4F6F8] rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
+                🎯
+              </div>
+              <div className="flex-grow">
+                <p className="text-xs text-text-muted font-medium">Nenhum protocolo ativo</p>
+                <p className="font-bold text-sm text-text-main">Escolha um protocolo</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigate('protocolHub')}
+              className="w-full bg-[#0A1628] text-white font-bold py-2.5 rounded-xl text-sm"
+            >
+              Iniciar Protocolo
+            </button>
+          </div>
+        )}
 
         {/* Ações principais — 4 cards 2x2 */}
         <div>

@@ -243,6 +243,19 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   useEffect(() => { localStorage.setItem("glpy_antirebote_dia", String(diaAtual)); }, [diaAtual]);
   useEffect(() => { localStorage.setItem("glpy_antirebote_missoes", JSON.stringify(missoesMarcadas)); }, [missoesMarcadas]);
   useEffect(() => { localStorage.setItem("glpy_antirebote_concluido", String(concluido)); }, [concluido]);
+  useEffect(() => {
+    try {
+      const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
+      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({
+        ...existing,
+        id: "antiRebote",
+        nome: "Anti-Rebote",
+        emoji: "⚖️",
+        totalDias: 7,
+        dia: diaAtual,
+      }));
+    } catch {}
+  }, []); // mount-only: registra protocolo como ativo ao abrir
 
   // Pega dados do onboarding
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
@@ -279,6 +292,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     }));
 
     if (diaAtual === 6) {
+      localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
       confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff', '#FFD700'] });
       setTimeout(() => onNavigate('checkin'), 3000);
