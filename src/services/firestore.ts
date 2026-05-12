@@ -81,6 +81,40 @@ export async function saveProtocolProgress(data: {
 }
 
 // ─────────────────────────────────────────────
+// Anti-Rebote — subcoleção protocolos/anti-rebote
+// ─────────────────────────────────────────────
+export async function saveAntiReboteProgress(data: {
+  diaAtual: number;
+  dataUltimoCheck: string;
+  diasCompletos: number[];
+}): Promise<void> {
+  const id = uid();
+  if (!id) return;
+  await setDoc(
+    doc(db, "users", id, "protocolos", "anti-rebote"),
+    { ...data, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
+export async function loadAntiReboteProgress(): Promise<{
+  diaAtual: number;
+  dataUltimoCheck: string | null;
+  diasCompletos: number[];
+} | null> {
+  const id = uid();
+  if (!id) return null;
+  const snap = await getDoc(doc(db, "users", id, "protocolos", "anti-rebote"));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    diaAtual: typeof d.diaAtual === "number" ? d.diaAtual : 0,
+    dataUltimoCheck: d.dataUltimoCheck ?? null,
+    diasCompletos: Array.isArray(d.diasCompletos) ? d.diasCompletos : [],
+  };
+}
+
+// ─────────────────────────────────────────────
 // Popula localStorage a partir do Firestore
 // ─────────────────────────────────────────────
 export async function syncFromFirestore(): Promise<void> {

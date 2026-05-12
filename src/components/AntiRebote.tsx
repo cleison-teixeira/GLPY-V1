@@ -1,9 +1,10 @@
-// v2 - localStorage fix
+// v3 - Firestore sync + once-per-day guard
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
 import BottomNav from "./BottomNav";
 import confetti from "canvas-confetti";
+import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
 
 // ─── CÁLCULO DE METAS PERSONALIZADAS ───────────────────────────────────────
 function calcMetas(peso: number, altura: number) {
@@ -219,30 +220,56 @@ const DIAS = [
 export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const progressoKey = "glpy_protocolo_antiRebote_progresso";
 
-  const [diaAtual, setDiaAtual] = useState<number>(() =>
-    parseInt(localStorage.getItem("glpy_antirebote_dia") || "0", 10)
-  );
+  // ── Progress state (synced to Firestore + localStorage) ──
+  const [diaAtual, setDiaAtual] = useState(0);
+  const [diasConcluidos, setDiasConcluidos] = useState<number[]>([]);
+  const [dataUltimoCheck, setDataUltimoCheck] = useState<string | null>(null);
+
+  // ── Session-only state ──
   const [aba, setAba] = useState<"protocolo" | "receitas">("protocolo");
   const [checkinSelecionado, setCheckinSelecionado] = useState<string | null>(null);
-  const [missoesMarcadas, setMissoesMarcadas] = useState<number[]>(() => {
-    const s = localStorage.getItem("glpy_antirebote_missoes");
-    return s ? JSON.parse(s) : [];
-  });
-  const [concluido, setConcluido] = useState<boolean>(() =>
-    localStorage.getItem("glpy_antirebote_concluido") === "true"
-  );
+  const [missoesMarcadas, setMissoesMarcadas] = useState<number[]>([]);
+  const [concluido, setConcluido] = useState(false); // acabou de completar nesta sessão
   const [receitaAberta, setReceitaAberta] = useState<number | null>(null);
-  const [diasConcluidos, setDiasConcluidos] = useState<number[]>(() => {
-    try {
-      const raw = localStorage.getItem(progressoKey);
-      return raw ? (JSON.parse(raw).diasConcluidos || []) : [];
-    } catch { return []; }
-  });
   const [protocoloConcluido, setProtocoloConcluido] = useState(false);
 
-  useEffect(() => { localStorage.setItem("glpy_antirebote_dia", String(diaAtual)); }, [diaAtual]);
-  useEffect(() => { localStorage.setItem("glpy_antirebote_missoes", JSON.stringify(missoesMarcadas)); }, [missoesMarcadas]);
-  useEffect(() => { localStorage.setItem("glpy_antirebote_concluido", String(concluido)); }, [concluido]);
+  // ── Carrega progresso: Firestore → localStorage → padrão ──
+  useEffect(() => {
+    const fromLocalStorage = () => {
+      try {
+        const raw = localStorage.getItem(progressoKey);
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        if (typeof p.diaAtual === "number") setDiaAtual(p.diaAtual);
+        if (Array.isArray(p.diasConcluidos)) setDiasConcluidos(p.diasConcluidos);
+        if (p.dataUltimoCheck) setDataUltimoCheck(p.dataUltimoCheck);
+      } catch {}
+    };
+
+    loadAntiReboteProgress()
+      .then(data => {
+        if (data) {
+          setDiaAtual(data.diaAtual);
+          setDiasConcluidos(data.diasCompletos);
+          setDataUltimoCheck(data.dataUltimoCheck);
+          try {
+            const raw = localStorage.getItem(progressoKey);
+            const existing = raw ? JSON.parse(raw) : {};
+            localStorage.setItem(progressoKey, JSON.stringify({
+              ...existing,
+              diaAtual: data.diaAtual,
+              diasConcluidos: data.diasCompletos,
+              dataUltimoCheck: data.dataUltimoCheck,
+            }));
+          } catch {}
+        } else {
+          fromLocalStorage();
+        }
+      })
+      .catch(fromLocalStorage);
+  }, []);
+
+  // ── Mantém glpy_protocolo_ativo sincronizado ──
   useEffect(() => {
     try {
       const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
@@ -252,12 +279,11 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
         nome: "Anti-Rebote",
         emoji: "⚖️",
         totalDias: 7,
-        dia: diaAtual,
+        dia: diaAtual + 1,
       }));
     } catch {}
-  }, []); // mount-only: registra protocolo como ativo ao abrir
+  }, [diaAtual]);
 
-  // Pega dados do onboarding
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
   const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
   const metas = calcMetas(peso, altura);
@@ -265,6 +291,11 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const dia = DIAS[diaAtual];
   const receita = RECEITAS.find(r => r.id === dia.receita_id)!;
   const receitaDetalhe = receitaAberta !== null ? RECEITAS.find(r => r.id === receitaAberta) : null;
+
+  // ── Derivados para controle do botão ──
+  const hoje = new Date().toISOString().slice(0, 10);
+  const jaConcluidoHoje = dataUltimoCheck === hoje;
+  const diaJaFeito = diasConcluidos.includes(diaAtual + 1);
 
   const toggleMissao = (i: number) => {
     setMissoesMarcadas(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
@@ -274,22 +305,40 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
   const handleConcluir = () => {
+    if (jaConcluidoHoje || diaJaFeito) return;
+
+    const agora = new Date().toISOString().slice(0, 10);
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
 
-    const diaCompletado = diaAtual + 1;
-    const novasConcluidas = diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado];
-    setDiasConcluidos(novasConcluidas);
+    const diaCompletado = diaAtual + 1; // 1-indexado
+    const novasConcluidas = diasConcluidos.includes(diaCompletado)
+      ? diasConcluidos
+      : [...diasConcluidos, diaCompletado];
+    const proximoDiaIdx = diaAtual < 6 ? diaAtual + 1 : diaAtual;
 
-    const dataInicio = (() => {
-      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || new Date().toISOString().slice(0, 10); } catch { return new Date().toISOString().slice(0, 10); }
-    })();
-    localStorage.setItem(progressoKey, JSON.stringify({
-      diaAtual: diaAtual < 6 ? diaAtual + 1 : diaAtual,
-      diasConcluidos: novasConcluidas,
-      dataInicio,
-    }));
+    setDiasConcluidos(novasConcluidas);
+    setDataUltimoCheck(agora);
+
+    // Salva no Firestore (diaAtual já avança para o próximo)
+    saveAntiReboteProgress({
+      diaAtual: proximoDiaIdx,
+      dataUltimoCheck: agora,
+      diasCompletos: novasConcluidas,
+    }).catch(() => {});
+
+    // Espelho no localStorage
+    try {
+      const raw = localStorage.getItem(progressoKey);
+      const existing = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(progressoKey, JSON.stringify({
+        ...existing,
+        diaAtual: proximoDiaIdx,
+        diasConcluidos: novasConcluidas,
+        dataUltimoCheck: agora,
+      }));
+    } catch {}
 
     if (diaAtual === 6) {
       localStorage.removeItem("glpy_protocolo_ativo");
@@ -301,16 +350,10 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
 
   const proximoDia = () => {
     if (diaAtual < 6) {
-      const novoDia = diaAtual + 1;
-      setDiaAtual(novoDia);
+      setDiaAtual(diaAtual + 1);
       setConcluido(false);
       setCheckinSelecionado(null);
       setMissoesMarcadas([]);
-      try {
-        const raw = localStorage.getItem(progressoKey);
-        const prev = raw ? JSON.parse(raw) : {};
-        localStorage.setItem(progressoKey, JSON.stringify({ ...prev, diaAtual: novoDia }));
-      } catch {}
     }
   };
 
@@ -471,13 +514,15 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
               </div>
             </div>
 
-            {/* Botão */}
-            {!concluido ? (
-              <motion.button whileTap={{ scale: 0.98 }} onClick={handleConcluir}
-                className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base">
-                ✅ Concluir Dia {dia.n}
-              </motion.button>
-            ) : (
+            {/* Botão — 4 estados */}
+            {diaJaFeito && !concluido ? (
+              // Dia já concluído anteriormente (navegou de volta via barra)
+              <div className="bg-primary/5 border border-primary/15 rounded-2xl py-4 text-center">
+                <p className="font-bold text-primary text-sm">✅ Dia {dia.n} já concluído</p>
+                <p className="text-xs text-text-muted mt-1">Selecione outro dia na barra acima</p>
+              </div>
+            ) : concluido ? (
+              // Acabou de concluir nesta sessão
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                 <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center">
                   {protocoloConcluido ? (
@@ -506,6 +551,18 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                   )
                 )}
               </motion.div>
+            ) : jaConcluidoHoje ? (
+              // Já completou um dia hoje — bloqueado até amanhã
+              <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
+                <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
+                <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+              </div>
+            ) : (
+              // Disponível para completar
+              <motion.button whileTap={{ scale: 0.98 }} onClick={handleConcluir}
+                className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base">
+                ✅ Concluir Dia {dia.n}
+              </motion.button>
             )}
           </motion.div>
         )}
