@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia1-ajuste-metabolico.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia2-ajuste-metabolico.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia3-ajuste-metabolico.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia4-ajuste-metabolico.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia5-ajuste-metabolico.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia6-ajuste-metabolico.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-9-AJUSTE-METABOLICO/dia7-ajuste-metabolico.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🌶️", nome: "Frango Picante com Pimenta Caiena",
@@ -205,6 +215,7 @@ export default function Protocolo9({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_metabolico"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 
@@ -63,10 +63,11 @@ interface Props {
   storageKey: string;
   receitas: Receita[];
   dias: Dia[];
+  videos: Record<number, string>;
   onNavigate: (screen: string) => void;
 }
 
-export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, onNavigate }: Props) {
+export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, videos, onNavigate }: Props) {
   const protocoloId = STORAGE_KEY_TO_ID[storageKey] ?? storageKey;
   const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
 
@@ -90,6 +91,8 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const [protocoloConcluido, setProtocoloConcluido] = useState(false);
   const [showXP, setShowXP] = useState(false);
   const [xpValor, setXpValor] = useState(0);
+  const [videoAssistido, setVideoAssistido] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
@@ -103,6 +106,8 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
   const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
   const metas = calcMetas(peso, altura);
+
+  const videoUrl = videos[diaAtual + 1] ?? "";
 
   const dia = dias[diaAtual];
   const receita = receitas.find(r => r.id === dia.receita_id)!;
@@ -274,18 +279,34 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <h2 className="font-bold text-white text-base leading-snug">{dia.titulo}</h2>
             </div>
 
-            <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
-              <div className="relative bg-[#0A1628] h-40 flex items-center justify-center">
-                <div className="absolute top-3 right-3 bg-white/10 text-white text-xs px-2 py-1 rounded-full">35s</div>
-                <button className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                  <Play className="w-6 h-6 text-white fill-white" />
-                </button>
-                <div className="absolute bottom-3 left-3 text-white text-xs font-medium opacity-70">Roteiro do dia</div>
+            {videoUrl ? (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                controls
+                playsInline
+                {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
+                preload="auto"
+                onPlay={() => setVideoAssistido(true)}
+                onLoadedMetadata={() => {
+                  if (videoRef.current) videoRef.current.currentTime = 0.1;
+                }}
+                style={{
+                  width: '100%',
+                  aspectRatio: '16/9',
+                  borderRadius: '16px',
+                  objectFit: 'cover',
+                  objectPosition: 'top',
+                  background: '#0A1628',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ aspectRatio: '16/9' }}>
+                <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
               </div>
-              <div className="p-4">
-                <p className="text-sm text-text-muted leading-relaxed italic whitespace-pre-line">{dia.video}</p>
-              </div>
-            </div>
+            )}
 
             <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
               <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Por que isso importa</p>

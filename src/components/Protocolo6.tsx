@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia1-alimentacao-para-baixo-apetite.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia2-alimentacao-para-baixo-apetite.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia3-alimentacao-para-baixo-apetite.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia4-alimentacao-para-baixo-apetite.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia5-alimentacao-para-baixo-apetite.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia6-alimentacao-para-baixo-apetite.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-6-ALIMENTACAO-PARA-BAIXO-APETITE/dia7-alimentacao-para-baixo-apetite.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥑", nome: "Bowl Denso de Abacate com Ovo e Salmão",
@@ -205,6 +215,7 @@ export default function Protocolo6({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_baixoapetite"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

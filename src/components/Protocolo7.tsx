@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia1-nao-perca-musculo.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia2-nao-perca-musculo.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia3-nao-perca-musculo.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia4-nao-perca-musculo.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia5-nao-perca-musculo.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia6-nao-perca-musculo.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-7-NAO-PERCA-MUSCULO/dia7-nao-perca-musculo.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥩", nome: "Picanha no Sal com Batata-Doce",
@@ -205,6 +215,7 @@ export default function Protocolo7({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_musculos"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

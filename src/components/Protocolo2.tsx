@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia1-controle-de-efeitos-colaterais.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia2-controle-de-efeitos-colaterais.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia3-controle-de-efeitos-colaterais.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia4-controle-de-efeitos-colaterais.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia5-controle-de-efeitos-colaterais.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia6-controle-de-efeitos-colaterais.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-2-CONTROLE-DE-EFEITOS-COLATERAIS/dia7-controle-de-efeitos-colaterais.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥣", nome: "Mingau Anti-Constipação",
@@ -205,6 +215,7 @@ export default function Protocolo2({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_efeitos"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

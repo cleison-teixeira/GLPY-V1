@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia1-sobrevivendo-as-canetas.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia2-sobrevivendo-as-canetas.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia3-sobrevivendo-as-canetas.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia4-sobrevivendo-as-canetas.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia5-sobrevivendo-as-canetas.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia6-sobrevivendo-as-canetas.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-1-SOBREVIVENDO-AS-CANETAS/dia7-sobrevivendo-as-canetas.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🍵", nome: "Caldo de Galinha com Gengibre",
@@ -205,6 +215,7 @@ export default function Protocolo1({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_sobrevivendo"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

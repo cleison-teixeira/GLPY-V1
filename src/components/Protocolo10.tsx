@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia1-transicao-parar-a-caneta.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia2-transicao-parar-a-caneta.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia3-transicao-parar-a-caneta.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia4-transicao-parar-a-caneta.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia5-transicao-parar-a-caneta.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia6-transicao-parar-a-caneta.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-10-TRANSICAO-PARAR-A-CANETA/dia7-transicao-parar-a-caneta.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥗", nome: "Salada de Manutenção Completa",
@@ -205,6 +215,7 @@ export default function Protocolo10({ onNavigate }: { onNavigate: (screen: strin
       storageKey="glpy_transicao"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

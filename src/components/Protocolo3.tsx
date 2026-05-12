@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia1-anti-queda-de-cabelo.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia2-anti-queda-de-cabelo.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia3-anti-queda-de-cabelo.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia4-anti-queda-de-cabelo.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia5-anti-queda-de-cabelo.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia6-anti-queda-de-cabelo.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-3-ANTI-QUEDA-DE-CABELO/dia7-anti-queda-de-cabelo.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥚", nome: "Omelete Capilar com Castanha-do-Pará",
@@ -205,6 +215,7 @@ export default function Protocolo3({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_cabelo"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

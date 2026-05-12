@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia1-energia-baixa.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia2-energia-baixa.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia3-energia-baixa.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia4-energia-baixa.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia5-energia-baixa.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia6-energia-baixa.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-8-ENERGIA-BAIXA/dia7-energia-baixa.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🥩", nome: "Fígado Bovino com Cebola Caramelizada",
@@ -205,6 +215,7 @@ export default function Protocolo8({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_energia"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );

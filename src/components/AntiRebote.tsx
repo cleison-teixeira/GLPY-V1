@@ -218,13 +218,13 @@ const DIAS = [
 ];
 
 const VIDEOS: Record<number, string> = {
-  1: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia1-anti-rebote.mp4",
-  2: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia2-anti-rebote.mp4",
-  3: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia3-anti-rebote.mp4",
-  4: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia4-anti-rebote.mp4",
-  5: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia5-anti-rebote.mp4",
-  6: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia6-anti-rebote.mp4",
-  7: "https://glpy.b-cdn.net/protocolo-anti-rebote/dia7-anti-rebote.mp4",
+  1: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia1-anti-rebote.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia2-anti-rebote.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia3-anti-rebote.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia4-anti-rebote.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia5-anti-rebote.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia6-anti-rebote.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-4-ANTI-REBOTE/dia7-anti-rebote.mp4",
 };
 
 export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string) => void }) {

@@ -1,5 +1,15 @@
 import ProtocoloBase, { Receita, Dia } from "./ProtocoloBase";
 
+const VIDEOS: Record<number, string> = {
+  1: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia1-psicologia-do-emagrecimento.mp4",
+  2: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia2-psicologia-do-emagrecimento.mp4",
+  3: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia3-psicologia-do-emagrecimento.mp4",
+  4: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia4-psicologia-do-emagrecimento.mp4",
+  5: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia5-psicologia-do-emagrecimento.mp4",
+  6: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia6-psicologia-do-emagrecimento.mp4",
+  7: "https://glpy.b-cdn.net/PROTOCOLO-5-PSICOLOGIA-DO-EMAGRECIMENTO/dia7-psicologia-do-emagrecimento.mp4",
+};
+
 const RECEITAS: Receita[] = [
   {
     id: 1, emoji: "🍫", nome: "Chocolate Negro com Nozes",
@@ -205,6 +215,7 @@ export default function Protocolo5({ onNavigate }: { onNavigate: (screen: string
       storageKey="glpy_psicologia"
       receitas={RECEITAS}
       dias={DIAS}
+      videos={VIDEOS}
       onNavigate={onNavigate}
     />
   );
