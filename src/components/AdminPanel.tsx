@@ -2,14 +2,20 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2, LogOut } from "lucide-react";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
+import emailjs from "@emailjs/browser";
 import { auth } from "../firebase.js";
 import {
   buscarUidPorEmail,
+  criarUsuarioNovo,
   liberarAcesso,
   revogarAcesso,
   listarAcessosManuais,
   type Grant,
 } from "../services/firestore";
+
+const EMAILJS_SERVICE  = "service_GLPY";
+const EMAILJS_TEMPLATE = "template_GLPY";
+const EMAILJS_KEY      = "PUBLIC_KEY_GLPY";
 
 const ADMIN_EMAIL = "cleisonimarketing@gmail.com";
 
@@ -93,17 +99,42 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
   };
 
   const handleLiberar = async () => {
-    if (!email.trim()) { setMsg({ type: "err", text: "Informe o email do usuário." }); return; }
+    const emailLimpo = email.trim().toLowerCase();
+    if (!emailLimpo) { setMsg({ type: "err", text: "Informe o email do usuário." }); return; }
     setLoading(true);
     setMsg(null);
     try {
-      const targetUid = await buscarUidPorEmail(email.trim());
+      let targetUid = await buscarUidPorEmail(emailLimpo);
+      let isNew = false;
+
       if (!targetUid) {
-        setMsg({ type: "err", text: `Usuário não encontrado: ${email}` });
-        return;
+        // Cria conta Firebase Auth + doc Firestore via app secundário
+        targetUid = await criarUsuarioNovo(emailLimpo);
+        isNew = true;
       }
-      await liberarAcesso(targetUid, email.trim().toLowerCase(), plano, duracao);
-      setMsg({ type: "ok", text: `✅ Acesso ${PLANO_LABELS[plano]} liberado para ${email.trim()}` });
+
+      await liberarAcesso(targetUid, emailLimpo, plano, duracao);
+
+      if (isNew) {
+        // Envia email de boas-vindas com senha provisória
+        emailjs.send(
+          EMAILJS_SERVICE,
+          EMAILJS_TEMPLATE,
+          {
+            to_email: emailLimpo,
+            to_name: "Usuário",
+            plano: PLANO_LABELS[plano] ?? plano,
+            senha: "GLPY@2026",
+            app_url: "https://glpy.com.br",
+          },
+          EMAILJS_KEY,
+        ).catch(() => {}); // falha silenciosa — não bloqueia o fluxo
+
+        setMsg({ type: "ok", text: `✅ Conta criada e acesso ${PLANO_LABELS[plano]} liberado para ${emailLimpo}. Email com senha enviado!` });
+      } else {
+        setMsg({ type: "ok", text: `✅ Acesso ${PLANO_LABELS[plano]} liberado para ${emailLimpo}` });
+      }
+
       setEmail("");
       const updated = await listarAcessosManuais();
       setGrants(updated);

@@ -3,7 +3,10 @@ import {
   serverTimestamp, updateDoc, increment,
   query, where, getDocs, Timestamp, orderBy, limit,
 } from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword, signOut as fbSignOut } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth } from "../firebase.js";
+import app from "../firebase.js";
 
 function uid(): string | null {
   return auth.currentUser?.uid ?? null;
@@ -283,6 +286,29 @@ export async function buscarUidPorEmail(email: string): Promise<string | null> {
   return snap.docs[0].id;
 }
 
+export async function criarUsuarioNovo(email: string): Promise<string> {
+  // Usa app secundário para não derrubar a sessão do admin
+  const secondaryApp = initializeApp(app.options, `admin-create-${Date.now()}`);
+  const secondaryAuth = getAuth(secondaryApp);
+  let newUid: string;
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, "GLPY@2026");
+    newUid = cred.user.uid;
+    await fbSignOut(secondaryAuth);
+  } finally {
+    await deleteApp(secondaryApp);
+  }
+  // Cria documento base no Firestore
+  await setDoc(doc(db, "users", newUid), {
+    email: email.toLowerCase(),
+    nome: "Usuário GLPY",
+    primeiroAcesso: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return newUid;
+}
+
 export async function liberarAcesso(
   uid: string,
   email: string,
@@ -304,10 +330,11 @@ export async function liberarAcesso(
     liberadoPor: "admin",
   };
 
-  await updateDoc(doc(db, "users", uid), {
+  // setDoc merge funciona para doc novo e existente
+  await setDoc(doc(db, "users", uid), {
     plano: planoData,
     updatedAt: serverTimestamp(),
-  });
+  }, { merge: true });
 
   const ref = await addDoc(collection(db, "admin_grants"), {
     uid,
