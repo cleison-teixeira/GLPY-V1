@@ -394,24 +394,40 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
           </div>
         </div>
 
-        {/* Banner proteína baixa */}
+        {/* Alerta de proteína baixa */}
         {(() => {
-          const proteina = parseInt(localStorage.getItem("glpy_proteina_hoje") || "80", 10);
-          if (proteina >= 60) return null;
+          const hoje = new Date().toISOString().slice(0, 10);
+          const dataProteina = localStorage.getItem("glpy_proteina_data");
+          const proteinaConsumida = dataProteina === hoje
+            ? parseInt(localStorage.getItem("glpy_proteina_hoje") || "0", 10)
+            : 0;
+          const pesoKg = parseFloat(
+            (onboarding.peso_atual as string) ||
+            localStorage.getItem("glpy_peso_atual") ||
+            "75"
+          );
+          const metaProteina = Math.round(pesoKg * 1.8);
+          const threshold = Math.round(metaProteina * 0.8);
+          if (proteinaConsumida >= threshold || (dataProteina !== hoje && !checkinHoje)) return null;
+          const deficit = metaProteina - proteinaConsumida;
           return (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
-              <span className="text-red-500 text-xl flex-shrink-0">⚠️</span>
+            <button
+              onClick={() => onNavigate('chatIA')}
+              className="w-full text-left bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm"
+            >
+              <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
               <div className="flex-grow">
-                <p className="font-bold text-sm text-text-main">Proteína abaixo do ideal — risco metabólico</p>
-                <p className="text-xs text-text-muted mt-0.5">Meta: 80-120g/dia para preservar músculo</p>
-                <button
-                  onClick={() => onNavigate('receitas')}
-                  className="mt-3 bg-primary text-white text-xs font-bold px-4 py-2 rounded-xl"
-                >
-                  Ver receitas ricas em proteína
-                </button>
+                <p className="font-bold text-sm text-amber-800">
+                  Proteína baixa hoje — risco de perda muscular.
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                  Adicione {deficit}g até o jantar.
+                </p>
+                <p className="text-xs text-amber-600 mt-1.5 font-semibold">
+                  Perguntar à GLPY.IA o que comer →
+                </p>
               </div>
-            </div>
+            </button>
           );
         })()}
 

@@ -21,6 +21,16 @@ function incrementarFotos() {
   localStorage.setItem("glpy_fotos_hoje", String(getFotosHoje() + 1));
 }
 
+function acumularProteina(g: number) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem("glpy_proteina_data") !== hoje) {
+    localStorage.setItem("glpy_proteina_data", hoje);
+    localStorage.setItem("glpy_proteina_hoje", "0");
+  }
+  const atual = parseInt(localStorage.getItem("glpy_proteina_hoje") || "0", 10);
+  localStorage.setItem("glpy_proteina_hoje", String(atual + Math.round(g)));
+}
+
 type AnalysisResult = {
   prato: string;
   kcal: number;
@@ -96,13 +106,17 @@ export default function FotoPrato({ onNavigate }: { onNavigate: (screen: string)
       if (!response.ok) throw new Error("CORS");
       const data = await response.json();
       const text = data.content?.[0]?.text?.replace(/```json|```/g, "").trim() || "";
-      setResult(JSON.parse(text));
+      const parsed = JSON.parse(text);
+      setResult(parsed);
       incrementarFotos();
+      acumularProteina(parsed.proteina ?? 0);
 
     } catch {
       await new Promise(r => setTimeout(r, 1800));
-      setResult(MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)]);
+      const mock = MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)];
+      setResult(mock);
       incrementarFotos();
+      acumularProteina(mock.proteina ?? 0);
     } finally {
       setAnalyzing(false);
     }

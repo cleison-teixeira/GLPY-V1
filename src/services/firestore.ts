@@ -171,6 +171,49 @@ export async function incrementarMsgIA(): Promise<void> {
 }
 
 // ─────────────────────────────────────────────
+// Contexto da IA — users/{uid}/contexto_ia/atual
+// ─────────────────────────────────────────────
+export type ContextoIA = {
+  data: string;             // ISO "YYYY-MM-DD"
+  fome: number;             // 0–10
+  energia: number;          // 0–10
+  humor: string;            // emoji
+  sintomas: string[];
+  agua: string | null;      // ex: "1L", null se não informado
+  peso: number;
+  protocolo_ativo: string | null;
+  dia_protocolo: number;
+};
+
+export async function salvarContextoIA(data: ContextoIA): Promise<void> {
+  const id = uid();
+  if (!id) return;
+  await setDoc(doc(db, "users", id, "contexto_ia", "atual"), {
+    ...data,
+    savedAt: serverTimestamp(),
+  });
+}
+
+export async function carregarContextoIA(): Promise<ContextoIA | null> {
+  const id = uid();
+  if (!id) return null;
+  const snap = await getDoc(doc(db, "users", id, "contexto_ia", "atual"));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    data: d.data ?? "",
+    fome: d.fome ?? 5,
+    energia: d.energia ?? 5,
+    humor: d.humor ?? "😐",
+    sintomas: Array.isArray(d.sintomas) ? d.sintomas : [],
+    agua: d.agua ?? null,
+    peso: typeof d.peso === "number" ? d.peso : 75,
+    protocolo_ativo: d.protocolo_ativo ?? null,
+    dia_protocolo: d.dia_protocolo ?? 1,
+  };
+}
+
+// ─────────────────────────────────────────────
 // Popula localStorage a partir do Firestore
 // ─────────────────────────────────────────────
 export async function syncFromFirestore(): Promise<void> {

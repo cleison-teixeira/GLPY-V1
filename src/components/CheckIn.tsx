@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, Check, Flame, ChevronLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 import BottomNav from "./BottomNav";
-import { saveCheckin, saveGamification } from "../services/firestore";
+import { saveCheckin, saveGamification, salvarContextoIA } from "../services/firestore";
 
 const SYMPTOM_OPTIONS = [
   { label: "Náusea", emoji: "🤢" },
@@ -112,6 +112,29 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
     const nivelCalc = novoXP < 100 ? 1 : novoXP < 300 ? 2 : novoXP < 600 ? 3 : novoXP < 1000 ? 4 : 5;
     saveCheckin(checkinData).catch(() => {});
     saveGamification({ xp: novoXP, streak: novoStreak, nivel: nivelCalc }).catch(() => {});
+
+    // Salva contexto para a IA personalizar respostas
+    const protAtivo = (() => {
+      try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; }
+    })();
+    const diaProtocolo = (() => {
+      if (!protAtivo?.id) return 1;
+      try {
+        const p = JSON.parse(localStorage.getItem(`glpy_protocolo_${protAtivo.id}_progresso`) || "null");
+        return Math.min((p?.diasConcluidos?.length ?? 0) + 1, protAtivo.totalDias || 7);
+      } catch { return (protAtivo.dia ?? 0) + 1; }
+    })();
+    salvarContextoIA({
+      data: new Date().toISOString().slice(0, 10),
+      fome: hunger,
+      energia: symptoms.includes("Energia") ? 8 : satiety,
+      humor: mood !== null ? MOOD_OPTIONS[mood] : "😐",
+      sintomas: symptoms,
+      agua: null,
+      peso: weight,
+      protocolo_ativo: protAtivo?.nome ?? null,
+      dia_protocolo: diaProtocolo,
+    }).catch(() => {});
 
     confetti({
       particleCount: 60,

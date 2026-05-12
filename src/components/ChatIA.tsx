@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
-import { carregarLimitesIA, incrementarMsgIA } from "../services/firestore";
+import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, type ContextoIA } from "../services/firestore";
 
 const LIMITES_INICIAIS: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
 
@@ -104,13 +104,35 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     ? `${saudacao}, ${nome}! 👋\n\nVi que você está no Dia ${_diaAtual} do protocolo "${_ativo.nome}". Sua fome hoje está em ${_fome !== null ? `${_fome}/10` : "—"}.\n\nPosso ajudar com alimentação, sintomas ou motivação — o que precisa?`
     : `${saudacao}, ${nome}! 👋\n\nSou a GLPY.IA, sua especialista em GLP-1. Pode me perguntar sobre alimentação, sintomas, motivação ou qualquer dúvida sobre seu tratamento.\n\nComo posso ajudar?`;
 
-  const SYSTEM_PROMPT = `Você é GLPY.IA — a inteligência artificial do app GLPY, especialista em GLP-1 (Ozempic, Mounjaro, Saxenda, Wegovy).
+  const buildSystemPrompt = (ctx: ContextoIA | null): string => {
+    let checkinBlock = "";
+    if (ctx) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (ctx.data === hoje) {
+        const regras: string[] = [];
+        if (ctx.energia < 5)
+          regras.push("PRIORIZAR alimentos energéticos (banana, batata-doce, aveia) e descanso.");
+        if (ctx.sintomas.includes("Náusea") || ctx.sintomas.includes("Enjôo"))
+          regras.push("Sugerir APENAS alimentos leves (caldos, frutas, torradas). Evitar gordura e frituras.");
+        if (ctx.fome > 7)
+          regras.push("Ajustar jantar com mais proteína (+20g) e fibra para controlar fome noturna.");
+        if (ctx.agua && parseFloat(ctx.agua) < 1)
+          regras.push("Lembrar hidratação a CADA resposta — usuário bebeu menos de 1L hoje.");
+
+        checkinBlock = `
+
+CHECK-IN DE HOJE: fome ${ctx.fome}/10, energia ${ctx.energia}/10, humor ${ctx.humor}, sintomas: ${ctx.sintomas.join(", ") || "nenhum"}, água: ${ctx.agua ?? "não informada"}.
+PROTOCOLO ATIVO: ${ctx.protocolo_ativo ?? "nenhum"}, dia ${ctx.dia_protocolo}/7.${regras.length > 0 ? `\nREGRAS ATIVAS (aplicar em toda resposta):\n${regras.map(r => `- ${r}`).join("\n")}` : ""}`;
+      }
+    }
+
+    return `Você é GLPY.IA — a inteligência artificial do app GLPY, especialista em GLP-1 (Ozempic, Mounjaro, Saxenda, Wegovy).
 
 Você é ao mesmo tempo:
 - 🟡 Nutricionista: adapta alimentação ao protocolo e sintomas
 - 🔵 Coach: motiva, celebra conquistas, mantém streak
 - 🔴 Diagnóstico: identifica sintomas, adapta protocolo, alerta riscos
-${fullCtx}
+${fullCtx}${checkinBlock}
 
 IMPORTANTE:
 - Adapte seu tom ao contexto da pergunta
@@ -121,6 +143,7 @@ IMPORTANTE:
 - Seja direta, empática, científica sem jargão
 - Celebre vitórias, não julgue falhas
 - Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas. Formato: "Próximas 2 horas: [ação exata]".`;
+  };
 
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: 'ia', text: initialMessage }
@@ -135,6 +158,7 @@ IMPORTANTE:
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const [msgsUsadas, setMsgsUsadas] = useState(0);
   const [limiteIA, setLimiteIA] = useState(LIMITES_INICIAIS[plano] ?? 10);
+  const [ctxIA, setCtxIA] = useState<ContextoIA | null>(null);
 
   // Carrega limites do Firestore e aplica reset automático de mês
   useEffect(() => {
@@ -145,6 +169,11 @@ IMPORTANTE:
       })
       .catch(() => {});
   }, [plano]);
+
+  // Carrega contexto do check-in do Firestore
+  useEffect(() => {
+    carregarContextoIA().then(setCtxIA).catch(() => {});
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -179,7 +208,7 @@ IMPORTANTE:
           model: "deepseek-chat",
           max_tokens: 500,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: buildSystemPrompt(ctxIA) },
             ...history,
           ],
         }),
