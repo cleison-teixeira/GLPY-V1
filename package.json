@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:webhook": "npx tsx test-webhook.ts",
+    "test:webhook:local": "npx tsx test-webhook.ts --local"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
