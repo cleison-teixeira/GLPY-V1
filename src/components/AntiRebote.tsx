@@ -491,18 +491,17 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 }}
                 style={{
                   width: '100%',
-                  aspectRatio: '9/16',
-                  maxHeight: '55vh',
+                  aspectRatio: '16/9',
                   borderRadius: '16px',
                   background: '#0A1628',
-                  objectFit: 'contain',
+                  objectFit: 'cover',
                   objectPosition: 'top',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
                   display: 'block',
                 }}
               />
             ) : (
-              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ minHeight: '420px', maxHeight: '60vh' }}>
+              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ aspectRatio: '16/9' }}>
                 <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
               </div>
             )}
