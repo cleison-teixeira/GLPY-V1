@@ -64,15 +64,66 @@ REGRAS DE ADAPTAÇÃO:
 - Se energia ≤ 4 → sugerir carboidratos de baixo índice glicêmico`;
 }
 
-function getProtocolContext(): string {
+const PROTOCOL_STORAGE_MAP: Record<string, string> = {
+  antiRebote: "glpy_antirebote",
+  sobrevivendoCanetas: "glpy_sobrevivendo",
+  efeitosColaterais: "glpy_efeitos",
+  antiQuedaCabelo: "glpy_cabelo",
+  psicologiaEmagrecimento: "glpy_psicologia",
+  alimentacaoBaixoApetite: "glpy_baixoapetite",
+  naoPerdaMusculos: "glpy_musculos",
+  energiaBaixa: "glpy_energia",
+  ajusteMetabolico: "glpy_metabolico",
+  transicaoParar: "glpy_transicao",
+};
+
+function getFullUserContext(): string {
   try {
+    const sections: string[] = ["PERFIL COMPLETO DO USUÁRIO:"];
+
+    // 1. Protocolo ativo + missões
     const ativo = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null");
-    if (!ativo?.id || !ativo?.nome) return "";
-    const progresso = JSON.parse(localStorage.getItem(`glpy_protocolo_${ativo.id}_progresso`) || "null");
-    const diasFeitos = progresso?.diasConcluidos?.length ?? 0;
-    const totalDias = ativo.totalDias || 7;
-    const dia = Math.min(diasFeitos + 1, totalDias);
-    return `\nPROTOCOLO ATIVO: ${ativo.nome} — Dia ${dia}/${totalDias}\nSuas respostas devem considerar o contexto deste protocolo.`;
+    if (ativo?.id && ativo?.nome) {
+      const progresso = JSON.parse(localStorage.getItem(`glpy_protocolo_${ativo.id}_progresso`) || "null");
+      const diasFeitos = progresso?.diasConcluidos?.length ?? 0;
+      const totalDias = ativo.totalDias || 7;
+      const diaAtual = Math.min(diasFeitos + 1, totalDias);
+      const prefix = PROTOCOL_STORAGE_MAP[ativo.id] || `glpy_${ativo.id}`;
+      const missoes: number[] = JSON.parse(localStorage.getItem(`${prefix}_missoes`) || "[]");
+      sections.push(`Protocolo: ${ativo.nome} — Dia ${diaAtual}/${totalDias}\nMissões de hoje: ${missoes.length}/3 concluídas`);
+    }
+
+    // 2. Check-in de hoje
+    const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null");
+    if (c) {
+      const sint = c.sintomas?.length ? `\n- Sintomas: ${c.sintomas.join(", ")}` : "";
+      sections.push(`Check-in de hoje:\n- Enjoo: ${c.enjoo}/10, Fome: ${c.fome}/10, Energia: ${c.energia}/10${sint}`);
+
+      const rules: string[] = [];
+      if (c.enjoo >= 7) rules.push("enjoo alto → refeições leves (caldo, frutas, torradas)");
+      if (c.fraqueza >= 7) rules.push("fraqueza alta → proteína + descanso");
+      if (c.fome <= 3) rules.push("fome baixa → porções menores, alimentos densos");
+      if (c.energia <= 4) rules.push("energia baixa → carboidratos de baixo índice glicêmico");
+      if (rules.length > 0) sections.push(`Regras de adaptação:\n${rules.map(r => `- ${r}`).join("\n")}`);
+    }
+
+    // 3. Últimas refeições fotografadas
+    const fotos: { prato?: string; kcal?: number; proteina?: number; data?: string }[] =
+      JSON.parse(localStorage.getItem("glpy_fotos_historico") || "[]");
+    if (fotos.length > 0) {
+      const linhas = fotos.slice(0, 3).map(f =>
+        `- ${f.data || "hoje"}: ${f.prato || "refeição"} — ${f.kcal ?? 0} kcal, ${f.proteina ?? 0}g prot`
+      );
+      sections.push(`Últimas refeições:\n${linhas.join("\n")}`);
+    }
+
+    // 4. Progresso geral
+    const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
+    const xp = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    const nivel = parseInt(localStorage.getItem("glpy_nivel") || "1", 10);
+    sections.push(`Progresso geral:\n- Streak: ${streak} dias 🔥\n- XP: ${xp} pontos\n- Nível: ${nivel}`);
+
+    return `\n\n${sections.join("\n\n")}\n\nIMPORTANTE: Use TODOS esses dados para dar respostas personalizadas e específicas.`;
   } catch { return ""; }
 }
 
@@ -104,8 +155,7 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
 
   const regraFinal = `\n\nREGRA OBRIGATÓRIA: Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas (nunca genérica como "cuide-se" ou "mantenha o foco"). Formato: "Próximas 2 horas: [ação exata]".`;
 
-  const checkinCtx = getCheckinContext();
-  const protocolCtx = getProtocolContext();
+  const fullCtx = getFullUserContext();
 
   const SYSTEM_PROMPTS: Record<Mode, string> = {
     Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
@@ -118,7 +168,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${checkinCtx}${protocolCtx}
+${alertaPreditivo}${fullCtx}
 
 Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
 Se score < 60: priorize ajuste alimentar urgente na resposta.
@@ -132,7 +182,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Score de hoje: 75%
-${alertaPreditivo}${checkinCtx}${protocolCtx}
+${alertaPreditivo}${fullCtx}
 
 Foque em: motivação, celebração de conquistas, consistência e mindset.
 Se fome > 7 e energia < 5: o foco principal é evitar compulsão — seja direto sobre isso.
@@ -146,7 +196,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${checkinCtx}${protocolCtx}
+${alertaPreditivo}${fullCtx}
 
 Análise preditiva obrigatória:
 - SEMPRE mencione os dados do check-in de hoje na sua análise
