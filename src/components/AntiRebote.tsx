@@ -477,34 +477,30 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
             </div>
 
             {/* Vídeo */}
-            <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
-              {videoUrl ? (
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  controls
-                  playsInline
-                  {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
-                  preload="metadata"
-                  onPlay={handlePlay}
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    background: '#0A1628',
-                    aspectRatio: '16/9',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-              ) : (
-                <div className="bg-[#0A1628] h-40 flex items-center justify-center rounded-xl">
-                  <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
-                </div>
-              )}
-              <div className="p-4">
-                <p className="text-sm text-text-muted leading-relaxed italic whitespace-pre-line">{dia.video}</p>
+            {videoUrl ? (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                controls
+                playsInline
+                {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
+                preload="metadata"
+                onPlay={handlePlay}
+                style={{
+                  width: '100%',
+                  minHeight: '420px',
+                  maxHeight: '60vh',
+                  borderRadius: '16px',
+                  background: '#0A1628',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ minHeight: '420px', maxHeight: '60vh' }}>
+                <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
               </div>
-            </div>
+            )}
 
             {/* Explicação */}
             <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
