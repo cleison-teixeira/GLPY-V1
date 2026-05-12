@@ -360,7 +360,6 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     if (diaAtual === 6) {
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
-      setTimeout(() => onNavigate('checkin'), 3000);
     }
   };
 

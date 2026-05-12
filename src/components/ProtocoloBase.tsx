@@ -79,9 +79,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     const s = localStorage.getItem(`${storageKey}_missoes`);
     return s ? JSON.parse(s) : [];
   });
-  const [concluido, setConcluido] = useState<boolean>(() =>
-    localStorage.getItem(`${storageKey}_concluido`) === "true"
-  );
+  const [concluido, setConcluido] = useState(false);
   const [receitaAberta, setReceitaAberta] = useState<number | null>(null);
   const [diasConcluidos, setDiasConcluidos] = useState<number[]>(() => {
     try {
@@ -95,7 +93,6 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
-  useEffect(() => { localStorage.setItem(`${storageKey}_concluido`, String(concluido)); }, [concluido, storageKey]);
   useEffect(() => {
     try {
       const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
