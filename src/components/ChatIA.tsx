@@ -2,22 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { carregarLimitesIA, incrementarMsgIA } from "../services/firestore";
 
-const LIMITES_IA: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: Infinity };
-
-function getMsgsUsadas(): number {
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const mes = localStorage.getItem("glpy_ia_msgs_mes");
-  if (mes !== mesAtual) return 0;
-  return parseInt(localStorage.getItem("glpy_ia_msgs_usadas") || "0", 10);
-}
-
-function incrementarMsgs() {
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const count = getMsgsUsadas() + 1;
-  localStorage.setItem("glpy_ia_msgs_mes", mesAtual);
-  localStorage.setItem("glpy_ia_msgs_usadas", String(count));
-}
+const LIMITES_INICIAIS: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
 
 type Message = { id: number; sender: 'ia' | 'user'; text: string; };
 
@@ -146,8 +133,18 @@ IMPORTANTE:
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const plano = localStorage.getItem("glpy_plano") || "starter";
-  const limiteIA = LIMITES_IA[plano] ?? 10;
-  const msgsUsadas = getMsgsUsadas();
+  const [msgsUsadas, setMsgsUsadas] = useState(0);
+  const [limiteIA, setLimiteIA] = useState(LIMITES_INICIAIS[plano] ?? 10);
+
+  // Carrega limites do Firestore e aplica reset automático de mês
+  useEffect(() => {
+    carregarLimitesIA(plano)
+      .then(({ usadas, limite }) => {
+        setMsgsUsadas(usadas);
+        setLimiteIA(limite);
+      })
+      .catch(() => {});
+  }, [plano]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -192,7 +189,11 @@ IMPORTANTE:
       const iaText = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
 
       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ia', text: iaText }]);
-      incrementarMsgs();
+
+      // Incrementa no Firestore e atualiza estado local
+      const novas = msgsUsadas + 1;
+      setMsgsUsadas(novas);
+      incrementarMsgIA().catch(() => {});
     } catch (error) {
       console.error("[ChatIA] DeepSeek fetch error:", {
         message: error instanceof Error ? error.message : String(error),
@@ -282,6 +283,24 @@ IMPORTANTE:
           </button>
         ))}
       </div>
+
+      {/* Banner de limite atingido */}
+      {msgsUsadas >= limiteIA && (
+        <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-3">
+          <div className="flex-grow min-w-0">
+            <p className="text-sm font-bold text-amber-800 leading-snug">
+              Você usou {msgsUsadas}/{limiteIA} mensagens do mês.
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">Faça upgrade para continuar.</p>
+          </div>
+          <button
+            onClick={() => onNavigate('planos')}
+            className="flex-shrink-0 bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl"
+          >
+            Ver planos
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="sticky bottom-16 px-4 py-3 bg-background/95 backdrop-blur-sm border-t border-border">

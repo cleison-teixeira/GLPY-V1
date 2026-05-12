@@ -1,6 +1,6 @@
 import {
   doc, setDoc, getDoc, collection, addDoc,
-  serverTimestamp, updateDoc,
+  serverTimestamp, updateDoc, increment,
 } from "firebase/firestore";
 import { db, auth } from "../firebase.js";
 
@@ -112,6 +112,62 @@ export async function loadAntiReboteProgress(): Promise<{
     dataUltimoCheck: d.dataUltimoCheck ?? null,
     diasCompletos: Array.isArray(d.diasCompletos) ? d.diasCompletos : [],
   };
+}
+
+// ─────────────────────────────────────────────
+// Limites de uso da IA — users/{uid}/limites/ia
+// ─────────────────────────────────────────────
+const LIMITES_POR_PLANO: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
+
+export async function carregarLimitesIA(plano: string): Promise<{
+  usadas: number;
+  limite: number;
+}> {
+  const id = uid();
+  const limite = LIMITES_POR_PLANO[plano] ?? 10;
+  if (!id) return { usadas: 0, limite };
+
+  const ref = doc(db, "users", id, "limites", "ia");
+  const primeroDiaMes = new Date().toISOString().slice(0, 8) + "01";
+
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      msgs_ia_usadas: 0,
+      msgs_ia_limite: limite,
+      reset_dia: primeroDiaMes,
+      updatedAt: serverTimestamp(),
+    });
+    return { usadas: 0, limite };
+  }
+
+  const d = snap.data();
+  const resetDia: string = d.reset_dia ?? "2000-01-01";
+
+  if (resetDia < primeroDiaMes) {
+    // Novo mês — zera o contador
+    await setDoc(ref, {
+      msgs_ia_usadas: 0,
+      msgs_ia_limite: limite,
+      reset_dia: primeroDiaMes,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return { usadas: 0, limite };
+  }
+
+  return {
+    usadas: typeof d.msgs_ia_usadas === "number" ? d.msgs_ia_usadas : 0,
+    limite: typeof d.msgs_ia_limite === "number" ? d.msgs_ia_limite : limite,
+  };
+}
+
+export async function incrementarMsgIA(): Promise<void> {
+  const id = uid();
+  if (!id) return;
+  await updateDoc(doc(db, "users", id, "limites", "ia"), {
+    msgs_ia_usadas: increment(1),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 // ─────────────────────────────────────────────
