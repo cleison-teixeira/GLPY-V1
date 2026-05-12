@@ -283,18 +283,19 @@ IMPORTANTE:
 
       {/* Input */}
       <div className="sticky bottom-16 px-4 py-3 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="relative pb-12">
+        <div className="relative">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Pergunte qualquer coisa..."
-            className="w-full p-3.5 pr-12 bg-white border border-border rounded-2xl text-sm focus:outline-none focus:border-primary transition min-h-[40px] max-h-[120px] resize-none overflow-y-auto"
+            className="w-full py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-sm focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading || !input.trim()}
-            className="absolute bottom-2 right-2 w-10 h-10 flex items-center justify-center bg-primary text-white rounded-xl shadow-md hover:bg-primary/90 transition disabled:opacity-50"
+            style={{ top: '50%', transform: 'translateY(-50%)' }}
+            className="absolute right-2 w-9 h-9 flex items-center justify-center bg-primary text-white rounded-[10px] transition disabled:opacity-40"
           >
             <Send className="w-4 h-4" />
           </button>
