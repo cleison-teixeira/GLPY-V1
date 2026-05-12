@@ -20,49 +20,6 @@ function incrementarMsgs() {
 }
 
 type Message = { id: number; sender: 'ia' | 'user'; text: string; };
-type Mode = "Nutri" | "Coach" | "Diagnóstico";
-
-function getUserContext() {
-  const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
-  const checkin = JSON.parse(localStorage.getItem("glpy_checkin_hoje") || "{}");
-  const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
-  const tempoToSemanas: Record<string, number> = {
-    "Menos de 1 mês": 2, "1 a 3 meses": 8,
-    "3 a 6 meses": 18, "Mais de 6 meses": 30, "Ainda não comecei": 0,
-  };
-  return {
-    nome: (onboarding.nome as string) || "você",
-    medicamento: (onboarding.medicamento as string) || "GLP-1",
-    dose: (onboarding.dose as string) || "",
-    semana: tempoToSemanas[onboarding.tempo as string] ?? 4,
-    peso: parseFloat(String(onboarding.peso_atual || 80)),
-    streak,
-    protocolo: (checkin.protocolo as string) || "Sobrevivendo às Canetas",
-    diaProtocolo: (checkin.diaProtocolo as number) || 1,
-    fome: (checkin.fome as number) ?? 5,
-    // Bug 11: saciedade (não energia) é o campo salvo no check-in
-    energia: (checkin.saciedade as number) ?? 5,
-    sintomas: (checkin.sintomas as string[]) || [],
-  };
-}
-
-function getCheckinContext(): string {
-  const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null");
-  if (!c) return "";
-  return `
-CONTEXTO DO USUÁRIO (check-in de hoje):
-- Enjoo: ${c.enjoo}/10
-- Fraqueza: ${c.fraqueza}/10
-- Fome: ${c.fome}/10
-- Energia: ${c.energia}/10
-- Sintomas: ${c.sintomas?.length ? c.sintomas.join(", ") : "nenhum"}
-
-REGRAS DE ADAPTAÇÃO:
-- Se enjoo ≥ 7 → sugerir apenas refeições leves (caldo, frutas, torradas)
-- Se fraqueza ≥ 7 → ativar protocolo proteção muscular (proteína + descanso)
-- Se fome ≤ 3 → porções menores, alimentos densos em nutrientes
-- Se energia ≤ 4 → sugerir carboidratos de baixo índice glicêmico`;
-}
 
 const PROTOCOL_STORAGE_MAP: Record<string, string> = {
   antiRebote: "glpy_antirebote",
@@ -127,11 +84,9 @@ function getFullUserContext(): string {
   } catch { return ""; }
 }
 
-const QUICK_REPLIES: Record<Mode, string[]> = {
-  Nutri: ["Sim, quero a receita", "Tenho náusea", "O que comer no almoço?", "Bati minha meta de proteína?"],
-  Coach: ["Estou desmotivado", "Quero manter o streak", "Me ajuda a focar", "Hoje foi difícil"],
-  Diagnóstico: ["Estou com muita fome", "Energia baixa hoje", "Tive náusea", "Me sinto bem"],
-};
+const QUICK_REPLIES = [
+  "O que comer agora?", "Tenho náusea", "Estou desmotivado", "Energia baixa hoje",
+];
 
 function getSaudacao(): string {
   const h = new Date().getHours();
@@ -141,98 +96,48 @@ function getSaudacao(): string {
 }
 
 export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const ctx = getUserContext();
-  const nome = localStorage.getItem("glpy_nome") || ctx.nome;
+  const nome = localStorage.getItem("glpy_nome") || "você";
   const saudacao = getSaudacao();
-
-  const alertaPreditivo = ctx.fome > 7 && ctx.energia < 5
-    ? `\n⚠️ ALERTA PREDITIVO CRÍTICO: Fome ${ctx.fome}/10 + energia ${ctx.energia}/10 = risco real de compulsão noturna nas próximas horas. Aborde isso proativamente na resposta.`
-    : ctx.fome > 7
-    ? `\n⚠️ Fome acima de 7 — usuário pode ceder a alimentos ruins em breve. Seja proativo.`
-    : ctx.energia < 4
-    ? `\n⚠️ Energia muito baixa — verifique hidratação e proteína do dia.`
-    : "";
-
-  const regraFinal = `\n\nREGRA OBRIGATÓRIA: Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas (nunca genérica como "cuide-se" ou "mantenha o foco"). Formato: "Próximas 2 horas: [ação exata]".`;
-
   const fullCtx = getFullUserContext();
 
-  const SYSTEM_PROMPTS: Record<Mode, string> = {
-    Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
-Contexto do usuário:
-- Nome: ${ctx.nome}
-- Medicamento: ${ctx.medicamento} ${ctx.dose}
-- Semana ${ctx.semana} de tratamento
-- Peso atual: ${ctx.peso}kg
-- Fome hoje: ${ctx.fome}/10
-- Energia hoje: ${ctx.energia}/10
-- Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${fullCtx}
+  // limpa chave legada de modo inicial
+  localStorage.removeItem("glpy_chat_initial_mode");
 
-Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
-Se score < 60: priorize ajuste alimentar urgente na resposta.
-Respostas curtas e práticas. Máximo 3 parágrafos. Use emojis com moderação.${regraFinal}`,
-
-    Coach: `Você é a GLPY.IA no modo Coach. Responda em português brasileiro com energia positiva e motivação real.
-Contexto do usuário:
-- Nome: ${ctx.nome}
-- ${ctx.streak} dias de streak 🔥
-- Protocolo: ${ctx.protocolo} (Dia ${ctx.diaProtocolo}/7)
-- Fome hoje: ${ctx.fome}/10
-- Energia hoje: ${ctx.energia}/10
-- Score de hoje: 75%
-${alertaPreditivo}${fullCtx}
-
-Foque em: motivação, celebração de conquistas, consistência e mindset.
-Se fome > 7 e energia < 5: o foco principal é evitar compulsão — seja direto sobre isso.
-Respostas energéticas mas honestas. Máximo 2 parágrafos.${regraFinal}`,
-
-    Diagnóstico: `Você é a GLPY.IA no modo Diagnóstico. Analise os sinais do usuário e entregue diagnóstico preciso com recomendações imediatas.
-Contexto do usuário:
-- Nome: ${ctx.nome}
-- Medicamento: ${ctx.medicamento} ${ctx.dose}
-- Semana ${ctx.semana} de tratamento
-- Fome hoje: ${ctx.fome}/10
-- Energia: ${ctx.energia}/10
-- Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${fullCtx}
-
-Análise preditiva obrigatória:
-- SEMPRE mencione os dados do check-in de hoje na sua análise
-- Fome > 7 + energia < 5 = risco de compulsão noturna — alerte o usuário diretamente
-- Score < 60 = ajuste alimentar urgente necessário
-- Faça 1 pergunta de acompanhamento por vez. Seja analítico e preciso.${regraFinal}`,
-  };
-
-  // Bug 8: lê modo inicial do localStorage (setado pelo Dashboard ao clicar em Risco Alto)
-  const _savedMode = localStorage.getItem("glpy_chat_initial_mode");
-  const _initialMode: Mode = (_savedMode === "Nutri" || _savedMode === "Coach" || _savedMode === "Diagnóstico")
-    ? (_savedMode as Mode) : "Nutri";
-  if (_savedMode) localStorage.removeItem("glpy_chat_initial_mode");
-
-  const _nutriAtivo = (() => { try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; } })();
-  const _nutriFome = (() => { try { const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null"); return c?.fome ?? null; } catch { return null; } })();
-  const _nutriDia = (() => {
-    if (!_nutriAtivo?.id) return 1;
+  const _ativo = (() => { try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; } })();
+  const _fome = (() => { try { const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null"); return c?.fome ?? null; } catch { return null; } })();
+  const _diaAtual = (() => {
+    if (!_ativo?.id) return 1;
     try {
-      const p = JSON.parse(localStorage.getItem(`glpy_protocolo_${_nutriAtivo.id}_progresso`) || "null");
-      return Math.min((p?.diasConcluidos?.length ?? 0) + 1, _nutriAtivo.totalDias || 7);
-    } catch { return (_nutriAtivo.dia ?? 0) + 1; }
+      const p = JSON.parse(localStorage.getItem(`glpy_protocolo_${_ativo.id}_progresso`) || "null");
+      return Math.min((p?.diasConcluidos?.length ?? 0) + 1, _ativo.totalDias || 7);
+    } catch { return (_ativo.dia ?? 0) + 1; }
   })();
-  const _nutriMsg = _nutriAtivo?.nome
-    ? `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${_nutriDia} do protocolo "${_nutriAtivo.nome}". Sua fome hoje está em ${_nutriFome !== null ? `${_nutriFome}/10` : "—"}. Como posso ajudar?`
-    : `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista. Como posso ajudar?`;
 
-  const INITIAL_TEXTS: Record<Mode, string> = {
-    Nutri: _nutriMsg,
-    Coach: `${saudacao}, ${nome}! 🔵 Estou no modo Coach.\n\n${ctx.streak} dias de streak — isso é incrível! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
-    Diagnóstico: `${saudacao}, ${nome}! 🔴 Modo Diagnóstico ativo.\n\nVou analisar seus dados e entregar um diagnóstico direto.\n\nFome atual: ${ctx.fome}/10 · Saciedade: ${ctx.energia}/10 · Streak: ${ctx.streak} dias\n\nQual sintoma está te preocupando agora?`,
-  };
+  const initialMessage = _ativo?.nome
+    ? `${saudacao}, ${nome}! 👋\n\nVi que você está no Dia ${_diaAtual} do protocolo "${_ativo.nome}". Sua fome hoje está em ${_fome !== null ? `${_fome}/10` : "—"}.\n\nPosso ajudar com alimentação, sintomas ou motivação — o que precisa?`
+    : `${saudacao}, ${nome}! 👋\n\nSou a GLPY.IA, sua especialista em GLP-1. Pode me perguntar sobre alimentação, sintomas, motivação ou qualquer dúvida sobre seu tratamento.\n\nComo posso ajudar?`;
+
+  const SYSTEM_PROMPT = `Você é GLPY.IA — a inteligência artificial do app GLPY, especialista em GLP-1 (Ozempic, Mounjaro, Saxenda, Wegovy).
+
+Você é ao mesmo tempo:
+- 🟡 Nutricionista: adapta alimentação ao protocolo e sintomas
+- 🔵 Coach: motiva, celebra conquistas, mantém streak
+- 🔴 Diagnóstico: identifica sintomas, adapta protocolo, alerta riscos
+${fullCtx}
+
+IMPORTANTE:
+- Adapte seu tom ao contexto da pergunta
+- Se falam de comida → nutricionista
+- Se falam de motivação → coach
+- Se relatam sintoma → diagnóstico
+- Use TODOS os dados do perfil para personalizar
+- Seja direta, empática, científica sem jargão
+- Celebre vitórias, não julgue falhas
+- Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas. Formato: "Próximas 2 horas: [ação exata]".`;
 
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, sender: 'ia', text: INITIAL_TEXTS[_initialMode] }
+    { id: 1, sender: 'ia', text: initialMessage }
   ]);
-  const [mode, setMode] = useState<Mode>(_initialMode);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLimiteModal, setShowLimiteModal] = useState(false);
@@ -245,16 +150,6 @@ Análise preditiva obrigatória:
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleModeChange = (newMode: Mode) => {
-    setMode(newMode);
-    const modeMessages: Record<Mode, string> = {
-      Nutri: `${getSaudacao()}, ${nome}! 🟡 Modo Nutricionista ativo.\n\nSou sua nutricionista especialista em GLP-1. Posso ajudar com refeições, macros, receitas e alimentação adaptada ao ${ctx.medicamento}. O que precisa?`,
-      Coach: `${getSaudacao()}, ${nome}! 🔵 Modo Coach ativo.\n\n${ctx.streak} dias de streak — isso é incrível! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
-      Diagnóstico: `${getSaudacao()}, ${nome}! 🔴 Modo Diagnóstico ativo.\n\nVou fazer algumas perguntas para entender melhor como você está hoje e ajustar suas recomendações.\n\nPrimeiro: como está sua disposição agora, de 1 a 10?`,
-    };
-    setMessages([{ id: Date.now(), sender: 'ia', text: modeMessages[newMode] }]);
-  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -285,7 +180,7 @@ Análise preditiva obrigatória:
           model: "deepseek-chat",
           max_tokens: 500,
           messages: [
-            { role: "system", content: SYSTEM_PROMPTS[mode] },
+            { role: "system", content: SYSTEM_PROMPT },
             ...history,
           ],
         }),
@@ -294,22 +189,18 @@ Análise preditiva obrigatória:
       const data = await response.json();
       const iaText = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
 
-      const iaMsg: Message = { id: Date.now() + 1, sender: 'ia', text: iaText };
-      setMessages(prev => [...prev, iaMsg]);
+      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ia', text: iaText }]);
       incrementarMsgs();
     } catch (error) {
       console.error("[ChatIA] DeepSeek fetch error:", {
         message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
         key_defined: !!import.meta.env.VITE_DEEPSEEK_KEY,
-        mode,
       });
-      const errMsg: Message = {
+      setMessages(prev => [...prev, {
         id: Date.now() + 1,
         sender: 'ia',
         text: "Ops! Tive um problema de conexão. Verifique sua internet e tente novamente. 🔄",
-      };
-      setMessages(prev => [...prev, errMsg]);
+      }]);
     } finally {
       setLoading(false);
     }
@@ -317,10 +208,10 @@ Análise preditiva obrigatória:
 
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col pb-24">
+
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm p-4 border-b border-border z-10">
-        {/* Bug 6: removida logo duplicada — só GLPY.IA */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
             <ChevronLeft className="w-4 h-4 text-text-muted" />
           </button>
@@ -338,23 +229,6 @@ Análise preditiva obrigatória:
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Modos */}
-        <div className="flex gap-2">
-          {(["Nutri", "Coach", "Diagnóstico"] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => handleModeChange(m)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                mode === m
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-white border border-border text-text-muted"
-              }`}
-            >
-              {m === "Nutri" ? "🟡 Nutri" : m === "Coach" ? "🔵 Coach" : "🔴 Diagnóstico"}
-            </button>
-          ))}
         </div>
       </header>
 
@@ -380,13 +254,8 @@ Análise preditiva obrigatória:
           ))}
         </AnimatePresence>
 
-        {/* Loading */}
         {loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-start"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
             <div className="bg-white border border-border rounded-2xl rounded-tl-sm p-3.5 shadow-sm">
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 text-primary animate-spin" />
@@ -401,7 +270,7 @@ Análise preditiva obrigatória:
 
       {/* Quick Replies */}
       <div className="px-4 pb-3 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
-        {QUICK_REPLIES[mode].map(reply => (
+        {QUICK_REPLIES.map(reply => (
           <button
             key={reply}
             onClick={() => sendMessage(reply)}
