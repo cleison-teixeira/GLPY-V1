@@ -44,6 +44,18 @@ export interface Dia {
   xp: number;
 }
 
+const STORAGE_KEY_TO_ID: Record<string, string> = {
+  "glpy_sobrevivendo": "sobrevivendoCanetas",
+  "glpy_efeitos": "efeitosColaterais",
+  "glpy_cabelo": "antiQuedaCabelo",
+  "glpy_psicologia": "psicologiaEmagrecimento",
+  "glpy_baixoapetite": "baixoApetite",
+  "glpy_musculos": "naoPercaMúsculo",
+  "glpy_energia": "energiaBaixa",
+  "glpy_metabolico": "ajusteMetabolico",
+  "glpy_transicao": "transicao",
+};
+
 interface Props {
   n: number;
   emoji: string;
@@ -55,9 +67,7 @@ interface Props {
 }
 
 export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, onNavigate }: Props) {
-  const protocoloId = (() => {
-    try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}").id || storageKey; } catch { return storageKey; }
-  })();
+  const protocoloId = STORAGE_KEY_TO_ID[storageKey] ?? storageKey;
   const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
 
   const [diaAtual, setDiaAtual] = useState<number>(() =>
@@ -87,7 +97,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   useEffect(() => {
     try {
       const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
-      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, dia: diaAtual }));
+      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual }));
     } catch {}
   }, []); // mount-only: registra protocolo como ativo ao abrir
 
