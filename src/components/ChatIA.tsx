@@ -70,8 +70,17 @@ const QUICK_REPLIES: Record<Mode, string[]> = {
   Diagnóstico: ["Estou com muita fome", "Energia baixa hoje", "Tive náusea", "Me sinto bem"],
 };
 
+function getSaudacao(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Bom dia";
+  if (h >= 12 && h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const ctx = getUserContext();
+  const nome = localStorage.getItem("glpy_nome") || ctx.nome;
+  const saudacao = getSaudacao();
 
   const alertaPreditivo = ctx.fome > 7 && ctx.energia < 5
     ? `\n⚠️ ALERTA PREDITIVO CRÍTICO: Fome ${ctx.fome}/10 + energia ${ctx.energia}/10 = risco real de compulsão noturna nas próximas horas. Aborde isso proativamente na resposta.`
@@ -140,9 +149,9 @@ Análise preditiva obrigatória:
   if (_savedMode) localStorage.removeItem("glpy_chat_initial_mode");
 
   const INITIAL_TEXTS: Record<Mode, string> = {
-    Nutri: `Oi ${ctx.nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`,
-    Coach: `Modo Coach ativo 🔵\n\n${ctx.streak} dias de streak — isso é incrível, ${ctx.nome}! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
-    Diagnóstico: `Modo Diagnóstico ativo 🔴\n\nVou analisar seus dados e entregar um diagnóstico direto.\n\nFome atual: ${ctx.fome}/10 · Saciedade: ${ctx.energia}/10 · Streak: ${ctx.streak} dias\n\nQual sintoma está te preocupando agora?`,
+    Nutri: `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`,
+    Coach: `${saudacao}, ${nome}! 🔵 Estou no modo Coach.\n\n${ctx.streak} dias de streak — isso é incrível! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
+    Diagnóstico: `${saudacao}, ${nome}! 🔴 Modo Diagnóstico ativo.\n\nVou analisar seus dados e entregar um diagnóstico direto.\n\nFome atual: ${ctx.fome}/10 · Saciedade: ${ctx.energia}/10 · Streak: ${ctx.streak} dias\n\nQual sintoma está te preocupando agora?`,
   };
 
   const [messages, setMessages] = useState<Message[]>([
@@ -165,9 +174,9 @@ Análise preditiva obrigatória:
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
     const modeMessages: Record<Mode, string> = {
-      Nutri: `Modo Nutricionista ativo 🟡\n\nSou sua nutricionista especialista em GLP-1. Posso ajudar com refeições, macros, receitas e alimentação adaptada ao ${ctx.medicamento}. O que precisa?`,
-      Coach: `Modo Coach ativo 🔵\n\n${ctx.streak} dias de streak — isso é incrível, ${ctx.nome}! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
-      Diagnóstico: `Modo Diagnóstico ativo 🔴\n\nVou fazer algumas perguntas para entender melhor como você está hoje e ajustar suas recomendações.\n\nPrimeiro: como está sua disposição agora, de 1 a 10?`,
+      Nutri: `${getSaudacao()}, ${nome}! 🟡 Modo Nutricionista ativo.\n\nSou sua nutricionista especialista em GLP-1. Posso ajudar com refeições, macros, receitas e alimentação adaptada ao ${ctx.medicamento}. O que precisa?`,
+      Coach: `${getSaudacao()}, ${nome}! 🔵 Modo Coach ativo.\n\n${ctx.streak} dias de streak — isso é incrível! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
+      Diagnóstico: `${getSaudacao()}, ${nome}! 🔴 Modo Diagnóstico ativo.\n\nVou fazer algumas perguntas para entender melhor como você está hoje e ajustar suas recomendações.\n\nPrimeiro: como está sua disposição agora, de 1 a 10?`,
     };
     setMessages([{ id: Date.now(), sender: 'ia', text: modeMessages[newMode] }]);
   };
