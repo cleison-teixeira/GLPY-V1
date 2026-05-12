@@ -16,8 +16,11 @@ function uid(): string | null {
 // Perfil completo do usuário (onboarding + Firebase user)
 // ─────────────────────────────────────────────
 export async function saveUserProfile(data: Record<string, unknown>): Promise<void> {
-  const id = uid();
-  if (!id) return;
+  // Fallback para UID via localStorage se auth.currentUser ainda não resolveu
+  const id = uid() ?? (() => {
+    try { return JSON.parse(localStorage.getItem("glpy_user") || "{}").uid ?? null; } catch { return null; }
+  })();
+  if (!id) { console.warn("saveUserProfile: uid null, save ignorado"); return; }
   await setDoc(doc(db, "users", id), {
     ...data,
     updatedAt: serverTimestamp(),

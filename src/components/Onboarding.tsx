@@ -218,8 +218,10 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
       if (data.altura) localStorage.setItem("glpy_altura", String(data.altura));
       if (data.medicamento) localStorage.setItem("glpy_medicamento", String(data.medicamento));
 
-      // Sincroniza no Firestore em background (não bloqueia)
+      // Sincroniza no Firestore (merge — não sobrescreve plano ou outros campos)
       const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
+      const uid = glpyUser.uid ?? null;
+      console.log('Perfil salvo:', { nome: data.nome, uid });
       saveUserProfile({
         onboarding: data,
         nome: data.nome,
@@ -230,7 +232,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
         displayName: glpyUser.displayName ?? null,
         primeiroAcesso: false,
         updatedAt: new Date().toISOString(),
-      }).catch(() => {});
+      }).catch(console.error);
 
       onNext();
     }
