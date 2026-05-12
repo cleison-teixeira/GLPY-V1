@@ -7,6 +7,13 @@ import {
 } from "lucide-react";
 import BottomNav from "./BottomNav";
 
+function getSaudacao(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Bom dia";
+  if (h >= 12 && h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 export default function Dashboard({ onNavigate }: { onNavigate: (screen: string) => void }) {
   // Bug 3: score dinâmico baseado no check-in de hoje
   const checkinHoje = (() => {
@@ -30,9 +37,10 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
   })();
 
   const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
-  const nomeUsuario = (glpyUser.displayName as string)?.split(" ")[0]
+  const nomeUsuario = localStorage.getItem("glpy_nome")
+    || (glpyUser.displayName as string)?.split(" ")[0]
     || (glpyUser.email as string)?.split("@")[0]
-    || "Usuário";
+    || "";
 
   const xpTotal = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
   const nivel = xpTotal < 100 ? 1 : xpTotal < 300 ? 2 : xpTotal < 600 ? 3 : xpTotal < 1000 ? 4 : 5;
@@ -234,8 +242,9 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
               </div>
               <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
             </div>
-            <p className="text-text-muted text-sm">Olá,</p>
-            <h1 className="text-2xl font-bold tracking-tight">{nomeUsuario}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {nomeUsuario ? `${getSaudacao()}, ${nomeUsuario}` : getSaudacao()}
+            </h1>
             <div className="flex items-center gap-1.5 mt-2">
               <div className="flex items-center gap-1 bg-[#F4F6F8] border border-border px-2.5 py-1 rounded-full">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
