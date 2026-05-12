@@ -491,11 +491,13 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 }}
                 style={{
                   width: '100%',
-                  minHeight: '420px',
+                  aspectRatio: '9/16',
+                  maxHeight: '55vh',
                   borderRadius: '16px',
                   background: '#0A1628',
                   objectFit: 'contain',
                   objectPosition: 'top',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
                   display: 'block',
                 }}
               />
