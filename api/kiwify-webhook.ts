@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Inicializa Firebase Admin (singleton)
 if (!getApps().length) {
@@ -60,39 +61,107 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .limit(1)
     .get();
 
+  let uid: string;
+  let existia = true;
+
   if (snapshot.empty) {
-    // Usuário ainda não cadastrado — retorna 200 para não gerar retry no Kiwify
-    return res.status(200).json({ ok: true, message: "user not found" });
+    existia = false;
+    // Cria conta Firebase Auth
+    const userRecord = await getAuth().createUser({
+      email,
+      password: "GLPY@2026",
+    });
+    uid = userRecord.uid;
+  } else {
+    uid = snapshot.docs[0].id;
   }
 
-  const uid = snapshot.docs[0].id;
-  const updateData: Record<string, unknown> = {
-    updatedAt: FieldValue.serverTimestamp(),
-  };
+  const productName = body?.Product?.name ?? "";
+  const planTipo = identifyPlan(productName);
+  const subscriptionId = body?.Subscription?.id ?? null;
+  const nomeCliente = body?.Customer?.full_name ?? "Usuário GLPY";
 
   if (event === "purchase.approved" || event === "subscription.renewed") {
-    const productName = body?.Product?.name ?? "";
-    const plano = identifyPlan(productName);
-
-    updateData.plano = plano;
-    updateData.kiwify = {
-      event,
-      orderId: body?.order_id ?? null,
-      productId: body?.Product?.product_id ?? null,
-      productName,
-      subscriptionId: body?.Subscription?.id ?? null,
-      chargeFrequency: body?.Subscription?.charge_frequency ?? null,
-      approvedAt: body?.approved_date ?? new Date().toISOString(),
+    const planoData = {
+      tipo: planTipo,
       status: "active",
+      origem: "kiwify",
+      kiwifySubscriptionId: subscriptionId,
+      dataExpiracao: null,
     };
-  } else if (event === "subscription.canceled") {
-    updateData.plano = "free";
-    updateData["kiwify.status"] = "canceled";
-    updateData["kiwify.canceledAt"] = new Date().toISOString();
-    updateData["kiwify.event"] = event;
-  }
 
-  await db.collection("users").doc(uid).update(updateData);
+    if (!existia) {
+      // Cria documento base + plano para usuário novo
+      await db.collection("users").doc(uid).set({
+        email,
+        nome: nomeCliente,
+        primeiroAcesso: true,
+        plano: planoData,
+        kiwify: {
+          event,
+          orderId: body?.order_id ?? null,
+          productId: body?.Product?.product_id ?? null,
+          productName,
+          subscriptionId,
+          chargeFrequency: body?.Subscription?.charge_frequency ?? null,
+          approvedAt: body?.approved_date ?? new Date().toISOString(),
+          status: "active",
+        },
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      await db.collection("users").doc(uid).update({
+        plano: planoData,
+        kiwify: {
+          event,
+          orderId: body?.order_id ?? null,
+          productId: body?.Product?.product_id ?? null,
+          productName,
+          subscriptionId,
+          chargeFrequency: body?.Subscription?.charge_frequency ?? null,
+          approvedAt: body?.approved_date ?? new Date().toISOString(),
+          status: "active",
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    console.log("[Kiwify] purchase.approved:", { email, planTipo, novo: !existia });
+
+    // Envia email com credenciais
+    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: "service_2yk9ntj",
+        template_id: "template_s9fz94e",
+        user_id: "nzjByS_tk1VefLj3y",
+        template_params: {
+          to_email: email,
+          to_name: nomeCliente,
+          plano: planTipo,
+          senha: "GLPY@2026",
+          app_url: "glpy.com.br",
+        },
+      }),
+    });
+
+    console.log("[Kiwify] email enviado para:", email);
+
+  } else if (event === "subscription.canceled") {
+    await db.collection("users").doc(uid).update({
+      plano: {
+        tipo: "starter",
+        status: "canceled",
+        origem: "kiwify",
+      },
+      "kiwify.status": "canceled",
+      "kiwify.canceledAt": new Date().toISOString(),
+      "kiwify.event": event,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
 
   return res.status(200).json({ ok: true });
 }
