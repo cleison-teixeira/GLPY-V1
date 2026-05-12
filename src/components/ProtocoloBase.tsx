@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
-import { salvarProgressoProtocolo, carregarProgressoProtocolo } from "../services/firestore";
+import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -103,7 +103,14 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
       localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual }));
     } catch {}
-  }, []); // mount-only: registra protocolo como ativo ao abrir
+    // Atualiza protocoloAtivo no Firestore
+    saveProtocolProgress({
+      protocoloId,
+      protocoloNome: nome,
+      diaAtual: diaAtual + 1,
+      totalDias: dias.length,
+    }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Firestore load (apenas quando firestoreId é fornecido)
   useEffect(() => {
@@ -153,6 +160,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
   const handleConcluir = () => {
+    console.log('[Protocolo] handleConcluir chamado:', { firestoreId, diaAtual });
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
@@ -191,11 +199,14 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
     // Salva no Firestore (apenas quando firestoreId é fornecido)
     if (firestoreId) {
+      console.log('[Protocolo] salvando no Firestore:', { firestoreId, proximoDia: proximoDiaIdx });
       salvarProgressoProtocolo(firestoreId, {
         diaAtual: proximoDiaIdx,
         dataUltimoCheck: new Date().toISOString().slice(0, 10),
         diasCompletos: novasConcluidas,
-      }).catch(() => {});
+      })
+        .then(() => console.log("[GLPY] Firestore save OK:", firestoreId))
+        .catch((err) => console.error('[Protocolo] erro Firestore:', err));
     }
 
     if (diaAtual === 6) {

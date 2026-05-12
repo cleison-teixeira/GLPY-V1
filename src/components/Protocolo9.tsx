@@ -216,6 +216,7 @@ export default function Protocolo9({ onNavigate }: { onNavigate: (screen: string
       receitas={RECEITAS}
       dias={DIAS}
       videos={VIDEOS}
+      firestoreId="protocolo-9"
       onNavigate={onNavigate}
     />
   );

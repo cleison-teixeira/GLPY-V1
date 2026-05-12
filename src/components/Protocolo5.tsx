@@ -216,6 +216,7 @@ export default function Protocolo5({ onNavigate }: { onNavigate: (screen: string
       receitas={RECEITAS}
       dias={DIAS}
       videos={VIDEOS}
+      firestoreId="protocolo-5"
       onNavigate={onNavigate}
     />
   );
