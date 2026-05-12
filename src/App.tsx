@@ -57,7 +57,13 @@ export default function App() {
           displayName: firebaseUser.displayName,
           email: firebaseUser.email,
         }));
-        try { await syncFromFirestore(); } catch {}
+        try {
+          const { primeiroAcesso } = await syncFromFirestore();
+          if (primeiroAcesso) {
+            setTelaAtual('onboarding');
+            return;
+          }
+        } catch {}
         // Bloqueia acesso sem plano pago (verificado via Firestore)
         const plano = localStorage.getItem("glpy_plano");
         if (!plano && onboardingDone) {

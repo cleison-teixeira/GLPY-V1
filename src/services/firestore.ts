@@ -220,10 +220,10 @@ export async function carregarContextoIA(): Promise<ContextoIA | null> {
 // ─────────────────────────────────────────────
 // Popula localStorage a partir do Firestore
 // ─────────────────────────────────────────────
-export async function syncFromFirestore(): Promise<void> {
+export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> {
   const id = uid();
   const data = await loadUserData();
-  if (!data) return;
+  if (!data) return { primeiroAcesso: false };
 
   if (data.onboarding) {
     localStorage.setItem("glpy_onboarding", JSON.stringify(data.onboarding));
@@ -251,7 +251,7 @@ export async function syncFromFirestore(): Promise<void> {
             updatedAt: serverTimestamp(),
           });
           localStorage.setItem("glpy_plano", "starter");
-          return;
+          return { primeiroAcesso: false };
         }
       }
       if (planoObj.tipo) localStorage.setItem("glpy_plano", String(planoObj.tipo));
@@ -259,6 +259,8 @@ export async function syncFromFirestore(): Promise<void> {
       localStorage.setItem("glpy_plano", String(data.plano));
     }
   }
+
+  return { primeiroAcesso: data.primeiroAcesso === true };
 }
 
 // ─────────────────────────────────────────────

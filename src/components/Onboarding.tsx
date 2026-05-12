@@ -228,6 +228,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
         idade: data.idade,
         email: glpyUser.email ?? null,
         displayName: glpyUser.displayName ?? null,
+        primeiroAcesso: false,
         updatedAt: new Date().toISOString(),
       }).catch(() => {});
 
