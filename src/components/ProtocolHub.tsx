@@ -151,6 +151,14 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
         {PROTOCOLOS.map((p) => {
           const isAtivo = p.id === idAtivo;
           const desbloqueado = estaDesbloqueado(p.planoMinimo);
+          const progresso = (() => {
+            try {
+              const raw = localStorage.getItem(`glpy_protocolo_${p.id}_progresso`);
+              return raw ? JSON.parse(raw) : null;
+            } catch { return null; }
+          })();
+          const diasFeitos: number = progresso?.diasConcluidos?.length ?? 0;
+          const iniciado = diasFeitos > 0;
           return (
             <motion.button
               key={p.id}
@@ -178,15 +186,21 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
                   </div>
                   <p className="text-xs text-text-muted mt-0.5 leading-snug line-clamp-1">{p.desc}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs" style={{ color: desbloqueado ? p.cor : "#9CB3BF" }}>
-                      {p.dias} dias
-                    </p>
+                    {iniciado ? (
+                      <span className="text-xs font-bold" style={{ color: p.cor }}>
+                        ✅ {diasFeitos}/{p.dias} dias
+                      </span>
+                    ) : (
+                      <p className="text-xs" style={{ color: desbloqueado ? p.cor : "#9CB3BF" }}>
+                        {p.dias} dias
+                      </p>
+                    )}
                     {isAtivo && (
                       <span
                         className="text-xs font-bold px-2 py-0.5 rounded-full"
                         style={{ background: p.corLight, color: p.cor }}
                       >
-                        ▶ Em andamento
+                        {iniciado ? "▶ Continuar" : "▶ Em andamento"}
                       </span>
                     )}
                     {!desbloqueado && (
