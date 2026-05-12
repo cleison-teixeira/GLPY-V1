@@ -59,15 +59,21 @@ export default function App() {
         }));
         try {
           const { primeiroAcesso } = await syncFromFirestore();
+          console.log('primeiroAcesso:', primeiroAcesso);
           if (primeiroAcesso) {
             setTelaAtual('onboarding');
-            return;
+          } else {
+            // Bloqueia acesso sem plano pago (verificado via Firestore)
+            const plano = localStorage.getItem("glpy_plano");
+            if (!plano && onboardingDone) {
+              setTelaAtual('planos');
+            }
           }
-        } catch {}
-        // Bloqueia acesso sem plano pago (verificado via Firestore)
-        const plano = localStorage.getItem("glpy_plano");
-        if (!plano && onboardingDone) {
-          setTelaAtual('planos');
+        } catch {
+          const plano = localStorage.getItem("glpy_plano");
+          if (!plano && onboardingDone) {
+            setTelaAtual('planos');
+          }
         }
       } else {
         localStorage.removeItem("glpy_user");
