@@ -210,8 +210,21 @@ Análise preditiva obrigatória:
     ? (_savedMode as Mode) : "Nutri";
   if (_savedMode) localStorage.removeItem("glpy_chat_initial_mode");
 
+  const _nutriAtivo = (() => { try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; } })();
+  const _nutriFome = (() => { try { const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null"); return c?.fome ?? null; } catch { return null; } })();
+  const _nutriDia = (() => {
+    if (!_nutriAtivo?.id) return 1;
+    try {
+      const p = JSON.parse(localStorage.getItem(`glpy_protocolo_${_nutriAtivo.id}_progresso`) || "null");
+      return Math.min((p?.diasConcluidos?.length ?? 0) + 1, _nutriAtivo.totalDias || 7);
+    } catch { return (_nutriAtivo.dia ?? 0) + 1; }
+  })();
+  const _nutriMsg = _nutriAtivo?.nome
+    ? `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${_nutriDia} do protocolo "${_nutriAtivo.nome}". Sua fome hoje está em ${_nutriFome !== null ? `${_nutriFome}/10` : "—"}. Como posso ajudar?`
+    : `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista. Como posso ajudar?`;
+
   const INITIAL_TEXTS: Record<Mode, string> = {
-    Nutri: `${saudacao}, ${nome}! 👋 Estou no modo Nutricionista.\n\nVi que você está no Dia ${ctx.diaProtocolo} do protocolo "${ctx.protocolo}" e sua fome hoje está em ${ctx.fome}/10.\n\nComo posso te ajudar agora?`,
+    Nutri: _nutriMsg,
     Coach: `${saudacao}, ${nome}! 🔵 Estou no modo Coach.\n\n${ctx.streak} dias de streak — isso é incrível! 🔥\n\nEstou aqui para te manter motivado e consistente. Como você está se sentindo hoje?`,
     Diagnóstico: `${saudacao}, ${nome}! 🔴 Modo Diagnóstico ativo.\n\nVou analisar seus dados e entregar um diagnóstico direto.\n\nFome atual: ${ctx.fome}/10 · Saciedade: ${ctx.energia}/10 · Streak: ${ctx.streak} dias\n\nQual sintoma está te preocupando agora?`,
   };
