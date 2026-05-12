@@ -335,10 +335,10 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     setMissoesMarcadas([]);
 
     const diaCompletado = diaAtual + 1; // 1-indexado
-    const novasConcluidas = diasConcluidos.includes(diaCompletado)
+    const novasConcluidas = (diasConcluidos.includes(diaCompletado)
       ? diasConcluidos
-      : [...diasConcluidos, diaCompletado];
-    const proximoDiaIdx = diaAtual < 6 ? diaAtual + 1 : diaAtual;
+      : [...diasConcluidos, diaCompletado]).slice(0, 7);
+    const proximoDiaIdx = Math.min(diaAtual + 1, 6);
 
     setDiasConcluidos(novasConcluidas);
     setDataUltimoCheck(agora);

@@ -164,8 +164,8 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
               return raw ? JSON.parse(raw) : null;
             } catch { return null; }
           })();
-          const diasFeitos: number = progresso?.diasConcluidos?.length ?? 0;
-          const diaAtual: number = diasFeitos + 1;
+          const diasFeitos: number = Math.min(progresso?.diasConcluidos?.length ?? 0, p.dias);
+          const diaAtual: number = Math.min(diasFeitos + 1, p.dias);
           const iniciado = diasFeitos > 0;
           return (
             <motion.button

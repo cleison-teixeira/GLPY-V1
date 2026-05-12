@@ -122,6 +122,39 @@ export async function loadAntiReboteProgress(): Promise<{
 }
 
 // ─────────────────────────────────────────────
+// Progresso genérico de protocolo — subcoleção protocolos/{protocoloId}
+// ─────────────────────────────────────────────
+export async function salvarProgressoProtocolo(
+  protocoloId: string,
+  dados: { diaAtual: number; dataUltimoCheck: string; diasCompletos: number[] },
+): Promise<void> {
+  const id = uid();
+  if (!id) return;
+  await setDoc(
+    doc(db, "users", id, "protocolos", protocoloId),
+    { ...dados, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
+export async function carregarProgressoProtocolo(protocoloId: string): Promise<{
+  diaAtual: number;
+  dataUltimoCheck: string | null;
+  diasCompletos: number[];
+} | null> {
+  const id = uid();
+  if (!id) return null;
+  const snap = await getDoc(doc(db, "users", id, "protocolos", protocoloId));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    diaAtual: typeof d.diaAtual === "number" ? d.diaAtual : 0,
+    dataUltimoCheck: d.dataUltimoCheck ?? null,
+    diasCompletos: Array.isArray(d.diasCompletos) ? d.diasCompletos : [],
+  };
+}
+
+// ─────────────────────────────────────────────
 // Limites de uso da IA — users/{uid}/limites/ia
 // ─────────────────────────────────────────────
 const LIMITES_POR_PLANO: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };

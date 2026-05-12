@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
+import { salvarProgressoProtocolo, carregarProgressoProtocolo } from "../services/firestore";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -64,10 +65,11 @@ interface Props {
   receitas: Receita[];
   dias: Dia[];
   videos: Record<number, string>;
+  firestoreId?: string;
   onNavigate: (screen: string) => void;
 }
 
-export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, videos, onNavigate }: Props) {
+export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, videos, firestoreId, onNavigate }: Props) {
   const protocoloId = STORAGE_KEY_TO_ID[storageKey] ?? storageKey;
   const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
 
@@ -103,11 +105,41 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     } catch {}
   }, []); // mount-only: registra protocolo como ativo ao abrir
 
+  // Firestore load (apenas quando firestoreId é fornecido)
+  useEffect(() => {
+    if (!firestoreId) return;
+    carregarProgressoProtocolo(firestoreId)
+      .then(data => {
+        if (data) {
+          setDiaAtual(data.diaAtual);
+          setDiasConcluidos(data.diasCompletos);
+          // espelha no localStorage para que o ProtocolHub leia corretamente
+          try {
+            const raw = localStorage.getItem(progressoKey);
+            const existing = raw ? JSON.parse(raw) : {};
+            localStorage.setItem(progressoKey, JSON.stringify({
+              ...existing,
+              diaAtual: data.diaAtual,
+              diasConcluidos: data.diasCompletos,
+            }));
+            localStorage.setItem(`${storageKey}_dia`, String(data.diaAtual));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
   const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
   const metas = calcMetas(peso, altura);
 
   const videoUrl = videos[diaAtual + 1] ?? "";
+
+  const handlePlay = () => {
+    setVideoAssistido(true);
+    const v = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    v?.requestFullscreen?.() ?? v?.webkitEnterFullscreen?.();
+  };
 
   const dia = dias[diaAtual];
   const receita = receitas.find(r => r.id === dia.receita_id)!;
@@ -133,14 +165,20 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     if (diaAtual === 6) { dispararConfettiFinal(); } else { dispararConfetti(); }
 
     const diaCompletado = diaAtual + 1;
-    const novasConcluidas = diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado];
+    const novasConcluidas = (diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado]).slice(0, 7);
     setDiasConcluidos(novasConcluidas);
+
+    const proximoDiaIdx = Math.min(diaAtual + 1, dias.length - 1);
+
+    // Avança o estado local imediatamente (garante que o remount carregue o dia certo)
+    setDiaAtual(proximoDiaIdx);
+    localStorage.setItem(`${storageKey}_dia`, String(proximoDiaIdx));
 
     const dataInicio = (() => {
       try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || new Date().toISOString().slice(0, 10); } catch { return new Date().toISOString().slice(0, 10); }
     })();
     localStorage.setItem(progressoKey, JSON.stringify({
-      diaAtual: diaAtual < 6 ? diaAtual + 1 : diaAtual,
+      diaAtual: proximoDiaIdx,
       diasConcluidos: novasConcluidas,
       dataInicio,
     }));
@@ -150,6 +188,15 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       dia: diaAtual + 1,
       xp_ganho: xpDia,
     }));
+
+    // Salva no Firestore (apenas quando firestoreId é fornecido)
+    if (firestoreId) {
+      salvarProgressoProtocolo(firestoreId, {
+        diaAtual: proximoDiaIdx,
+        dataUltimoCheck: new Date().toISOString().slice(0, 10),
+        diasCompletos: novasConcluidas,
+      }).catch(() => {});
+    }
 
     if (diaAtual === 6) {
       localStorage.removeItem("glpy_protocolo_ativo");
@@ -287,23 +334,24 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                 playsInline
                 {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
                 preload="auto"
-                onPlay={() => setVideoAssistido(true)}
+                onPlay={handlePlay}
                 onLoadedMetadata={() => {
                   if (videoRef.current) videoRef.current.currentTime = 0.1;
                 }}
                 style={{
                   width: '100%',
-                  aspectRatio: '16/9',
+                  minHeight: '420px',
+                  maxHeight: '60vh',
                   borderRadius: '16px',
+                  background: '#0A1628',
                   objectFit: 'cover',
                   objectPosition: 'top',
-                  background: '#0A1628',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
                   display: 'block',
                 }}
               />
             ) : (
-              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ aspectRatio: '16/9' }}>
+              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ minHeight: '420px', maxHeight: '60vh' }}>
                 <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
               </div>
             )}
