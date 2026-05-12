@@ -330,6 +330,14 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     setTimeout(() => setShowXP(false), 1500);
     if (diaAtual === 6) { dispararConfettiFinal(); } else { dispararConfetti(); }
 
+    // Navegar para check-in após confetti (todos os dias)
+    localStorage.setItem("glpy_checkin_from_protocol", JSON.stringify({
+      protocolo: "Anti-Rebote",
+      dia: diaAtual + 1,
+      xp_ganho: xpDia,
+    }));
+    setTimeout(() => onNavigate('checkin'), 1500);
+
     // Salva no Firestore (diaAtual já avança para o próximo)
     saveAntiReboteProgress({
       diaAtual: proximoDiaIdx,

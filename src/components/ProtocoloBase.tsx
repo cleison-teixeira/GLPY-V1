@@ -143,11 +143,17 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       dataInicio,
     }));
 
+    localStorage.setItem("glpy_checkin_from_protocol", JSON.stringify({
+      protocolo: nome,
+      dia: diaAtual + 1,
+      xp_ganho: xpDia,
+    }));
+
     if (diaAtual === 6) {
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
-      setTimeout(() => onNavigate('checkin'), 3000);
     }
+    setTimeout(() => onNavigate('checkin'), 1500);
   };
 
   const handleShare = async () => {
@@ -365,28 +371,15 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                   {protocoloConcluido ? (
                     <>
                       <p className="font-bold text-primary text-lg">🏆 Protocolo concluído!</p>
-                      <p className="text-xs text-text-muted mt-1">Redirecionando para o check-in...</p>
+                      <p className="text-xs text-text-muted mt-1">Indo para o check-in... 📋</p>
                     </>
                   ) : (
                     <>
                       <p className="font-bold text-primary">🏆 +{dia.xp} XP conquistados!</p>
-                      <p className="text-xs text-text-muted mt-1">Dia {diaAtual + 2} desbloqueado</p>
+                      <p className="text-xs text-text-muted mt-1">Indo para o check-in... 📋</p>
                     </>
                   )}
                 </div>
-                {!protocoloConcluido && (
-                  diaAtual < 6 ? (
-                    <button onClick={proximoDia}
-                      className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">
-                      Ir para o Dia {diaAtual + 2} <ChevronRight className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button onClick={() => onNavigate("protocolHub")}
-                      className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl">
-                      🏆 Ver próximo protocolo
-                    </button>
-                  )
-                )}
               </motion.div>
             )}
           </motion.div>

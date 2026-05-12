@@ -79,13 +79,19 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
     setTimeout(() => setShowXP(true), 50);
     setTimeout(() => setShowXP(false), 1500);
 
+    localStorage.setItem("glpy_checkin_from_protocol", JSON.stringify({
+      protocolo: protocoloNome,
+      dia: diaAtual,
+      xp_ganho: xpTotal + 20,
+    }));
+
     if (diaAtual >= totalDias) {
       setProtocoloConcluido(true);
       dispararConfettiFinal();
-      setTimeout(() => onNavigate('checkin'), 3500);
     } else {
       dispararConfetti();
     }
+    setTimeout(() => onNavigate('checkin'), 1500);
   };
 
   const missoesPct = checkedMissions.length / MISSIONS.length;
@@ -305,18 +311,12 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
               {protocoloConcluido ? (
                 <>
                   <p className="font-bold text-primary text-lg">🏆 Protocolo concluído!</p>
-                  <p className="text-xs text-text-muted mt-1">Parabéns! Redirecionando para o check-in final...</p>
+                  <p className="text-xs text-text-muted mt-1">Indo para o check-in... 📋</p>
                 </>
               ) : (
                 <>
                   <p className="font-bold text-primary">🏆 +20 XP conquistados!</p>
-                  <p className="text-xs text-text-muted mt-1">Dia {diaAtual} desbloqueado. Até amanhã!</p>
-                  <button
-                    onClick={() => onNavigate('protocolHub')}
-                    className="mt-3 text-primary font-semibold text-sm underline"
-                  >
-                    Voltar aos protocolos →
-                  </button>
+                  <p className="text-xs text-text-muted mt-1">Indo para o check-in... 📋</p>
                 </>
               )}
             </motion.div>

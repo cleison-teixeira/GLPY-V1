@@ -43,9 +43,17 @@ const getIAResponse = (hunger: number, mood: number | null, symptoms: string[]):
   return "Check-in registrado! 💚 Seus dados foram salvos e vou usar para personalizar suas recomendações de amanhã. Mantenha o streak!";
 };
 
+type FromProtocol = { protocolo: string; dia: number; xp_ganho: number } | null;
+
 export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
   const pesoInicial = parseFloat((onboarding.peso_atual as string) || "83.0");
+
+  const [fromProtocol] = useState<FromProtocol>(() => {
+    const raw = localStorage.getItem("glpy_checkin_from_protocol");
+    localStorage.removeItem("glpy_checkin_from_protocol");
+    return raw ? JSON.parse(raw) : null;
+  });
 
   const [weight, setWeight] = useState(pesoInicial || 83.0);
   const [symptoms, setSymptoms] = useState<string[]>([]);
@@ -137,6 +145,10 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
     }).catch(() => {});
 
     dispararConfetti();
+
+    if (fromProtocol) {
+      setTimeout(() => onNavigate('dashboard'), 2000);
+    }
   };
 
   const today = new Date().toLocaleDateString('pt-BR', {
@@ -161,6 +173,25 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
       </AnimatePresence>
 
       <div className="p-5">
+        {/* Banner: veio de protocolo */}
+        {fromProtocol && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5 p-4 bg-primary/10 border border-primary/25 rounded-2xl flex items-start gap-3"
+          >
+            <span className="text-xl">📋</span>
+            <div>
+              <p className="text-sm font-bold text-primary">
+                Dia {fromProtocol.dia} do {fromProtocol.protocolo} concluído!
+              </p>
+              <p className="text-xs text-text-muted mt-0.5">
+                +{fromProtocol.xp_ganho} XP ganhos. Complete o check-in para registrar como você se sentiu hoje.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Header */}
         <header className="mb-6">
           <div className="flex items-center gap-3 mb-3">
@@ -314,15 +345,23 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
             animate={{ opacity: 1, y: 0 }}
             className="mt-4 text-center"
           >
-            <p className="text-xs text-text-muted">
-              🔥 Streak mantido! Volte amanhã para não perder os <strong>{streakAtual + 1} dias</strong>.
-            </p>
-            <button
-              onClick={() => onNavigate('dashboard')}
-              className="mt-3 text-primary font-semibold text-sm underline"
-            >
-              Voltar ao início →
-            </button>
+            {fromProtocol ? (
+              <p className="text-xs text-text-muted">
+                Voltando para o início em instantes...
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-text-muted">
+                  🔥 Streak mantido! Volte amanhã para não perder os <strong>{streakAtual + 1} dias</strong>.
+                </p>
+                <button
+                  onClick={() => onNavigate('dashboard')}
+                  className="mt-3 text-primary font-semibold text-sm underline"
+                >
+                  Voltar ao início →
+                </button>
+              </>
+            )}
           </motion.div>
         )}
       </div>
