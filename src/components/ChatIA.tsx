@@ -141,7 +141,9 @@ IMPORTANTE:
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLimiteModal, setShowLimiteModal] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const limiteIA = LIMITES_IA[plano] ?? 10;
@@ -285,9 +287,15 @@ IMPORTANTE:
       <div className="sticky bottom-16 px-4 py-3 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="relative">
           <textarea
+            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+            onFocus={() => {
+              setKeyboardOpen(true);
+              setTimeout(() => inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
+            }}
+            onBlur={() => setTimeout(() => setKeyboardOpen(false), 150)}
             placeholder="Pergunte qualquer coisa..."
             className="w-full py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-sm focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
           />
@@ -302,7 +310,7 @@ IMPORTANTE:
         </div>
       </div>
 
-      <BottomNav active="chatIA" onNavigate={onNavigate} />
+      {!keyboardOpen && <BottomNav active="chatIA" onNavigate={onNavigate} />}
 
       {/* Modal limite atingido */}
       <AnimatePresence>
