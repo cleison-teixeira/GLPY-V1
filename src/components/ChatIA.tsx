@@ -64,6 +64,18 @@ REGRAS DE ADAPTAÇÃO:
 - Se energia ≤ 4 → sugerir carboidratos de baixo índice glicêmico`;
 }
 
+function getProtocolContext(): string {
+  try {
+    const ativo = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null");
+    if (!ativo?.id || !ativo?.nome) return "";
+    const progresso = JSON.parse(localStorage.getItem(`glpy_protocolo_${ativo.id}_progresso`) || "null");
+    const diasFeitos = progresso?.diasConcluidos?.length ?? 0;
+    const totalDias = ativo.totalDias || 7;
+    const dia = Math.min(diasFeitos + 1, totalDias);
+    return `\nPROTOCOLO ATIVO: ${ativo.nome} — Dia ${dia}/${totalDias}\nSuas respostas devem considerar o contexto deste protocolo.`;
+  } catch { return ""; }
+}
+
 const QUICK_REPLIES: Record<Mode, string[]> = {
   Nutri: ["Sim, quero a receita", "Tenho náusea", "O que comer no almoço?", "Bati minha meta de proteína?"],
   Coach: ["Estou desmotivado", "Quero manter o streak", "Me ajuda a focar", "Hoje foi difícil"],
@@ -93,6 +105,7 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
   const regraFinal = `\n\nREGRA OBRIGATÓRIA: Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas (nunca genérica como "cuide-se" ou "mantenha o foco"). Formato: "Próximas 2 horas: [ação exata]".`;
 
   const checkinCtx = getCheckinContext();
+  const protocolCtx = getProtocolContext();
 
   const SYSTEM_PROMPTS: Record<Mode, string> = {
     Nutri: `Você é a GLPY.IA no modo Nutricionista. Responda em português brasileiro de forma empática, direta e prática.
@@ -105,7 +118,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${checkinCtx}
+${alertaPreditivo}${checkinCtx}${protocolCtx}
 
 Foque em: refeições, macros, receitas, hidratação e alimentação adaptada ao GLP-1.
 Se score < 60: priorize ajuste alimentar urgente na resposta.
@@ -119,7 +132,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Score de hoje: 75%
-${alertaPreditivo}${checkinCtx}
+${alertaPreditivo}${checkinCtx}${protocolCtx}
 
 Foque em: motivação, celebração de conquistas, consistência e mindset.
 Se fome > 7 e energia < 5: o foco principal é evitar compulsão — seja direto sobre isso.
@@ -133,7 +146,7 @@ Contexto do usuário:
 - Fome hoje: ${ctx.fome}/10
 - Energia: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
-${alertaPreditivo}${checkinCtx}
+${alertaPreditivo}${checkinCtx}${protocolCtx}
 
 Análise preditiva obrigatória:
 - SEMPRE mencione os dados do check-in de hoje na sua análise

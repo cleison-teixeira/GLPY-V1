@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
+import confetti from "canvas-confetti";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -54,6 +55,11 @@ interface Props {
 }
 
 export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, onNavigate }: Props) {
+  const protocoloId = (() => {
+    try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}").id || storageKey; } catch { return storageKey; }
+  })();
+  const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
+
   const [diaAtual, setDiaAtual] = useState<number>(() =>
     parseInt(localStorage.getItem(`${storageKey}_dia`) || "0", 10)
   );
@@ -67,6 +73,13 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     localStorage.getItem(`${storageKey}_concluido`) === "true"
   );
   const [receitaAberta, setReceitaAberta] = useState<number | null>(null);
+  const [diasConcluidos, setDiasConcluidos] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(progressoKey);
+      return raw ? (JSON.parse(raw).diasConcluidos || []) : [];
+    } catch { return []; }
+  });
+  const [protocoloConcluido, setProtocoloConcluido] = useState(false);
 
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
@@ -91,6 +104,25 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
+
+    const diaCompletado = diaAtual + 1;
+    const novasConcluidas = diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado];
+    setDiasConcluidos(novasConcluidas);
+
+    const dataInicio = (() => {
+      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || new Date().toISOString().slice(0, 10); } catch { return new Date().toISOString().slice(0, 10); }
+    })();
+    localStorage.setItem(progressoKey, JSON.stringify({
+      diaAtual: diaAtual < 6 ? diaAtual + 1 : diaAtual,
+      diasConcluidos: novasConcluidas,
+      dataInicio,
+    }));
+
+    if (diaAtual === 6) {
+      setProtocoloConcluido(true);
+      confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff', '#FFD700'] });
+      setTimeout(() => onNavigate('checkin'), 3000);
+    }
   };
 
   const handleShare = async () => {
@@ -116,10 +148,16 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
   const proximoDia = () => {
     if (diaAtual < 6) {
-      setDiaAtual(diaAtual + 1);
+      const novoDia = diaAtual + 1;
+      setDiaAtual(novoDia);
       setConcluido(false);
       setCheckinSelecionado(null);
       setMissoesMarcadas([]);
+      try {
+        const raw = localStorage.getItem(progressoKey);
+        const prev = raw ? JSON.parse(raw) : {};
+        localStorage.setItem(progressoKey, JSON.stringify({ ...prev, diaAtual: novoDia }));
+      } catch {}
     }
   };
 
@@ -285,21 +323,30 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
             ) : (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                 <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center">
-                  <p className="font-bold text-primary">🏆 +{dia.xp} XP conquistados!</p>
-                  {diaAtual < 6
-                    ? <p className="text-xs text-text-muted mt-1">Dia {diaAtual + 2} desbloqueado</p>
-                    : <p className="text-xs text-text-muted mt-1">Protocolo completo!</p>}
+                  {protocoloConcluido ? (
+                    <>
+                      <p className="font-bold text-primary text-lg">🏆 Protocolo concluído!</p>
+                      <p className="text-xs text-text-muted mt-1">Redirecionando para o check-in...</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-bold text-primary">🏆 +{dia.xp} XP conquistados!</p>
+                      <p className="text-xs text-text-muted mt-1">Dia {diaAtual + 2} desbloqueado</p>
+                    </>
+                  )}
                 </div>
-                {diaAtual < 6 ? (
-                  <button onClick={proximoDia}
-                    className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">
-                    Ir para o Dia {diaAtual + 2} <ChevronRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button onClick={() => onNavigate("protocolHub")}
-                    className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl">
-                    🏆 Ver próximo protocolo
-                  </button>
+                {!protocoloConcluido && (
+                  diaAtual < 6 ? (
+                    <button onClick={proximoDia}
+                      className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">
+                      Ir para o Dia {diaAtual + 2} <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button onClick={() => onNavigate("protocolHub")}
+                      className="w-full bg-[#0A1628] text-white font-bold py-4 rounded-2xl">
+                      🏆 Ver próximo protocolo
+                    </button>
+                  )
                 )}
               </motion.div>
             )}
