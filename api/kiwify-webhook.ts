@@ -32,8 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Verificação opcional de token
+  const urlObj = new URL(req.url ?? "/", "https://glpy.com.br");
   const token =
-    req.headers["x-kiwify-token"] ?? (req.query.token as string | undefined);
+    (req.headers["x-kiwify-token"] as string | undefined) ??
+    urlObj.searchParams.get("token") ??
+    undefined;
   const VALID_TOKENS = ["glpy_kiwify_2026", "2o0698iikwi"];
   if (process.env.KIWIFY_WEBHOOK_TOKEN) {
     const tokenValido = VALID_TOKENS.includes(token as string) ||
