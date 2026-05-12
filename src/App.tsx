@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { syncFromFirestore } from './services/firestore';
 import Login from './components/Login';
@@ -42,9 +42,20 @@ import Protocolo10 from './components/Protocolo10';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
+// Detecta rota /acesso na carga do módulo para inicializar o estado correto
+const _acessoParams = (() => {
+  if (window.location.pathname !== '/acesso') return null;
+  const p = new URLSearchParams(window.location.search);
+  const email = p.get('email');
+  const token = p.get('token');
+  return email && token ? { email, token } : null;
+})();
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  // true enquanto o auto-login via /acesso está em andamento
+  const [autoLoginLoading, setAutoLoginLoading] = useState(!!_acessoParams);
 
   useEffect(() => {
     if (localStorage.getItem("glpy_tema") === "dark") {
@@ -83,6 +94,24 @@ export default function App() {
     });
     return unsubscribe;
   }, []);
+
+  // Auto-login via /acesso?email=...&token=...
+  useEffect(() => {
+    if (!_acessoParams) return;
+    const { email, token } = _acessoParams;
+    const senha = token === 'GLPY2026' ? 'GLPY@2026' : token;
+    signInWithEmailAndPassword(auth, email, senha)
+      .then(() => {
+        window.history.replaceState({}, '', '/');
+      })
+      .catch((err) => {
+        console.error('Auto-login falhou:', err);
+        window.history.replaceState({}, '', '/');
+      })
+      .finally(() => {
+        setAutoLoginLoading(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [telaAtual, setTelaAtual] = useState(
     onboardingDone ? 'dashboard' : 'splash'
@@ -131,6 +160,16 @@ export default function App() {
       default:                      return <Dashboard onNavigate={setTelaAtual} />;
     }
   };
+
+  if (autoLoginLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center gap-5">
+        <span className="text-5xl">🌿</span>
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-white/70 text-sm font-medium">Preparando seu acesso...</p>
+      </div>
+    );
+  }
 
   if (authLoading) {
     return (
