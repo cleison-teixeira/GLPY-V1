@@ -491,7 +491,8 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 }}
                 style={{
                   width: '100%',
-                  aspectRatio: '16/9',
+                  minHeight: '420px',
+                  maxHeight: '60vh',
                   borderRadius: '16px',
                   background: '#0A1628',
                   objectFit: 'cover',
@@ -501,16 +502,10 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 }}
               />
             ) : (
-              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ aspectRatio: '16/9' }}>
+              <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ minHeight: '420px', maxHeight: '60vh' }}>
                 <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
               </div>
             )}
-
-            {/* Explicação */}
-            <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Por que isso importa</p>
-              <p className="text-sm text-text-main leading-relaxed">{dia.explicacao}</p>
-            </div>
 
             {/* Missões */}
             <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
