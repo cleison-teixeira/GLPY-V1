@@ -123,6 +123,11 @@ export default function App() {
     }
   };
 
+  // Rota /admin é completamente independente — não passa pelos guards de auth
+  if (isAdminRoute || telaAtual === 'admin') {
+    return <AdminPanel onNavigate={setTelaAtual} />;
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

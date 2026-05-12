@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
-import { onAuthStateChanged } from "firebase/auth";
+import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2, LogOut } from "lucide-react";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../firebase.js";
 import {
   buscarUidPorEmail,
@@ -15,10 +15,10 @@ const ADMIN_EMAIL = "cleisonimarketing@gmail.com";
 
 const PLANOS = ["starter", "plus", "pro", "top"] as const;
 const DURACOES = [
-  { value: "7d",       label: "7 dias" },
-  { value: "15d",      label: "15 dias" },
-  { value: "30d",      label: "30 dias" },
-  { value: "90d",      label: "90 dias" },
+  { value: "7d",        label: "7 dias" },
+  { value: "15d",       label: "15 dias" },
+  { value: "30d",       label: "30 dias" },
+  { value: "90d",       label: "90 dias" },
   { value: "vitalicio", label: "Vitalício" },
 ];
 
@@ -35,35 +35,66 @@ function fmt(d: Date) {
 }
 
 export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => void }) {
+  // Auth state
   const [verificando, setVerificando] = useState(true);
   const [autorizado, setAutorizado] = useState(false);
+  const [negado, setNegado] = useState(false);
+
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Admin panel state
   const [email, setEmail] = useState("");
   const [plano, setPlano] = useState<string>("plus");
   const [duracao, setDuracao] = useState("30d");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [grants, setGrants] = useState<Grant[]>([]);
-  const [loadingGrants, setLoadingGrants] = useState(true);
+  const [loadingGrants, setLoadingGrants] = useState(false);
   const [revogando, setRevogando] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user?.email === ADMIN_EMAIL) {
         setAutorizado(true);
+        setNegado(false);
+        // Carrega grants só quando autorizado
+        setLoadingGrants(true);
+        listarAcessosManuais()
+          .then(setGrants)
+          .catch(() => {})
+          .finally(() => setLoadingGrants(false));
       } else if (user) {
-        onNavigate("dashboard");
+        // Usuário logado mas não é o admin
+        setNegado(true);
+        setAutorizado(false);
+      } else {
+        // Não logado — mostra formulário de login
+        setAutorizado(false);
+        setNegado(false);
       }
       setVerificando(false);
     });
     return () => unsub();
-  }, [onNavigate]);
-
-  useEffect(() => {
-    listarAcessosManuais()
-      .then(setGrants)
-      .catch(() => {})
-      .finally(() => setLoadingGrants(false));
   }, []);
+
+  const handleLogin = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword) return;
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
+      // onAuthStateChanged vai disparar e atualizar o estado
+    } catch {
+      setLoginError("Email ou senha incorretos.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   const handleLiberar = async () => {
     if (!email.trim()) { setMsg({ type: "err", text: "Informe o email do usuário." }); return; }
@@ -78,7 +109,6 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
       await liberarAcesso(targetUid, email.trim().toLowerCase(), plano, duracao);
       setMsg({ type: "ok", text: `✅ Acesso ${PLANO_LABELS[plano]} liberado para ${email.trim()}` });
       setEmail("");
-      // Recarrega lista
       const updated = await listarAcessosManuais();
       setGrants(updated);
     } catch (e) {
@@ -101,27 +131,111 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
     }
   };
 
+  // ── Estados de espera e bloqueio ──────────────────────────────────────────
+
   if (verificando) {
     return (
-      <div className="min-h-screen bg-[#F4F6F8] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A1628] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  if (!autorizado) return null;
+  if (negado) {
+    return (
+      <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center gap-4 px-5">
+        <XCircle className="w-12 h-12 text-red-400" />
+        <p className="text-white font-bold text-lg">Acesso negado</p>
+        <p className="text-white/50 text-sm text-center">Esta área é restrita ao administrador do sistema.</p>
+        <button
+          onClick={() => signOut(auth)}
+          className="mt-2 flex items-center gap-2 bg-white/10 text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
+        >
+          <LogOut className="w-4 h-4" /> Sair
+        </button>
+      </div>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <div className="min-h-screen bg-[#0A1628] flex items-center justify-center px-5">
+        <div className="w-full max-w-sm">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-primary text-xs font-bold uppercase tracking-wide">Admin</p>
+              <h1 className="text-white font-black text-xl">GLPY Admin</h1>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-3">
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+              placeholder="Email"
+              required
+              className="w-full bg-white/10 border border-white/20 text-white placeholder-white/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary"
+            />
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              placeholder="Senha"
+              required
+              className="w-full bg-white/10 border border-white/20 text-white placeholder-white/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary"
+            />
+
+            <AnimatePresence>
+              {loginError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-red-400 text-xs font-medium px-1"
+                >
+                  {loginError}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+            >
+              {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Entrar"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Painel admin ──────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] pb-12">
       {/* Header */}
-      <div className="bg-[#0A1628] px-5 pt-14 pb-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
-          <ShieldCheck className="w-5 h-5 text-primary" />
+      <div className="bg-[#0A1628] px-5 pt-14 pb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-primary text-xs font-bold uppercase tracking-wide">Admin</p>
+            <h1 className="text-white font-black text-xl leading-tight">Painel de Acesso</h1>
+          </div>
         </div>
-        <div>
-          <p className="text-primary text-xs font-bold uppercase tracking-wide">Admin</p>
-          <h1 className="text-white font-black text-xl leading-tight">Painel de Acesso</h1>
-        </div>
+        <button
+          onClick={() => signOut(auth).then(() => onNavigate("dashboard"))}
+          className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-medium transition"
+        >
+          <LogOut className="w-3.5 h-3.5" /> Sair
+        </button>
       </div>
 
       <div className="px-5 py-5 space-y-5 max-w-lg mx-auto">
@@ -175,9 +289,7 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
             whileTap={{ scale: 0.98 }}
             className="w-full bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm shadow-sm disabled:opacity-60"
           >
-            {loading
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : "Liberar Acesso"}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Liberar Acesso"}
           </motion.button>
 
           <AnimatePresence>
@@ -253,12 +365,6 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
           )}
         </div>
 
-        <button
-          onClick={() => onNavigate("dashboard")}
-          className="w-full text-center text-sm text-text-muted py-2"
-        >
-          ← Voltar ao app
-        </button>
       </div>
     </div>
   );
