@@ -164,7 +164,6 @@ Contexto do usuário:
 - Medicamento: ${ctx.medicamento} ${ctx.dose}
 - Semana ${ctx.semana} de tratamento
 - Peso atual: ${ctx.peso}kg
-- Protocolo ativo: ${ctx.protocolo} (Dia ${ctx.diaProtocolo}/7)
 - Fome hoje: ${ctx.fome}/10
 - Energia hoje: ${ctx.energia}/10
 - Sintomas: ${ctx.sintomas.length ? ctx.sintomas.join(", ") : "nenhum relatado"}
@@ -408,8 +407,7 @@ Análise preditiva obrigatória:
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Pergunte qualquer coisa..."
-            rows={1}
-            className="w-full p-3.5 pr-14 bg-white border border-border rounded-2xl text-sm focus:outline-none focus:border-primary transition resize-none max-h-32 overflow-y-auto"
+            className="w-full p-3.5 pr-14 bg-white border border-border rounded-2xl text-sm focus:outline-none focus:border-primary transition min-h-[40px] max-h-[120px] resize-none overflow-y-auto"
           />
           <button
             onClick={() => sendMessage(input)}

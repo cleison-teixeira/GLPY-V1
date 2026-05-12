@@ -82,9 +82,10 @@ const PROTOCOLOS: Protocolo[] = [
 
 const PLANO_ORDEM = ["starter", "plus", "pro", "top"];
 
-function estaDesbloqueado(planoMinimo: string): boolean {
-  const planoAtual = localStorage.getItem("glpy_plano") || "plus";
-  return PLANO_ORDEM.indexOf(planoAtual) >= PLANO_ORDEM.indexOf(planoMinimo);
+function estaDesbloqueado(_planoMinimo: string): boolean {
+  return true; // TEMP: todos liberados para teste
+  // const planoAtual = localStorage.getItem("glpy_plano") || "plus";
+  // return PLANO_ORDEM.indexOf(planoAtual) >= PLANO_ORDEM.indexOf(_planoMinimo);
 }
 
 export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: string) => void }) {
