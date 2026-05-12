@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Calendar, ChevronLeft, RotateCcw } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { dispararConfetti } from "../utils/confetti";
 
 type HistItem = { id: string; label: string; data: string };
 
@@ -25,6 +26,7 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
   });
   const [toast, setToast] = useState<string | null>(null);
   const [infoAtivo, setInfoAtivo] = useState<string | null>(null);
+  const [showXP, setShowXP] = useState(false);
 
   const usadosHoje = new Set(historico.filter(h => h.data === hoje).map(h => h.id));
 
@@ -43,6 +45,13 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
     setInfoAtivo(p.id);
     setToast(`✓ ${p.label} marcado para hoje`);
     setTimeout(() => setToast(null), 2500);
+
+    // Confetti + XP ao registrar aplicação
+    dispararConfetti();
+    const xpAtual = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    localStorage.setItem("glpy_xp", String(xpAtual + 5));
+    setShowXP(true);
+    setTimeout(() => setShowXP(false), 1500);
   };
 
   const proximoRecomendado = (() => {
@@ -56,6 +65,21 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+
+      {/* XP flutuante */}
+      <AnimatePresence>
+        {showXP && (
+          <motion.div
+            initial={{ opacity: 0, y: 0, scale: 0.8 }}
+            animate={{ opacity: 1, y: -60, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 z-50 bg-primary text-white font-black text-2xl px-6 py-3 rounded-2xl shadow-xl pointer-events-none"
+          >
+            +5 XP ⚡
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center gap-3">
         <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">

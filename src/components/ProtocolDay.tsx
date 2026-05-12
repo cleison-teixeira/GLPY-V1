@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, Play, ShoppingBag, Award, CheckCircle2, Circle } from "lucide-react";
-import confetti from "canvas-confetti";
+import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import BottomNav from "./BottomNav";
 
 const MISSIONS = [
@@ -56,6 +56,7 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
       setShowXP(false);
       setTimeout(() => setShowXP(true), 50);
       setTimeout(() => setShowXP(false), 1500);
+      dispararConfetti();
     }
   };
 
@@ -74,12 +75,16 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
     localStorage.setItem(progressoKey, JSON.stringify(novoProgresso));
     setProgresso(novoProgresso);
 
+    setShowXP(false);
+    setTimeout(() => setShowXP(true), 50);
+    setTimeout(() => setShowXP(false), 1500);
+
     if (diaAtual >= totalDias) {
       setProtocoloConcluido(true);
-      confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff', '#FFD700'] });
+      dispararConfettiFinal();
       setTimeout(() => onNavigate('checkin'), 3500);
     } else {
-      confetti({ particleCount: 180, spread: 80, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff'] });
+      dispararConfetti();
     }
   };
 

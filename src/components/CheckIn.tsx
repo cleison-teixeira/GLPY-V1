@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, Check, Flame, ChevronLeft } from "lucide-react";
-import confetti from "canvas-confetti";
+import { dispararConfetti } from "../utils/confetti";
 import BottomNav from "./BottomNav";
 import { saveCheckin, saveGamification, salvarContextoIA } from "../services/firestore";
 
@@ -136,12 +136,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
       dia_protocolo: diaProtocolo,
     }).catch(() => {});
 
-    confetti({
-      particleCount: 60,
-      spread: 50,
-      origin: { y: 0.7 },
-      colors: ['#00C27A', '#ffffff'],
-    });
+    dispararConfetti();
   };
 
   const today = new Date().toLocaleDateString('pt-BR', {

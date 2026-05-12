@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Play, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
-import confetti from "canvas-confetti";
+import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -90,6 +90,8 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     } catch { return []; }
   });
   const [protocoloConcluido, setProtocoloConcluido] = useState(false);
+  const [showXP, setShowXP] = useState(false);
+  const [xpValor, setXpValor] = useState(0);
 
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
@@ -121,6 +123,13 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
 
+    // XP float + confetti
+    const xpDia = dia.xp ?? 30;
+    setXpValor(xpDia);
+    setShowXP(true);
+    setTimeout(() => setShowXP(false), 1500);
+    if (diaAtual === 6) { dispararConfettiFinal(); } else { dispararConfetti(); }
+
     const diaCompletado = diaAtual + 1;
     const novasConcluidas = diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado];
     setDiasConcluidos(novasConcluidas);
@@ -137,7 +146,6 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     if (diaAtual === 6) {
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
-      confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#00C27A', '#00E5A0', '#ffffff', '#FFD700'] });
       setTimeout(() => onNavigate('checkin'), 3000);
     }
   };
@@ -180,6 +188,20 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+
+      {/* XP flutuante */}
+      <AnimatePresence>
+        {showXP && (
+          <motion.div
+            initial={{ opacity: 0, y: 0, scale: 0.8 }}
+            animate={{ opacity: 1, y: -60, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 z-50 bg-primary text-white font-black text-2xl px-6 py-3 rounded-2xl shadow-xl pointer-events-none"
+          >
+            +{xpValor} XP ⚡
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <div id="protocol-share-card" className="bg-white px-5 pt-12 pb-4 border-b border-border">
