@@ -13,9 +13,9 @@ import {
   type Grant,
 } from "../services/firestore";
 
-const EMAILJS_SERVICE  = "service_GLPY";
-const EMAILJS_TEMPLATE = "template_GLPY";
-const EMAILJS_KEY      = "PUBLIC_KEY_GLPY";
+const EMAILJS_SERVICE  = "service_2yk9ntj";
+const EMAILJS_TEMPLATE = "template_s9fz94e";
+const EMAILJS_KEY      = "nzjByS_tk1VefLj3y";
 
 const ADMIN_EMAIL = "cleisonimarketing@gmail.com";
 
