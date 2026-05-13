@@ -152,7 +152,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const dia = dias[diaAtual];
-  const receita = receitas.find(r => r.id === dia.receita_id)!;
+  const receita = receitas.find(r => r.id === dia?.receita_id);
   const receitaDetalhe = receitaAberta !== null ? receitas.find(r => r.id === receitaAberta) : null;
 
   const toggleMissao = (i: number) => {
@@ -212,7 +212,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
     }
-    setTimeout(() => { if (onNavigate) onNavigate('checkin'); }, 1500);
+    console.log('[Protocolo] onNavigate:', typeof onNavigate);
+    setTimeout(() => {
+      console.log('[Protocolo] navegando para checkin');
+      if (onNavigate) onNavigate('checkin');
+    }, 1500);
   };
 
   const handleShare = async () => {

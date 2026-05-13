@@ -311,7 +311,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   };
 
   const dia = DIAS[diaAtual];
-  const receita = RECEITAS.find(r => r.id === dia.receita_id)!;
+  const receita = RECEITAS.find(r => r.id === dia?.receita_id);
   const receitaDetalhe = receitaAberta !== null ? RECEITAS.find(r => r.id === receitaAberta) : null;
 
   // ── Derivados para controle do botão ──
