@@ -120,7 +120,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
         if (data) {
           const diaCarregado = (data.diasCompletos && data.diasCompletos.length > 0)
             ? Math.min(Math.max(...data.diasCompletos) + 1, 7)
-            : data.diaAtual;
+            : (data.diaAtual ?? 0);
           setDiaAtual(diaCarregado);
           setDiasConcluidos(data.diasCompletos);
           // espelha no localStorage para que o ProtocolHub leia corretamente
