@@ -164,7 +164,8 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
               return raw ? JSON.parse(raw) : null;
             } catch { return null; }
           })();
-          const diasFeitos: number = Math.min(progresso?.diasConcluidos?.length ?? 0, p.dias);
+          const dc: number[] | undefined = progresso?.diasConcluidos;
+          const diasFeitos: number = Math.min((dc && dc.length > 0) ? Math.max(...dc) : 0, p.dias);
           const diaAtual: number = Math.min(diasFeitos + 1, p.dias);
           const iniciado = diasFeitos > 0;
           return (

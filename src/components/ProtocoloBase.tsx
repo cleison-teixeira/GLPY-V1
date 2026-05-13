@@ -212,7 +212,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
     }
-    setTimeout(() => onNavigate('checkin'), 1500);
+    setTimeout(() => { if (onNavigate) onNavigate('checkin'); }, 1500);
   };
 
   const handleShare = async () => {
