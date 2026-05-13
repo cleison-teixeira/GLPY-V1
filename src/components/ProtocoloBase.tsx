@@ -151,8 +151,10 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     v?.requestFullscreen?.() ?? v?.webkitEnterFullscreen?.();
   };
 
-  const dia = dias[diaAtual];
-  const receita = receitas.find(r => r.id === dia?.receita_id);
+  const diaIndex = Math.min(Math.max(diaAtual, 0), dias.length - 1);
+  const dia = dias[diaIndex];
+  if (!dia) return <div>Carregando...</div>;
+  const receita = receitas.find(r => r.id === dia.receita_id);
   const receitaDetalhe = receitaAberta !== null ? receitas.find(r => r.id === receitaAberta) : null;
 
   const toggleMissao = (i: number) => {
