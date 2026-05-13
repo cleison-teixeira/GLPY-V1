@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, Check, Flame, ChevronLeft } from "lucide-react";
 import { dispararConfetti } from "../utils/confetti";
+import { playSound } from "../utils/sounds";
 import BottomNav from "./BottomNav";
 import { saveCheckin, saveGamification, salvarContextoIA } from "../services/firestore";
 
@@ -72,6 +73,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
 
   const handleSave = () => {
     if (saved) return;
+    playSound('checkin');
     setSaved(true);
     setShowXP(true);
     setIaResponse(getIAResponse(hunger, mood, symptoms));

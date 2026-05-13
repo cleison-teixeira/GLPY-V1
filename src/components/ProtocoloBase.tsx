@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
+import { playSound } from "../utils/sounds";
 import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
 
 function calcMetas(peso: number, altura: number) {
@@ -165,6 +166,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
   const handleConcluir = () => {
+    playSound('concluir');
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);

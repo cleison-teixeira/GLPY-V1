@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { playSound } from "../utils/sounds";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
 
@@ -330,6 +331,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
 
   const handleConcluir = () => {
     if (jaConcluidoHoje || diaJaFeito) return;
+    playSound('concluir');
 
     const agora = new Date().toISOString().slice(0, 10);
     setConcluido(true);
