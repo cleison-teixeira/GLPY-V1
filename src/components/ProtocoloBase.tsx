@@ -214,9 +214,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       localStorage.removeItem("glpy_protocolo_ativo");
       setProtocoloConcluido(true);
     }
-    console.log('[Protocolo] onNavigate:', typeof onNavigate);
     setTimeout(() => {
-      console.log('[Protocolo] navegando para checkin');
       if (onNavigate) onNavigate('checkin');
     }, 1500);
   };
