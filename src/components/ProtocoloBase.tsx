@@ -171,11 +171,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     setTimeout(() => setShowXP(false), 1500);
     if (diaAtual === 6) { dispararConfettiFinal(); } else { dispararConfetti(); }
 
-    const diaCompletado = diaAtual + 1;
+    const diaCompletado = diaAtual;
     const novasConcluidas = (diasConcluidos.includes(diaCompletado) ? diasConcluidos : [...diasConcluidos, diaCompletado]).slice(0, 7);
     setDiasConcluidos(novasConcluidas);
 
-    const proximoDiaIdx = Math.min(diaAtual + 1, dias.length - 1);
+    const proximoDiaIdx = Math.min(diaAtual + 1, 7);
 
     // Avança o estado local imediatamente (garante que o remount carregue o dia certo)
     setDiaAtual(proximoDiaIdx);
