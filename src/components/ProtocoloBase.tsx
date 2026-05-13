@@ -118,7 +118,10 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     carregarProgressoProtocolo(firestoreId)
       .then(data => {
         if (data) {
-          setDiaAtual(data.diaAtual);
+          const diaCarregado = (data.diasCompletos && data.diasCompletos.length > 0)
+            ? Math.min(Math.max(...data.diasCompletos) + 1, 7)
+            : data.diaAtual;
+          setDiaAtual(diaCarregado);
           setDiasConcluidos(data.diasCompletos);
           // espelha no localStorage para que o ProtocolHub leia corretamente
           try {
@@ -126,10 +129,10 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
             const existing = raw ? JSON.parse(raw) : {};
             localStorage.setItem(progressoKey, JSON.stringify({
               ...existing,
-              diaAtual: data.diaAtual,
+              diaAtual: diaCarregado,
               diasConcluidos: data.diasCompletos,
             }));
-            localStorage.setItem(`${storageKey}_dia`, String(data.diaAtual));
+            localStorage.setItem(`${storageKey}_dia`, String(diaCarregado));
           } catch {}
         }
       })
