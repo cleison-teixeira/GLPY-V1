@@ -160,7 +160,6 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
   const handleConcluir = () => {
-    console.log('[Protocolo] handleConcluir chamado:', { firestoreId, diaAtual });
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
@@ -199,14 +198,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
     // Salva no Firestore (apenas quando firestoreId é fornecido)
     if (firestoreId) {
-      console.log('[Protocolo] salvando no Firestore:', { firestoreId, proximoDia: proximoDiaIdx });
       salvarProgressoProtocolo(firestoreId, {
         diaAtual: proximoDiaIdx,
         dataUltimoCheck: new Date().toISOString().slice(0, 10),
         diasCompletos: novasConcluidas,
-      })
-        .then(() => console.log("[GLPY] Firestore save OK:", firestoreId))
-        .catch((err) => console.error('[Protocolo] erro Firestore:', err));
+      }).catch((err) => console.error('[Protocolo] erro Firestore:', err));
     }
 
     if (diaAtual === 6) {
