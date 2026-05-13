@@ -474,7 +474,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
               </div>
               <div className="flex-grow">
                 <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">EM ANDAMENTO</span>
-                <p className="font-bold text-sm text-text-main mt-1">{protocoloAtivo.nome}</p>
+                <p className="font-bold text-sm text-text-main mt-1">{protocoloAtivo?.nome}</p>
                 <p className="text-xs text-text-muted mt-0.5">Dia {diasFeitosProtocolo}/{protocoloAtivo.totalDias || 7}</p>
               </div>
             </div>

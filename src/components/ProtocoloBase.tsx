@@ -403,7 +403,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <div className="flex items-center gap-3">
                 <span className="text-3xl">{receita.emoji}</span>
                 <div className="flex-grow">
-                  <p className="font-bold text-sm text-text-main">{receita.nome}</p>
+                  <p className="font-bold text-sm text-text-main">{receita?.nome}</p>
                   <p className="text-xs text-text-muted">{receita.kcal} kcal · {receita.proteina}g prot</p>
                 </div>
                 <button onClick={() => { setReceitaAberta(receita.id); setAba("receitas"); }}
@@ -477,7 +477,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                 <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
                   <div className="text-center mb-4">
                     <span className="text-5xl">{receitaDetalhe.emoji}</span>
-                    <h2 className="font-bold text-xl mt-2">{receitaDetalhe.nome}</h2>
+                    <h2 className="font-bold text-xl mt-2">{receitaDetalhe?.nome}</h2>
                     <p className="text-xs text-text-muted mt-1">{receitaDetalhe.categoria}</p>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mb-4">

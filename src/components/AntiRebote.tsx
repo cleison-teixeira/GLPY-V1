@@ -310,8 +310,10 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     v?.requestFullscreen?.() ?? v?.webkitEnterFullscreen?.();
   };
 
-  const dia = DIAS[diaAtual];
-  const receita = RECEITAS.find(r => r.id === dia?.receita_id);
+  const diaIndex = Math.min(Math.max(diaAtual, 0), DIAS.length - 1);
+  const dia = DIAS[diaIndex];
+  if (!dia) return <div>Carregando...</div>;
+  const receita = RECEITAS.find(r => r.id === dia.receita_id);
   const receitaDetalhe = receitaAberta !== null ? RECEITAS.find(r => r.id === receitaAberta) : null;
 
   // ── Derivados para controle do botão ──
@@ -344,7 +346,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     setDataUltimoCheck(agora);
 
     // XP float + confetti
-    const xpDia = DIAS[diaAtual].xp;
+    const xpDia = DIAS[diaIndex]?.xp ?? 30;
     setXpValor(xpDia);
     setShowXP(true);
     setTimeout(() => setShowXP(false), 1500);
@@ -533,7 +535,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
               <div className="flex items-center gap-3">
                 <span className="text-3xl">{receita.emoji}</span>
                 <div className="flex-grow">
-                  <p className="font-bold text-sm text-text-main">{receita.nome}</p>
+                  <p className="font-bold text-sm text-text-main">{receita?.nome}</p>
                   <p className="text-xs text-text-muted">{receita.kcal} kcal · {receita.proteina}g prot</p>
                 </div>
                 <button onClick={() => { setReceitaAberta(receita.id); setAba("receitas"); }}
@@ -639,7 +641,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                 <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
                   <div className="text-center mb-4">
                     <span className="text-5xl">{receitaDetalhe.emoji}</span>
-                    <h2 className="font-bold text-xl mt-2">{receitaDetalhe.nome}</h2>
+                    <h2 className="font-bold text-xl mt-2">{receitaDetalhe?.nome}</h2>
                     <p className="text-xs text-text-muted mt-1">{receitaDetalhe.categoria}</p>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mb-4">
