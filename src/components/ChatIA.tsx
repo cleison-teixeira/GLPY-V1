@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, type ContextoIA } from "../services/firestore";
+import { buildGLPYContextForAI, getGLPYIntelligenceContext } from "../core/glpyLocalIntelligence";
+import {
+  calculateGLPYDailyTargets, calculateDailyRemaining, buildDailyTargetsForAI,
+  type GLPYTargetsInput, type GLPYDailyConsumed,
+} from "../core/glpyDailyTargets";
 
 const LIMITES_INICIAIS: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
 
@@ -71,6 +76,55 @@ function getFullUserContext(): string {
   } catch { return ""; }
 }
 
+function buildEnrichedGLPYContext(): string {
+  try {
+    const intelligenceBlock = buildGLPYContextForAI();
+
+    let targetsBlock = "";
+    try {
+      const ctx = getGLPYIntelligenceContext();
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const ob = ctx.userProfile.onboarding || {};
+
+      const weightKg: number  = ctx.currentWeight?.weight  || ob.currentWeight  || 0;
+      const heightCm: number  = ob.heightCm || ob.height   || 0;
+      const ageYears: number  = ob.age      || ob.ageYears  || 0;
+
+      if (weightKg > 0 && heightCm > 0 && ageYears > 0) {
+        const targetsInput: GLPYTargetsInput = {
+          weightKg,
+          heightCm,
+          ageYears,
+          gender:            ob.gender         || "female",
+          activityLevel:     ob.activityLevel  || "lightly_active",
+          weightLossPace:    ob.weightLossPace || "equilibrado",
+          targetWeightKg:    ob.targetWeightKg || ob.targetWeight,
+          activeMedicationDose: ctx.treatment.latestInjection?.dose,
+        };
+
+        const todayMeals: any[] = ctx.dailyTracking[todayKey]?.meals ?? [];
+        const consumed: GLPYDailyConsumed = {
+          calories:     todayMeals.reduce((s: number, m: any) => s + (m.kcal       || 0), 0),
+          proteinGrams: todayMeals.reduce((s: number, m: any) => s + (m.proteina   || 0), 0),
+          carbsGrams:   todayMeals.reduce((s: number, m: any) => s + (m.carbs      || 0), 0),
+          fatGrams:     todayMeals.reduce((s: number, m: any) => s + (m.gordura    || 0), 0),
+          waterLiters:  ctx.dailyTracking[todayKey]?.water   || 0,
+          mealCount:    todayMeals.length,
+        };
+
+        const targets   = calculateGLPYDailyTargets(targetsInput);
+        const remaining = calculateDailyRemaining(targets, consumed);
+        targetsBlock    = "\n\n" + buildDailyTargetsForAI(targets, consumed, remaining);
+      }
+    } catch (_) { /* daily targets opcional — não bloqueia */ }
+
+    return intelligenceBlock + targetsBlock;
+  } catch (_) {
+    // fallback ao contexto legado se a engine falhar
+    return getFullUserContext();
+  }
+}
+
 const QUICK_REPLIES = [
   "O que comer agora?", "Tenho náusea", "Estou desmotivado", "Energia baixa hoje",
 ];
@@ -85,9 +139,8 @@ function getSaudacao(): string {
 export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const nome = localStorage.getItem("glpy_nome") || "você";
   const saudacao = getSaudacao();
-  const fullCtx = getFullUserContext();
 
-  // limpa chave legada de modo inicial
+  // limpa chave legada de modo inicial; contexto é reconstruído por mensagem em buildEnrichedGLPYContext()
   localStorage.removeItem("glpy_chat_initial_mode");
 
   const _ativo = (() => { try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; } })();
@@ -131,18 +184,23 @@ PROTOCOLO ATIVO: ${ctx.protocolo_ativo ?? "nenhum"}, dia ${ctx.dia_protocolo}/7.
 Você é ao mesmo tempo:
 - 🟡 Nutricionista: adapta alimentação ao protocolo e sintomas
 - 🔵 Coach: motiva, celebra conquistas, mantém streak
-- 🔴 Diagnóstico: identifica sintomas, adapta protocolo, alerta riscos
-${fullCtx}${checkinBlock}
+- 🔴 Clínico Comportamental: identifica sintomas, adapta protocolo, alerta riscos
+${buildEnrichedGLPYContext()}${checkinBlock}
 
 IMPORTANTE:
 - Adapte seu tom ao contexto da pergunta
 - Se falam de comida → nutricionista
 - Se falam de motivação → coach
-- Se relatam sintoma → diagnóstico
+- Se relatam sintoma → clínico comportamental
 - Use TODOS os dados do perfil para personalizar
 - Seja direta, empática, científica sem jargão
 - Celebre vitórias, não julgue falhas
-- Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas. Formato: "Próximas 2 horas: [ação exata]".`;
+- Termine SEMPRE com uma ação específica e concreta para as próximas 2 horas. Formato: "Próximas 2 horas: [ação exata]".
+
+AVISO DE SEGURANÇA (não negociável):
+- NUNCA diagnosticar doenças, NUNCA prescrever medicamentos, NUNCA recomendar ajuste de dose de GLP-1.
+- Para qualquer decisão clínica, sempre orientar: "Consulte seu médico responsável pelo tratamento."
+- Você é suporte informacional e motivacional — não substitui profissional de saúde.`;
   };
 
   const [messages, setMessages] = useState<Message[]>([
