@@ -11,6 +11,8 @@ export interface GLPYTargetsConfig {
   version: string;
   lastUpdated: string;
   reviewedBy: string[];
+  reviewStatus: string;
+  complianceNote: string;
   protein: {
     defaultGPerKg: number;
     minGPerKg: number;
@@ -54,12 +56,13 @@ export interface GLPYTargetsConfig {
 }
 
 export const GLPY_TARGETS_CONFIG: GLPYTargetsConfig = {
-  version: "1.0.0",
+  version: "1.1.0",
   lastUpdated: "2026-05-20",
   reviewedBy: [
-    "Dr. André Colares (Endocrinologista CRM/SP 123456)",
-    "Dra. Mariana Silva (Nutricionista Metabólica CRN/SP 78910)"
+    "PENDENTE_DE_REVISAO_PROFISSIONAL"
   ],
+  reviewStatus: "MVP_NOT_CLINICALLY_REVIEWED",
+  complianceNote: "Os parâmetros desta versão são estimativas operacionais do MVP e ainda não foram revisados formalmente por médico ou nutricionista parceiro. Futuras versões poderão incluir revisão clínica profissional identificada e autorizada.",
   protein: {
     defaultGPerKg: 1.5,
     minGPerKg: 1.2,

@@ -124,22 +124,157 @@ export const GLPY_TARGETS_CONFIG = {
 
 ---
 
-## 5. Histórico de Versões
+## 5. Status de Revisão Profissional
+
+> [!WARNING]
+> **Esta versão (MVP 1.1.0) ainda NÃO foi revisada formalmente por profissional de saúde parceiro.**
+> Os parâmetros nutricionais contidos neste documento e no arquivo de configuração (`glpyTargetsConfig.ts`) são estimativas operacionais baseadas em literatura científica publicada, adotadas para fins de desenvolvimento do MVP do GLPY.
+
+### Regras de Compliance — Identificação de Revisores
+
+- **Proibido** incluir nomes de profissionais, números de CRM, CRN ou qualquer identificação clínica sem autorização expressa e documentada do profissional.
+- O campo `reviewedBy` no arquivo de configuração deve conter `"PENDENTE_DE_REVISAO_PROFISSIONAL"` até que uma revisão formal seja concluída.
+- O campo `reviewStatus` deve refletir o estado real: `"MVP_NOT_CLINICALLY_REVIEWED"` até revisão formal.
+- Após revisão, os campos só podem ser preenchidos mediante autorização escrita do profissional, confirmando que revisou os parâmetros e autoriza o uso de seu nome e registro.
+
+### Preparação para Revisão Futura
+
+Quando um profissional parceiro realizar a revisão formal, os campos a atualizar são:
+
+```typescript
+// Em src/config/glpyTargetsConfig.ts
+reviewedBy: [
+  "Nome Completo (Especialidade — CRM ou CRN/UF número)"
+],
+reviewStatus: "CLINICALLY_REVIEWED_V1",
+complianceNote: "Revisão formal concluída em [data]. Autorização expressa obtida."
+```
+
+Os campos estão preparados na interface `GLPYTargetsConfig` para receber essa atualização sem refatoração da engine ou da UI.
+
+---
+
+## 6. Histórico de Versões
 
 - **Versão 1.0.0 (2026-05-20):**
   - Implementação inicial da engine baseada em Mifflin-St Jeor.
   - Fixação do piso protetivo calórico em 1200 kcal.
   - Alocação linear de proteínas em 1.5g/kg e cap de 25% em gorduras.
   - Isolamento de parâmetros em `glpyTargetsConfig.ts` para auditoria externa.
-  - Revisado e assinado por:
-    - *Dr. André Colares (Endocrinologista)*
-    - *Dra. Mariana Silva (Nutricionista Metabólica)*
+  - Revisão clínica formal: **PENDENTE** (nenhum profissional identificado havia autorizado uso de nome/registro nesta versão).
+
+- **Versão 1.1.0 (2026-05-20) — Fase 1C.1:**
+  - Adicionada função `calculateDailyRemaining(targets, consumed)` para calcular saldo restante macro a macro.
+  - Adicionada função `buildDailyTargetsForAI(targets, consumed, remaining)` para formatar payload de contexto para o Chat IA.
+  - Novos tipos exportados: `GLPYDailyConsumed`, `MacroBalance`, `GLPYDailyRemaining`.
+  - Lógica de excedente (`overage`) para macros consumidos acima da meta.
+  - Cálculo automático de `overallCompletionPercent` como média ponderada entre os 5 eixos.
+  - Geração automática de `aiOrientationNote` para injeção no prompt da IA.
+  - Integração da tela de debug com `saveWaterEntry()` e `saveFoodEntry()` do Local Intelligence Store.
+
+- **Versão 1.1.1 (2026-05-20) — Compliance MVP:**
+  - Removidos nomes fictícios de profissionais do campo `reviewedBy`.
+  - Adicionados campos `reviewStatus` e `complianceNote` na interface e no objeto de configuração.
+  - `reviewStatus` definido como `"MVP_NOT_CLINICALLY_REVIEWED"` até revisão formal autorizada.
+  - Adicionada seção "Status de Revisão Profissional" neste documento com regras de compliance.
 
 ---
 
-## 6. Referências Científicas e Bibliográficas
+## 6. Consumo Diário e Saldo Restante (Fase 1C.1)
+
+### Como o Consumo Diário é Calculado
+
+O consumo diário é acumulado na tela operacional (ou via `glpyLocalIntelligence.ts`) através do objeto tipado `GLPYDailyConsumed`:
+
+```typescript
+interface GLPYDailyConsumed {
+  calories: number;      // Total de kcal consumidas no dia
+  proteinGrams: number;  // Total de proteína consumida (g)
+  carbsGrams: number;    // Total de carboidratos consumidos (g)
+  fatGrams: number;      // Total de gorduras consumidas (g)
+  waterLiters: number;   // Total de água ingerida (L)
+  mealCount: number;     // Número de refeições registradas
+}
+```
+
+Cada refeição adicionada é somada ao acumulado. A função `saveFoodEntry()` do Local Intelligence Store persiste cada refeição em `glpy_today_food` e `glpy_daily_tracking` no `localStorage`, preservando o histórico.
+
+---
+
+### Como o Saldo Restante é Calculado
+
+A função `calculateDailyRemaining(targets, consumed)` compara o consumo acumulado contra as metas calculadas e retorna um `MacroBalance` por eixo:
+
+```typescript
+interface MacroBalance {
+  remaining: number;   // Quanto ainda falta para atingir a meta (0 se já atingiu)
+  overage: number;     // Quanto excedeu a meta (>0 quando passou da meta)
+  completed: boolean;  // true quando a meta foi atingida ou ultrapassada
+}
+```
+
+**Exemplo prático:**
+- Meta de proteína: `120g` | Consumido: `128g`
+  - `remaining = 0`, `overage = 8`, `completed = true` → exibe: *Meta concluída (+8g acima)*
+- Meta de água: `2.6L` | Consumido: `1.2L`
+  - `remaining = 1.4`, `overage = 0`, `completed = false` → exibe: *faltam 1.4L*
+
+---
+
+### Como a Home Usará Esses Dados (Futuro)
+
+Na **Fase 2 do MVP**, a Home Screen lirá as metas calculadas da engine e os dados acumulados do `glpy_daily_tracking` para exibir:
+- Barras de progresso de macros e água em tempo real.
+- Alertas inteligentes de "Hora de beber água!" ou "Você ainda não atingiu sua meta de proteína hoje."
+- Score diário de completude (%) como elemento de gamificação no dashboard.
+
+A integração será feita sem modificar a engine — apenas lendo `calculateDailyRemaining()` com os dados do Local Intelligence Store.
+
+---
+
+### Como a IA Usará Esses Dados
+
+A função `buildDailyTargetsForAI()` formata um bloco de texto estruturado que é injetado no system prompt do Chat IA (DeepSeek) a cada nova conversa. Exemplo do payload gerado:
+
+```text
+=== GLPY DAILY TARGETS ENGINE ===
+
+Metas do Dia:
+- Calorias: 1884 kcal
+- Proteína: 126g
+- Carboidratos: 227g
+- Gorduras: 52g
+- Água: 2.94L
+
+Consumido Hoje (2 refeições):
+- Calorias: 450 kcal
+- Proteína: 36g
+- Carboidratos: 45g
+- Gorduras: 18g
+- Água: 1.2L
+
+Saldo Restante:
+- Calorias: 1434 kcal restantes
+- Proteína: 90g restantes
+- Carboidratos: 182g restantes
+- Gorduras: 34g restantes
+- Água: 1.74L restantes
+
+Conclusão Geral do Dia: 28%
+
+Orientação para IA:
+Usuário ainda está pendente em: proteína (faltam 90g), hidratação (faltam 1.74L),
+calorias (faltam 1434 kcal). Priorize refeições pequenas e proteicas, hidratação
+fracionada e escolhas de baixo impacto glicêmico.
+```
+
+Com esse contexto, a IA personaliza suas respostas com base em dados de jornada real do dia, em vez de gerar orientações genéricas.
+
+---
+
+## 7. Referências Científicas e Bibliográficas
 
 1. **Mifflin MD, St Jeor ST, et al.** *A new predictive equation for resting energy expenditure in healthy individuals.* Am J Clin Nutr. 1990;51(2):241-247.
 2. **Institute of Medicine (IOM).** *Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol, Protein, and Amino Acids.* Washington, DC: The National Academies Press; 2005.
-3. **Phillips SM, Chevalier S, Leidy HJ.** *Protein “requirements” beyond the RDA: implications for optimizing health.* Appl Physiol Nutr Metab. 2016;41(5):565-572.
+3. **Phillips SM, Chevalier S, Leidy HJ.** *Protein "requirements" beyond the RDA: implications for optimizing health.* Appl Physiol Nutr Metab. 2016;41(5):565-572.
 4. **Wharton S, et al.** *Canadian Adult Obesity Clinical Practice Guidelines: Pharmacotherapy for Obesity.* Can Assoc Radiol J. 2020.
