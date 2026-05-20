@@ -506,7 +506,31 @@ export function saveProtocolDayTracking(entry: ProtocolDayTrackingEntry): void {
   safeWrite("glpy_daily_tracking", tracking);
 }
 
-// 13. getGLPYIntelligenceContext()
+// 13. clearTodayConsumption() — zera apenas refeições e água do dia atual
+export function clearTodayConsumption(): void {
+  const todayKey = getTodayKey();
+
+  // Zera meals e water de hoje em glpy_daily_tracking; mantém peso, protocolo, etc.
+  const tracking = safeParse<Record<string, DailyTrackingDay>>("glpy_daily_tracking", {});
+  if (tracking[todayKey]) {
+    tracking[todayKey].meals = [];
+    tracking[todayKey].water = 0;
+    safeWrite("glpy_daily_tracking", tracking);
+  }
+
+  // Remove entradas de hoje de glpy_today_food (lista cumulativa sem escopo de data)
+  const todayFood = safeParse<FoodEntry[]>("glpy_today_food", []);
+  const filteredFood = todayFood.filter(f => f.date !== todayKey);
+  safeWrite("glpy_today_food", filteredFood);
+
+  // Limpa glpy_today_water se for do dia atual
+  const todayWater = safeParse<WaterEntry | null>("glpy_today_water", null);
+  if (todayWater?.date === todayKey) {
+    localStorage.removeItem("glpy_today_water");
+  }
+}
+
+// 14. getGLPYIntelligenceContext()
 export function getGLPYIntelligenceContext() {
   const todayKey = getTodayKey();
 

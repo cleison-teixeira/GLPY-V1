@@ -23,7 +23,7 @@ import {
   GLPYDailyConsumed,
 } from '../../core/glpyDailyTargets';
 
-import { getGLPYIntelligenceContext, saveWaterEntry, saveFoodEntry, FoodEntry } from '../../core/glpyLocalIntelligence';
+import { getGLPYIntelligenceContext, saveWaterEntry, saveFoodEntry, clearTodayConsumption, FoodEntry } from '../../core/glpyLocalIntelligence';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,8 +71,9 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
       const todayTracking = ctx.dailyTracking[todayKey];
       let loaded = false;
 
-      if (ctx.food.today && ctx.food.today.length > 0) {
-        const loadedMeals: Meal[] = ctx.food.today.map((f: FoodEntry) => ({
+      const todayMeals = todayTracking?.meals ?? [];
+      if (todayMeals.length > 0) {
+        const loadedMeals: Meal[] = todayMeals.map((f: FoodEntry) => ({
           name: f.prato,
           calories: f.kcal,
           protein: f.proteina,
@@ -170,6 +171,7 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   }
 
   function handleResetConsumed() {
+    try { clearTodayConsumption(); } catch (_) { /* silent */ }
     setMeals([]);
     setTotalWater(0);
     setConsumptionSource('simulation');
