@@ -14,6 +14,60 @@ if (path === '/admin') {
       <AdminPanel onNavigate={() => { window.location.href = '/'; }} />
     </StrictMode>,
   );
+} else if (path === '/preview') {
+  import('./screens/PreviewIndexScreen.tsx').then(({ default: PreviewIndexScreen }) => {
+    root.render(
+      <StrictMode>
+        <PreviewIndexScreen />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocols') {
+  import('./components/ProtocolHub.tsx').then(({ default: ProtocolHub }) => {
+    root.render(
+      <StrictMode>
+        <ProtocolHub
+          onNavigate={(screen) => {
+            if (screen === 'antiRebote' || screen === 'anti-rebote') {
+              window.location.href = '/preview/protocol-anti-rebote';
+            } else {
+              window.location.href = '/preview';
+            }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocol-anti-rebote') {
+  import('./components/AntiRebote.tsx').then(({ default: AntiRebote }) => {
+    root.render(
+      <StrictMode>
+        <AntiRebote
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') {
+              window.location.href = '/preview/protocols';
+            } else if (screen === 'checkin') {
+              window.location.href = '/preview/check-in';
+            } else {
+              window.location.href = '/preview';
+            }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/recipes') {
+  import('./components/Recipes.tsx').then(({ default: Recipes }) => {
+    root.render(
+      <StrictMode>
+        <Recipes
+          onNavigate={() => {
+            window.location.href = '/preview';
+          }}
+        />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/target-weight') {
   import('./screens/onboarding/TargetWeightScreen.tsx').then(({ default: TargetWeightScreen }) => {
     root.render(
@@ -147,6 +201,54 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <CheckInScreen onBack={() => { window.location.href = '/'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/weight-history') {
+  import('./screens/operational/WeightHistoryScreen.tsx').then(({ default: WeightHistoryScreen }) => {
+    root.render(
+      <StrictMode>
+        <WeightHistoryScreen onBack={() => { window.location.href = '/'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/progress-timeline') {
+  import('./screens/operational/ProgressTimelineScreen.tsx').then(({ default: ProgressTimelineScreen }) => {
+    root.render(
+      <StrictMode>
+        <ProgressTimelineScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/results') {
+  import('./screens/operational/ResultsScreen.tsx').then(({ default: ResultsScreen }) => {
+    root.render(
+      <StrictMode>
+        <ResultsScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/quick-actions') {
+  import('./screens/premium/QuickActionsScreen.tsx').then(({ default: QuickActionsScreen }) => {
+    root.render(
+      <StrictMode>
+        <QuickActionsScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/local-intelligence-test') {
+  import('./screens/debug/LocalIntelligenceTestScreen.tsx').then(({ default: LocalIntelligenceTestScreen }) => {
+    root.render(
+      <StrictMode>
+        <LocalIntelligenceTestScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/daily-targets-test') {
+  import('./screens/debug/DailyTargetsTestScreen.tsx').then(({ default: DailyTargetsTestScreen }) => {
+    root.render(
+      <StrictMode>
+        <DailyTargetsTestScreen onBack={() => { window.location.href = '/preview'; }} />
       </StrictMode>,
     );
   });

@@ -39,6 +39,8 @@ import Protocolo7 from './components/Protocolo7';
 import Protocolo8 from './components/Protocolo8';
 import Protocolo9 from './components/Protocolo9';
 import Protocolo10 from './components/Protocolo10';
+import LocalIntelligenceTestScreen from './screens/debug/LocalIntelligenceTestScreen';
+import DailyTargetsTestScreen from './screens/debug/DailyTargetsTestScreen';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
@@ -157,6 +159,8 @@ export default function App() {
       case 'energiaBaixa':          return <Protocolo8 onNavigate={setTelaAtual} />;
       case 'ajusteMetabolico':      return <Protocolo9 onNavigate={setTelaAtual} />;
       case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
+      case 'localIntelligenceTest': return <LocalIntelligenceTestScreen onBack={() => setTelaAtual('dashboard')} />;
+      case 'dailyTargetsTest': return <DailyTargetsTestScreen onBack={() => setTelaAtual('dashboard')} />;
       default:                      return <Dashboard onNavigate={setTelaAtual} />;
     }
   };

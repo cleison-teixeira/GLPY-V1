@@ -288,6 +288,13 @@ seguir radius oficial
 seguir component system
 respeitar light/dark system
 parecer parte do mesmo ecossistema
+
+Adicionalmente, toda nova tela criada no GLPY-V1 deve ser integrada na Central de Previews (src/screens/PreviewIndexScreen.tsx):
+1. Criar rota preview isolada em src/main.tsx
+2. Adicionar link correspondente na Central de Previews
+3. Manter organização por categoria
+4. Rodar npm run build
+5. Confirmar que a tela aparece em /preview
 Nunca Fazer
 
 ❌ cards diferentes em cada tela
