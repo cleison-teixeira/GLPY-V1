@@ -2,7 +2,7 @@
 // System: Debug / Integration Tool — LIGHT PREMIUM
 // Authority: docs/glpy-daily-targets-engine-v1.md | src/config/glpyTargetsConfig.ts
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Scale, Droplets, Utensils, Sparkles, ShieldAlert, Award,
   FileText, AlertCircle, Plus, RotateCcw, TrendingDown, CheckCircle2,
@@ -23,7 +23,7 @@ import {
   GLPYDailyConsumed,
 } from '../../core/glpyDailyTargets';
 
-import { getGLPYIntelligenceContext, saveWaterEntry, saveFoodEntry } from '../../core/glpyLocalIntelligence';
+import { getGLPYIntelligenceContext, saveWaterEntry, saveFoodEntry, FoodEntry } from '../../core/glpyLocalIntelligence';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,6 +61,36 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   const [meals, setMeals]           = useState<Meal[]>([]);
   const [totalWater, setTotalWater] = useState(0);
   const [addFeedback, setAddFeedback] = useState('');
+  const [consumptionSource, setConsumptionSource] = useState<'local_intelligence' | 'simulation'>('simulation');
+
+  // Carga inicial: popula consumo a partir da Local Intelligence Store
+  useEffect(() => {
+    try {
+      const ctx = getGLPYIntelligenceContext();
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const todayTracking = ctx.dailyTracking[todayKey];
+      let loaded = false;
+
+      if (ctx.food.today && ctx.food.today.length > 0) {
+        const loadedMeals: Meal[] = ctx.food.today.map((f: FoodEntry) => ({
+          name: f.prato,
+          calories: f.kcal,
+          protein: f.proteina,
+          carbs: f.carbs,
+          fat: f.gordura,
+        }));
+        setMeals(loadedMeals);
+        loaded = true;
+      }
+
+      if (todayTracking?.water && todayTracking.water > 0) {
+        setTotalWater(parseFloat(todayTracking.water.toFixed(2)));
+        loaded = true;
+      }
+
+      if (loaded) setConsumptionSource('local_intelligence');
+    } catch (_) { /* silent */ }
+  }, []);
 
   // ── Derived targets ──────────────────────────────────────────────────────
   const w  = parseFloat(weight)     || 0;
@@ -95,9 +125,17 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   };
 
   const remaining = result ? calculateDailyRemaining(result, consumed) : null;
-  const aiPayload = result && remaining ? buildDailyTargetsForAI(result, consumed, remaining) : '';
   const intelligenceContext = getGLPYIntelligenceContext();
   const protocolDayToday = intelligenceContext.protocolDayToday;
+
+  const sourceLabel = consumptionSource === 'local_intelligence'
+    ? 'Local Intelligence Store'
+    : 'Simulação local';
+
+  const aiPayload = result && remaining
+    ? buildDailyTargetsForAI(result, consumed, remaining) +
+      `\n\nFonte do consumo: ${sourceLabel}`
+    : '';
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -134,6 +172,7 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   function handleResetConsumed() {
     setMeals([]);
     setTotalWater(0);
+    setConsumptionSource('simulation');
     setAddFeedback('Consumo do dia resetado.');
     setTimeout(() => setAddFeedback(''), 2000);
   }
@@ -324,7 +363,19 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
         {/* ── 4. CONSUMIDO HOJE ─────────────────────────────────────────────── */}
         {result && (
           <GLPYCard variant="light">
-            <h3 style={sectionTitle}><Activity size={17} color="#0284C7" />Consumido Hoje</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ ...sectionTitle, margin: 0 }}><Activity size={17} color="#0284C7" />Consumido Hoje</h3>
+              <span style={{
+                fontSize: 10,
+                padding: '3px 8px',
+                borderRadius: 10,
+                fontWeight: '700',
+                backgroundColor: consumptionSource === 'local_intelligence' ? '#D1FAE5' : '#F1F5F9',
+                color: consumptionSource === 'local_intelligence' ? '#065F46' : lightColors.text.secondary,
+              }}>
+                Fonte: {sourceLabel}
+              </span>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[

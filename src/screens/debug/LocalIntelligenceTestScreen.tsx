@@ -41,6 +41,9 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
   const [simWater, setSimWater] = useState('0.5');
   const [simMealName, setSimMealName] = useState('Salmão Grelhado com Legumes');
   const [simMealKcal, setSimMealKcal] = useState('450');
+  const [simMealProt, setSimMealProt] = useState('42');
+  const [simMealCarbs, setSimMealCarbs] = useState('35');
+  const [simMealFat, setSimMealFat] = useState('10');
   const [simDose, setSimDose] = useState('0.5mg');
   const [simLocal, setSimLocal] = useState('Braço Esquerdo');
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
@@ -90,17 +93,18 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
   }
 
   function handleSaveFood() {
-    const kcal = parseInt(simMealKcal, 10) || 0;
+    const kcal = parseInt(simMealKcal.replace(',', '.'), 10) || 0;
+    const proteina = parseInt(simMealProt.replace(',', '.'), 10) || 0;
+    const carbs = parseInt(simMealCarbs.replace(',', '.'), 10) || 0;
+    const gordura = parseInt(simMealFat.replace(',', '.'), 10) || 0;
     if (simMealName.trim()) {
-      saveFoodEntry({
-        prato: simMealName,
-        kcal,
-        proteina: Math.round(kcal * 0.08), // mock estimation
-        carbs: Math.round(kcal * 0.1),
-        gordura: Math.round(kcal * 0.04)
-      });
-      alert(`Refeição "${simMealName}" registrada!`);
+      saveFoodEntry({ prato: simMealName, kcal, proteina, carbs, gordura });
+      alert(`Refeição "${simMealName}" registrada!\n${kcal} kcal · ${proteina}g prot · ${carbs}g carb · ${gordura}g gord`);
       setSimMealName('');
+      setSimMealKcal('');
+      setSimMealProt('');
+      setSimMealCarbs('');
+      setSimMealFat('');
       triggerRefresh();
     }
   }
@@ -504,16 +508,25 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
                 onChange={e => setSimMealName(e.target.value)}
                 placeholder="Nome do Prato / Alimento"
               />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="number"
-                  style={inputStyle}
-                  value={simMealKcal}
-                  onChange={e => setSimMealKcal(e.target.value)}
-                  placeholder="Kcal"
-                />
-                <GLPYButton variant="primary" size="sm" onClick={handleSaveFood}>Salvar Refeição</GLPYButton>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: '700', color: lightColors.text.secondary, display: 'block', marginBottom: 2 }}>kcal</label>
+                  <input type="number" min="0" style={{ ...inputStyle, padding: '7px 8px' }} value={simMealKcal} onChange={e => setSimMealKcal(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: '700', color: lightColors.text.secondary, display: 'block', marginBottom: 2 }}>Prot (g)</label>
+                  <input type="number" min="0" style={{ ...inputStyle, padding: '7px 8px' }} value={simMealProt} onChange={e => setSimMealProt(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: '700', color: lightColors.text.secondary, display: 'block', marginBottom: 2 }}>Carb (g)</label>
+                  <input type="number" min="0" style={{ ...inputStyle, padding: '7px 8px' }} value={simMealCarbs} onChange={e => setSimMealCarbs(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, fontWeight: '700', color: lightColors.text.secondary, display: 'block', marginBottom: 2 }}>Gord (g)</label>
+                  <input type="number" min="0" style={{ ...inputStyle, padding: '7px 8px' }} value={simMealFat} onChange={e => setSimMealFat(e.target.value)} placeholder="0" />
+                </div>
               </div>
+              <GLPYButton variant="primary" size="sm" onClick={handleSaveFood}>Salvar Refeição</GLPYButton>
             </div>
           </div>
 
