@@ -142,6 +142,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/check-in') {
+  import('./screens/operational/CheckInScreen.tsx').then(({ default: CheckInScreen }) => {
+    root.render(
+      <StrictMode>
+        <CheckInScreen onBack={() => { window.location.href = '/'; }} />
+      </StrictMode>,
+    );
+  });
 } else {
   root.render(
     <StrictMode>
@@ -149,3 +157,4 @@ if (path === '/admin') {
     </StrictMode>,
   );
 }
+
