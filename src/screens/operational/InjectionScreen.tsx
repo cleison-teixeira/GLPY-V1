@@ -1,0 +1,406 @@
+// GLPY — Injection Screen
+// System: Operational — LIGHT PREMIUM
+// Authority: docs/glpy-screen-map-v1.md | docs/glpy-design-system-v1.md
+//
+// MVP PLACEHOLDER:
+// No MVP, esta tela registra informações informadas pelo usuário.
+// Esta tela não substitui orientação médica e apenas registra dados informados pelo usuário.
+//
+// TreatmentSettingsScreen será criada futuramente para editar medicação, frequência e dose.
+// SideEffectsScreen será criada futuramente para registrar sintomas/efeitos após aplicação.
+
+import React, { useState } from 'react';
+import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight } from 'lucide-react';
+
+import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { lightColors } from '../../theme/colors';
+import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
+import { gap, padding } from '../../theme/spacing';
+import { radius } from '../../theme/radius';
+import { lightShadows } from '../../theme/shadows';
+import { transition } from '../../theme/motion';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type InjectionSite = 'abdomen' | 'thigh' | 'arm';
+
+interface SiteOption {
+  id:    InjectionSite;
+  label: string;
+}
+
+interface InjectionScreenProps {
+  onBack?: () => void;
+  onSave?: (data: { medication: string; dose: string; frequency: string; site: InjectionSite }) => void;
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+// MVP PLACEHOLDER — dados fixos. Futuramente virão do perfil de tratamento do usuário.
+
+const SITE_OPTIONS: SiteOption[] = [
+  { id: 'abdomen', label: 'Abdômen' },
+  { id: 'thigh',   label: 'Coxa'    },
+  { id: 'arm',     label: 'Braço'   },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps) {
+  const [selectedSite, setSelectedSite] = useState<InjectionSite>('abdomen');
+  const [medication]                     = useState('Mounjaro');
+  const [dose]                           = useState('2,5 mg');
+  const [frequency]                      = useState('Semanal');
+
+  function handleEditConfig(field: string) {
+    console.log('[GLPY] Edit treatment config:', field, '— TreatmentSettingsScreen (futuro)');
+  }
+
+  function handleSymptoms() {
+    console.log('[GLPY] Abrir SideEffectsScreen — futuro');
+  }
+
+  function handleSave() {
+    console.log('[GLPY] Injection saved:', { medication, dose, frequency, site: selectedSite });
+    onSave?.({ medication, dose, frequency, site: selectedSite });
+  }
+
+  // ── Shared styles ──────────────────────────────────────────────────────────
+
+  const sectionGap: React.CSSProperties = {
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           gap.small,
+  };
+
+  const cardIconWrap = (size = 32): React.CSSProperties => ({
+    width:          size,
+    height:         size,
+    borderRadius:   10,
+    background:     `linear-gradient(135deg, ${lightColors.brand.green}22, ${lightColors.brand.greenDark}33)`,
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'center',
+    flexShrink:     0,
+  });
+
+  const cardTitleRowStyle: React.CSSProperties = {
+    display:      'flex',
+    alignItems:   'center',
+    gap:          6,
+    marginBottom: 6,
+  };
+
+  const cardTitleStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   11,
+    fontWeight: fontWeight.h3,
+    color:      lightColors.text.secondary,
+    flex:       1,
+    lineHeight: 1,
+  };
+
+  const mainValueStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.h3,
+    fontWeight: fontWeight.h1,
+    color:      lightColors.text.navy,
+    lineHeight: 1.2,
+  };
+
+  const subValueStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    color:      lightColors.text.secondary,
+    marginTop:  3,
+  };
+
+  const badgeStyle: React.CSSProperties = {
+    display:       'inline-flex',
+    alignItems:    'center',
+    paddingLeft:   6,
+    paddingRight:  6,
+    paddingTop:    2,
+    paddingBottom: 2,
+    borderRadius:  99,
+    background:    `${lightColors.brand.green}22`,
+    fontFamily:    fontFamily.primary,
+    fontSize:      10,
+    fontWeight:    fontWeight.h3,
+    color:         lightColors.brand.greenDark,
+    marginBottom:  6,
+    alignSelf:     'flex-start' as const,
+  };
+
+  // microtexto disclaimer
+  const disclaimerStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   12,
+    color:      lightColors.text.secondary,
+    textAlign:  'center',
+    lineHeight: 1.4,
+    opacity:    0.75,
+    paddingTop: 2,
+  };
+
+  // config rows
+  const configRowStyle: React.CSSProperties = {
+    display:        'flex',
+    justifyContent: 'space-between',
+    alignItems:     'center',
+    paddingTop:     11,
+    paddingBottom:  11,
+    borderBottom:   `1px solid ${lightColors.border.soft}`,
+    cursor:         'pointer',
+  };
+
+  const configLabelStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    color:      lightColors.text.secondary,
+  };
+
+  const configValueRowStyle: React.CSSProperties = {
+    display:    'flex',
+    alignItems: 'center',
+    gap:        4,
+  };
+
+  const configValueStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    fontWeight: fontWeight.h3,
+    color:      lightColors.text.navy,
+  };
+
+  const configFooterStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   12,
+    color:      lightColors.brand.greenDark,
+    marginTop:  gap.small,
+    textAlign:  'right',
+  };
+
+  // site chips
+  const siteRowStyle: React.CSSProperties = {
+    display: 'flex',
+    gap:     gap.small,
+  };
+
+  // effects card
+  const effectsTextStyle: React.CSSProperties = {
+    fontFamily:   fontFamily.primary,
+    fontSize:     fontSize.small,
+    color:        lightColors.text.secondary,
+    lineHeight:   1.5,
+    marginBottom: gap.small,
+  };
+
+  // dica
+  const dicaHeaderStyle: React.CSSProperties = {
+    display:      'flex',
+    alignItems:   'center',
+    gap:          gap.small,
+    marginBottom: 4,
+  };
+
+  const dicaTitleStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    fontWeight: fontWeight.h3,
+    color:      lightColors.text.navy,
+  };
+
+  const dicaTextStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    color:      lightColors.text.secondary,
+    lineHeight: 1.5,
+  };
+
+  return (
+    <GLPYScreen variant="light">
+      <GLPYHeader title="Aplicação" onBack={onBack} />
+
+      <div style={sectionGap}>
+
+        {/* ── Cards 1 & 2 — grid 2 colunas ─────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.small }}>
+
+          {/* Card 1 — Próxima aplicação */}
+          <GLPYCard variant="light">
+            <div style={cardTitleRowStyle}>
+              <div style={cardIconWrap(26)}>
+                <CalendarDays size={13} color={lightColors.brand.greenDark} strokeWidth={2} />
+              </div>
+              <span style={cardTitleStyle}>Próxima aplicação</span>
+            </div>
+            <div style={badgeStyle}>Semanal</div>
+            <div style={mainValueStyle}>Qui, 21 mai</div>
+            <div style={subValueStyle}>em 3 dias</div>
+          </GLPYCard>
+
+          {/* Card 2 — Última aplicação */}
+          <GLPYCard variant="light">
+            <div style={cardTitleRowStyle}>
+              <div style={cardIconWrap(26)}>
+                <Clock size={13} color={lightColors.brand.greenDark} strokeWidth={2} />
+              </div>
+              <span style={cardTitleStyle}>Última aplicação</span>
+            </div>
+            <div style={{ ...badgeStyle, background: 'transparent', color: 'transparent' }}>·</div>
+            <div style={mainValueStyle}>{dose}</div>
+            <div style={subValueStyle}>há 4 dias · {medication}</div>
+          </GLPYCard>
+
+        </div>
+
+        {/* microtexto disclaimer */}
+        <p style={disclaimerStyle}>
+          Registre apenas informações já orientadas pelo seu profissional de saúde.
+        </p>
+
+        {/* ── Card 3 — Configurações do tratamento ──────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={cardTitleRowStyle}>
+            <div style={cardIconWrap()}>
+              <Settings2 size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={{ ...cardTitleStyle, fontSize: fontSize.bodyDefault, color: lightColors.text.navy }}>
+              Configurações do tratamento
+            </span>
+          </div>
+
+          <div>
+            {[
+              { label: 'Medicação',  value: medication },
+              { label: 'Frequência', value: frequency  },
+              { label: 'Dose atual', value: dose       },
+            ].map((row, i, arr) => (
+              <div
+                key={row.label}
+                style={{
+                  ...configRowStyle,
+                  ...(i === arr.length - 1 ? { borderBottom: 'none', paddingBottom: 2 } : {}),
+                }}
+                onClick={() => handleEditConfig(row.label)}
+              >
+                <span style={configLabelStyle}>{row.label}</span>
+                <div style={configValueRowStyle}>
+                  <span style={configValueStyle}>{row.value}</span>
+                  <ChevronRight size={14} color={lightColors.border.soft} strokeWidth={2} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p style={configFooterStyle}>Toque para ajustar seus dados</p>
+        </GLPYCard>
+
+        {/* ── Card 4 — Local da aplicação ───────────────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={{ ...cardTitleRowStyle, marginBottom: gap.small }}>
+            <div style={cardIconWrap()}>
+              <MapPin size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={{ ...cardTitleStyle, fontSize: fontSize.bodyDefault, color: lightColors.text.navy }}>
+              Local da aplicação
+            </span>
+          </div>
+
+          <div style={siteRowStyle}>
+            {SITE_OPTIONS.map(option => (
+              <SiteChip
+                key={option.id}
+                option={option}
+                selected={selectedSite === option.id}
+                onSelect={() => setSelectedSite(option.id)}
+              />
+            ))}
+          </div>
+        </GLPYCard>
+
+        {/* ── Card 5 — Efeitos após aplicação ──────────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={{ ...cardTitleRowStyle, marginBottom: gap.small }}>
+            <div style={cardIconWrap()}>
+              <Activity size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={{ ...cardTitleStyle, fontSize: fontSize.bodyDefault, color: lightColors.text.navy }}>
+              Efeitos após aplicação
+            </span>
+          </div>
+          <p style={effectsTextStyle}>
+            Acompanhe sintomas ou desconfortos depois da dose.
+          </p>
+          <GLPYButton variant="secondary" size="sm" onClick={handleSymptoms}>
+            Registrar sintomas
+          </GLPYButton>
+        </GLPYCard>
+
+        {/* ── Dica GLPY ─────────────────────────────────────────────────────── */}
+        <GLPYCard
+          variant="light"
+          style={{
+            padding:    padding.small,
+            background: `${lightColors.brand.green}14`,
+            border:     `1px solid ${lightColors.brand.green}33`,
+          }}
+        >
+          <div style={dicaHeaderStyle}>
+            <Lightbulb size={15} color={lightColors.brand.greenDark} strokeWidth={2} />
+            <span style={dicaTitleStyle}>Dica GLPY</span>
+          </div>
+          <p style={dicaTextStyle}>
+            Registrar sua rotina de aplicação ajuda a GLPY IA a entender padrões entre
+            dose, sintomas, hidratação, alimentação e evolução.
+          </p>
+        </GLPYCard>
+
+        {/* ── CTA ──────────────────────────────────────────────────────────── */}
+        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSave}>
+          Registrar aplicação
+        </GLPYButton>
+
+      </div>
+    </GLPYScreen>
+  );
+}
+
+// ── SiteChip (local) ──────────────────────────────────────────────────────────
+
+interface SiteChipProps {
+  option:   SiteOption;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+function SiteChip({ option, selected, onSelect }: SiteChipProps) {
+  const chipStyle: React.CSSProperties = {
+    flex:         1,
+    borderRadius: radius.secondary,
+    padding:      `10px 8px`,
+    cursor:       'pointer',
+    transition:   transition.default,
+    textAlign:    'center',
+    background:   selected ? `${lightColors.brand.green}14` : lightColors.background.card,
+    border:       selected
+      ? `2px solid ${lightColors.brand.green}`
+      : `1.5px solid ${lightColors.border.soft}`,
+    boxShadow:    selected ? `0 0 0 3px ${lightColors.brand.green}18` : lightShadows.soft,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    fontWeight: fontWeight.h3,
+    color:      selected ? lightColors.text.navy : lightColors.text.secondary,
+    transition: transition.default,
+    lineHeight: 1,
+  };
+
+  return (
+    <div style={chipStyle} onClick={onSelect} role="button" aria-pressed={selected}>
+      <span style={labelStyle}>{option.label}</span>
+    </div>
+  );
+}
