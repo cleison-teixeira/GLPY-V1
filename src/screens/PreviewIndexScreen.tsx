@@ -10,7 +10,7 @@ import {
   ChevronRight, Compass, ListChecks, TrendingDown, Syringe, Camera,
   Droplets, Utensils, Smile, Flame, Scale, CheckSquare, PlusCircle,
   HelpCircle, Ruler, Settings, AlertCircle, PlayCircle, Eye, Share2, Image,
-  Calendar, Award
+  Calendar, Award, Layers
 } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard } from '../components/ui';
@@ -42,6 +42,22 @@ const PREVIEW_GROUPS: PreviewGroup[] = [
       { name: 'Protocolos', path: '/preview/protocols', description: 'Biblioteca de protocolos GLPY', Icon: ListChecks },
       { name: 'Protocolo Anti-Rebote', path: '/preview/protocol-anti-rebote', description: 'Protocolo principal da oferta', Icon: Scale },
       { name: 'Receitas', path: '/preview/recipes', description: 'Receitas para a jornada GLP-1', Icon: Utensils },
+    ],
+  },
+  {
+    title: 'Protocolos Individuais',
+    Icon: Layers,
+    items: [
+      { name: '1 · Sobrevivendo às Canetas',        path: '/preview/protocolo1',  description: 'Adaptação nos primeiros dias — náusea, timing e o que comer', Icon: Syringe },
+      { name: '2 · Controle de Efeitos Colaterais', path: '/preview/protocolo2',  description: 'Gerenciar sintomas adversos do GLP-1 com segurança', Icon: AlertCircle },
+      { name: '3 · Anti-Queda de Cabelo',           path: '/preview/protocolo3',  description: 'Nutrição e cuidados para preservar os fios durante o emagrecimento', Icon: HelpCircle },
+      { name: '4 · Anti-Rebote',                    path: '/preview/protocolo4',  description: 'Trave o efeito rebote em 7 dias com ciência', Icon: Scale },
+      { name: '5 · Psicologia do Emagrecimento',    path: '/preview/protocolo5',  description: 'Mente e comportamento como aliados da perda de peso', Icon: Smile },
+      { name: '6 · Alimentação para Baixo Apetite', path: '/preview/protocolo6',  description: 'Nutrição densa e prática para quem não sente fome', Icon: Utensils },
+      { name: '7 · Não Perca Músculo',              path: '/preview/protocolo7',  description: 'Preservar massa magra durante déficit calórico com GLP-1', Icon: Flame },
+      { name: '8 · Energia Baixa',                  path: '/preview/protocolo8',  description: 'Estratégias para combater fadiga e cansaço no tratamento', Icon: Droplets },
+      { name: '9 · Ajuste Metabólico',              path: '/preview/protocolo9',  description: 'Otimizar metabolismo e quebrar platôs de emagrecimento', Icon: TrendingDown },
+      { name: '10 · Transição — Parar a Caneta',    path: '/preview/protocolo10', description: 'Manter os resultados ao encerrar o uso do GLP-1', Icon: CheckSquare },
     ],
   },
   {

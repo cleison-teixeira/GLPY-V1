@@ -91,6 +91,9 @@ function estaDesbloqueado(_planoMinimo: string): boolean {
 export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [confirmar, setConfirmar] = useState<Protocolo | null>(null);
 
+  // Em rotas /preview/* o modal de troca é desnecessário — navegação direta
+  const isPreviewMode = window.location.pathname.startsWith('/preview');
+
   const idAtivo = (() => {
     const raw = localStorage.getItem("glpy_protocolo_ativo");
     return raw ? JSON.parse(raw).id : "antiRebote";
@@ -101,7 +104,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
       onNavigate("planos");
       return;
     }
-    if (p.id === idAtivo) {
+    if (isPreviewMode || p.id === idAtivo) {
       onNavigate(p.rota);
     } else {
       setConfirmar(p);

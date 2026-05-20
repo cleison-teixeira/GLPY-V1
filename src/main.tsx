@@ -24,15 +24,25 @@ if (path === '/admin') {
   });
 } else if (path === '/preview/protocols') {
   import('./components/ProtocolHub.tsx').then(({ default: ProtocolHub }) => {
+    const PREVIEW_ROTA_MAP: Record<string, string> = {
+      sobrevivendoCanetas:      '/preview/protocolo1',
+      efeitosColaterais:        '/preview/protocolo2',
+      antiQuedaCabelo:          '/preview/protocolo3',
+      antiRebote:               '/preview/protocolo4',
+      'anti-rebote':            '/preview/protocolo4',
+      psicologiaEmagrecimento:  '/preview/protocolo5',
+      alimentacaoBaixoApetite:  '/preview/protocolo6',
+      naoPerdaMusculos:         '/preview/protocolo7',
+      energiaBaixa:             '/preview/protocolo8',
+      ajusteMetabolico:         '/preview/protocolo9',
+      transicaoParar:           '/preview/protocolo10',
+    };
     root.render(
       <StrictMode>
         <ProtocolHub
           onNavigate={(screen) => {
-            if (screen === 'antiRebote' || screen === 'anti-rebote') {
-              window.location.href = '/preview/protocol-anti-rebote';
-            } else {
-              window.location.href = '/preview';
-            }
+            const dest = PREVIEW_ROTA_MAP[screen];
+            window.location.href = dest ?? '/preview';
           }}
         />
       </StrictMode>,
@@ -249,6 +259,146 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <DailyTargetsTestScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo1') {
+  import('./components/Protocolo1.tsx').then(({ default: Protocolo1 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo1
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo2') {
+  import('./components/Protocolo2.tsx').then(({ default: Protocolo2 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo2
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo3') {
+  import('./components/Protocolo3.tsx').then(({ default: Protocolo3 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo3
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo4') {
+  import('./components/AntiRebote.tsx').then(({ default: AntiRebote }) => {
+    root.render(
+      <StrictMode>
+        <AntiRebote
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo5') {
+  import('./components/Protocolo5.tsx').then(({ default: Protocolo5 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo5
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo6') {
+  import('./components/Protocolo6.tsx').then(({ default: Protocolo6 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo6
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo7') {
+  import('./components/Protocolo7.tsx').then(({ default: Protocolo7 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo7
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo8') {
+  import('./components/Protocolo8.tsx').then(({ default: Protocolo8 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo8
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo9') {
+  import('./components/Protocolo9.tsx').then(({ default: Protocolo9 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo9
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/protocolo10') {
+  import('./components/Protocolo10.tsx').then(({ default: Protocolo10 }) => {
+    root.render(
+      <StrictMode>
+        <Protocolo10
+          onNavigate={(screen) => {
+            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
+            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
+            else { window.location.href = '/preview'; }
+          }}
+        />
       </StrictMode>,
     );
   });

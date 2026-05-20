@@ -72,6 +72,9 @@ interface Props {
 }
 
 export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, dias, videos, firestoreId, onNavigate }: Props) {
+  // Em rotas /preview/protocolo* não alteramos localStorage de produção nem chamamos Firestore
+  const isPreviewMode = window.location.pathname.startsWith('/preview/protocolo');
+
   const protocoloId = STORAGE_KEY_TO_ID[storageKey] ?? storageKey;
   const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
 
@@ -101,11 +104,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   useEffect(() => { localStorage.setItem(`${storageKey}_dia`, String(diaAtual)); }, [diaAtual, storageKey]);
   useEffect(() => { localStorage.setItem(`${storageKey}_missoes`, JSON.stringify(missoesMarcadas)); }, [missoesMarcadas, storageKey]);
   useEffect(() => {
+    if (isPreviewMode) return; // Preview: não altera protocolo ativo nem chama Firestore
     try {
       const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
       localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual }));
     } catch {}
-    // Atualiza protocoloAtivo no Firestore
     saveProtocolProgress({
       protocoloId,
       protocoloNome: nome,
@@ -116,7 +119,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
   // Firestore load (apenas quando firestoreId é fornecido)
   useEffect(() => {
-    if (!firestoreId) return;
+    if (!firestoreId || isPreviewMode) return; // Preview: não carrega do Firestore
     carregarProgressoProtocolo(firestoreId)
       .then(data => {
         if (data) {
