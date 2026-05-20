@@ -10,7 +10,7 @@ import {
   ChevronRight, Compass, ListChecks, TrendingDown, Syringe, Camera,
   Droplets, Utensils, Smile, Flame, Scale, CheckSquare, PlusCircle,
   HelpCircle, Ruler, Settings, AlertCircle, PlayCircle, Eye, Share2, Image,
-  Calendar, Award, Layers
+  Calendar, Award, Layers, Bot
 } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard } from '../components/ui';
@@ -115,6 +115,7 @@ const PREVIEW_GROUPS: PreviewGroup[] = [
     title: 'Debug / Integração',
     Icon: PlayCircle,
     items: [
+      { name: 'Chat IA', path: '/preview/chat-ia', description: 'Assistente GLPY com contexto unificado', Icon: Bot },
       { name: 'Teste Inteligência Local', path: '/preview/local-intelligence-test', description: 'Visualizador de logs e prompt compilado para IA', Icon: PlayCircle },
       { name: 'Metas Diárias Engine', path: '/preview/daily-targets-test', description: 'Calculadora de BMR, TDEE, macros e auditoria JSON', Icon: Scale },
     ],

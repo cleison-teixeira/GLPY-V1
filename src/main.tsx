@@ -254,6 +254,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/chat-ia') {
+  import('./components/ChatIA.tsx').then(({ default: ChatIA }) => {
+    root.render(
+      <StrictMode>
+        <ChatIA onNavigate={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/daily-targets-test') {
   import('./screens/debug/DailyTargetsTestScreen.tsx').then(({ default: DailyTargetsTestScreen }) => {
     root.render(
