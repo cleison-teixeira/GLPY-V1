@@ -6,6 +6,7 @@ import BottomNav from "./BottomNav";
 import { playSound } from "../utils/sounds";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
+import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 
 // ─── CÁLCULO DE METAS PERSONALIZADAS ───────────────────────────────────────
 function calcMetas(peso: number, altura: number) {
@@ -287,15 +288,14 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   // ── Mantém glpy_protocolo_ativo sincronizado ──
   useEffect(() => {
     try {
-      const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
-      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({
-        ...existing,
+      saveProtocolContext({
         id: "antiRebote",
         nome: "Anti-Rebote",
         emoji: "⚖️",
         totalDias: 7,
         dia: diaAtual + 1,
-      }));
+        missoesTexto: DIAS[Math.min(Math.max(diaAtual, 0), DIAS.length - 1)]?.missoes.map(m => m.texto) || [],
+      });
     } catch {}
   }, [diaAtual]);
 
@@ -322,18 +322,87 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const jaConcluidoHoje = dataUltimoCheck === hoje;
   const diaJaFeito = diasConcluidos.includes(diaAtual + 1);
 
+  const buildProtocolMissions = (marked: number[]) =>
+    dia.missoes.map((m, i) => ({
+      id: `antiRebote-dia-${dia.n}-missao-${i + 1}`,
+      texto: formatMissao(m.texto),
+      sub: formatMissao(m.sub),
+      status: marked.includes(i) ? "concluida" as const : "pendente" as const,
+    }));
+
+  const buildBehavioralSignals = (marked: number[], checkin: string | null) => {
+    const missionSignals = buildProtocolMissions(marked)
+      .filter(m => m.status === "concluida")
+      .map(m => `Missão concluída: ${m.texto}`);
+    return checkin ? [...missionSignals, `Check-in selecionado: ${checkin}`] : missionSignals;
+  };
+
+  const persistProtocolDay = (
+    marked: number[] = missoesMarcadas,
+    checkin: string | null = checkinSelecionado,
+    status: "em_andamento" | "concluido" | "bloqueado" | "pendente" = "em_andamento",
+    xpEarned?: number
+  ) => {
+    saveProtocolContext({
+      id: "antiRebote",
+      nome: "Anti-Rebote",
+      emoji: "⚖️",
+      totalDias: 7,
+      dia: dia.n,
+      missoesConcluidas: marked.length,
+      missoesTexto: dia.missoes.map(m => formatMissao(m.texto)),
+    });
+    saveProtocolDayTracking({
+      protocolId: "antiRebote",
+      protocolName: "Anti-Rebote",
+      protocolEmoji: "⚖️",
+      totalDays: 7,
+      day: dia.n,
+      missions: buildProtocolMissions(marked),
+      selectedCheckins: checkin ? [checkin] : [],
+      recipeOfDay: receita ? {
+        id: receita.id,
+        emoji: receita.emoji,
+        nome: receita.nome,
+        kcal: receita.kcal,
+        proteina: receita.proteina,
+        carbs: receita.carbs,
+        gordura: receita.gordura,
+        categoria: receita.categoria,
+      } : null,
+      dayStatus: status,
+      xpEarned,
+      behavioralSignals: buildBehavioralSignals(marked, checkin),
+    });
+  };
+
+  useEffect(() => {
+    persistProtocolDay(missoesMarcadas, checkinSelecionado, concluido ? "concluido" : jaConcluidoHoje ? "bloqueado" : "em_andamento", concluido ? dia.xp : undefined);
+  }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleMissao = (i: number) => {
-    setMissoesMarcadas(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+    setMissoesMarcadas(prev => {
+      const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
+      persistProtocolDay(next, checkinSelecionado, "em_andamento");
+      return next;
+    });
   };
 
   const formatMissao = (texto: string) =>
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
+
+  const handleSelectCheckin = (option: string) => {
+    setCheckinSelecionado(option);
+    persistProtocolDay(missoesMarcadas, option, "em_andamento");
+  };
 
   const handleConcluir = () => {
     if (jaConcluidoHoje || diaJaFeito) return;
     playSound('concluir');
 
     const agora = new Date().toISOString().slice(0, 10);
+    const xpDia = DIAS[diaIndex]?.xp ?? 30;
+    persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
@@ -348,7 +417,6 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     setDataUltimoCheck(agora);
 
     // XP float + confetti
-    const xpDia = DIAS[diaIndex]?.xp ?? 30;
     setXpValor(xpDia);
     setShowXP(true);
     setTimeout(() => setShowXP(false), 1500);
@@ -552,7 +620,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
               <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Check-in do dia</p>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {dia.checkin.map(opt => (
-                  <button key={opt} onClick={() => setCheckinSelecionado(opt)}
+                  <button key={opt} onClick={() => handleSelectCheckin(opt)}
                     className={`p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${checkinSelecionado === opt ? 'bg-primary text-white border-primary' : 'bg-[#F4F6F8] border-transparent text-text-main'}`}>
                     {opt}
                   </button>

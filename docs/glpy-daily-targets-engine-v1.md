@@ -178,6 +178,11 @@ Os campos estão preparados na interface `GLPYTargetsConfig` para receber essa a
   - `reviewStatus` definido como `"MVP_NOT_CLINICALLY_REVIEWED"` até revisão formal autorizada.
   - Adicionada seção "Status de Revisão Profissional" neste documento com regras de compliance.
 
+- **Versão 1.2.0 (2026-05-20) — Fase 1D Protocol Day Tracking:**
+  - A tela `/preview/daily-targets-test` passa a exibir "Execução do Protocolo Hoje" a partir da Local Intelligence Store.
+  - `glpy_daily_tracking[YYYY-MM-DD].protocolDay` consolida missões concluídas/pendentes, check-in selecionado, receita do dia e status do dia.
+  - Reforçada a separação entre sinal comportamental de missão e consumo nutricional real.
+
 ---
 
 ## 6. Consumo Diário e Saldo Restante (Fase 1C.1)
@@ -227,8 +232,12 @@ Na **Fase 2 do MVP**, a Home Screen lirá as metas calculadas da engine e os dad
 - Barras de progresso de macros e água em tempo real.
 - Alertas inteligentes de "Hora de beber água!" ou "Você ainda não atingiu sua meta de proteína hoje."
 - Score diário de completude (%) como elemento de gamificação no dashboard.
+- Resumo da `protocolDay` quando houver protocolo ativo, exibindo missões concluídas/pendentes, receita do dia, check-in selecionado e status do dia.
 
 A integração será feita sem modificar a engine — apenas lendo `calculateDailyRemaining()` com os dados do Local Intelligence Store.
+
+> [!IMPORTANT]
+> A conclusão de missões de protocolo não entra no cálculo de `GLPYDailyConsumed`. Ela é tratada como sinal comportamental pela Local Intelligence Store. Consumo real de macros e água continua sendo calculado apenas a partir de refeições, água registrada e futuros fluxos de foto do prato.
 
 ---
 

@@ -23,7 +23,7 @@ import {
   GLPYDailyConsumed,
 } from '../../core/glpyDailyTargets';
 
-import { saveWaterEntry, saveFoodEntry } from '../../core/glpyLocalIntelligence';
+import { getGLPYIntelligenceContext, saveWaterEntry, saveFoodEntry } from '../../core/glpyLocalIntelligence';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +96,8 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
 
   const remaining = result ? calculateDailyRemaining(result, consumed) : null;
   const aiPayload = result && remaining ? buildDailyTargetsForAI(result, consumed, remaining) : '';
+  const intelligenceContext = getGLPYIntelligenceContext();
+  const protocolDayToday = intelligenceContext.protocolDayToday;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -376,6 +378,57 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
             </div>
           </GLPYCard>
         )}
+
+        {/* ── 5.1. EXECUÇÃO DO PROTOCOLO HOJE ──────────────────────────────── */}
+        <GLPYCard variant="light">
+          <h3 style={sectionTitle}><CheckCircle2 size={17} color={lightColors.brand.greenDark} />Execução do Protocolo Hoje</h3>
+          {protocolDayToday ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ ...macroRow, paddingTop: 0 }}>
+                <span style={{ fontSize: 13, color: lightColors.text.navy, fontWeight: '700' }}>
+                  {protocolDayToday.protocolEmoji} {protocolDayToday.protocolName}
+                </span>
+                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: protocolDayToday.dayStatus === 'concluido' ? '#D1FAE5' : '#F1F5F9', color: protocolDayToday.dayStatus === 'concluido' ? '#059669' : lightColors.text.navy, fontWeight: '600' }}>
+                  {protocolDayToday.dayStatus}
+                </span>
+              </div>
+              <div style={macroRow}>
+                <span style={{ fontSize: 12, color: lightColors.text.secondary }}>Dia do protocolo</span>
+                <strong style={{ fontSize: 12, color: lightColors.text.navy }}>{protocolDayToday.day}/{protocolDayToday.totalDays}</strong>
+              </div>
+              {protocolDayToday.recipeOfDay?.nome && (
+                <div style={macroRow}>
+                  <span style={{ fontSize: 12, color: lightColors.text.secondary }}>Receita do dia</span>
+                  <strong style={{ fontSize: 12, color: lightColors.text.navy }}>{protocolDayToday.recipeOfDay.nome}</strong>
+                </div>
+              )}
+              {protocolDayToday.selectedCheckins?.length > 0 && (
+                <p style={{ margin: 0, fontSize: 12, color: lightColors.text.navy }}>
+                  <strong>Check-in:</strong> {protocolDayToday.selectedCheckins.join(', ')}
+                </p>
+              )}
+              {protocolDayToday.missions?.length > 0 && (
+                <div>
+                  {protocolDayToday.missions.map((mission, index) => (
+                    <div key={mission.id || index} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', fontSize: 12, color: lightColors.text.navy }}>
+                      <span>{mission.texto}</span>
+                      <span style={{ color: mission.status === 'concluida' ? '#059669' : lightColors.text.secondary, fontWeight: '700' }}>
+                        {mission.status === 'concluida' ? 'concluída' : 'pendente'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p style={{ margin: 0, fontSize: 11, color: lightColors.text.secondary }}>
+                Missões marcadas entram como sinal comportamental. O consumo real segue vindo das refeições/foto do prato.
+              </p>
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12, color: lightColors.text.secondary }}>
+              Nenhuma execução do protocolo registrada hoje na Local Intelligence Store.
+            </p>
+          )}
+        </GLPYCard>
 
         {/* ── 6. PAYLOAD PARA IA ────────────────────────────────────────────── */}
         {result && remaining && (

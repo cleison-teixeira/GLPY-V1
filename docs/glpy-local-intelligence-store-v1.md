@@ -124,6 +124,40 @@ export interface ProtocolContextEntry {
   missoesTexto?: string[];
 }
 
+export interface ProtocolDayMission {
+  id: string;
+  texto: string;
+  sub?: string;
+  status: "concluida" | "pendente";
+}
+
+export interface ProtocolDayRecipe {
+  id: number | string;
+  emoji?: string;
+  nome: string;
+  kcal?: number;
+  proteina?: number;
+  carbs?: number;
+  gordura?: number;
+  categoria?: string;
+}
+
+export interface ProtocolDayTrackingEntry {
+  protocolId: string;
+  protocolName: string;
+  protocolEmoji?: string;
+  totalDays: number;
+  day: number;
+  date?: string;
+  timestamp?: string;
+  missions?: ProtocolDayMission[];
+  selectedCheckins?: string[];
+  recipeOfDay?: ProtocolDayRecipe | null;
+  dayStatus?: "em_andamento" | "concluido" | "bloqueado" | "pendente";
+  xpEarned?: number;
+  behavioralSignals?: string[];
+}
+
 export interface DailyTrackingDay {
   date: string;        // YYYY-MM-DD
   weight?: number;
@@ -135,6 +169,7 @@ export interface DailyTrackingDay {
   activity?: ActivityEntry[];
   measurements?: BodyMeasurementsEntry;
   checkin?: CheckInEntry;
+  protocolDay?: ProtocolDayTrackingEntry;
 }
 ```
 
@@ -170,6 +205,8 @@ Para evitar qualquer quebra visual ou comportamental nas telas legadas do aplica
 | `glpy_current_protocol_day` | `string` (ex: `"4"`) | Dia atual do protocolo em string. | **Legada** |
 | `glpy_missoes_texto_hoje` | `string[]` | Missões diárias recomendadas. | **Legada** |
 | `glpy_protocol_context` | `ProtocolContextEntry` | Objeto completo estruturado do protocolo. | **Nova** |
+| `glpy_protocol_day_today` | `ProtocolDayTrackingEntry` | Execução do protocolo no dia: missões concluídas/pendentes, check-in selecionado, receita do dia e status. | **Nova** |
+| `glpy_protocol_day_history` | `ProtocolDayTrackingEntry[]` | Histórico das execuções diárias de protocolo, deduplicado por data/protocolo/dia. | **Nova** |
 | `glpy_results_summary` | `Record<string, any>` | Consolidação de resultados (peso perdido, fotos totais, etc.). | **Nova** |
 
 ---
@@ -190,6 +227,10 @@ Abaixo está o descritivo de consumo da biblioteca importável em `src/core/glpy
 - **`savePhotoProgressEntry(entry: PhotoProgressEntry): void`**: Salva evolução visual (fotos do prato ou do corpo).
 - **`saveCheckInEntry(entry: CheckInEntry): void`**: Salva o check-in metabólico diário completo (fome, saciedade, humor, energia, peso, etc).
 - **`saveProtocolContext(entry: ProtocolContextEntry): void`**: Define o protocolo atual, dia corrente e missões a serem perseguidas.
+- **`saveProtocolDayTracking(entry: ProtocolDayTrackingEntry): void`**: Salva a execução do protocolo do dia atual, incluindo status das missões, check-in selecionado, receita do dia, status do dia e sinais comportamentais.
+
+> [!IMPORTANT]
+> Missões concluídas são gravadas como **sinais comportamentais** em `behavioralSignals`. Elas **não** incrementam consumo nutricional. Calorias, proteínas, carboidratos, gorduras e água consumidos continuam vindo somente de `saveFoodEntry()`, `saveWaterEntry()` e futuros fluxos reais de refeição/foto do prato.
 
 ### Métodos de Leitura & Agregação (Leitores)
 - **`getGLPYIntelligenceContext()`**: Consolida de forma reativa e compilada todos os dados de saúde, perfil, evolução física, registros metabólicos diários e logs clínicos do usuário. Adiciona automaticamente uma lista de **warnings (alertas de dados ausentes)** se o usuário deixar de registrar logs fundamentais (como peso, água, refeições ou injeções).
@@ -208,10 +249,14 @@ Usuário: Cleison (Plano: STARTER)
 Streak: 5 dias 🔥 | XP: 340 (Nível 2)
 
 Protocolo Ativo: Anti-Rebote — Dia 4/7
+Execução do Protocolo Hoje: em_andamento
 Missões de hoje:
-  1. [ ] Jejum metabólico de 12 horas
+  1. [x] Jejum metabólico de 12 horas
   2. [ ] Consumir 2.5L de água pura
   3. [ ] Evitar ultraprocessados à noite
+Check-in do protocolo: Nenhuma compulsão hoje
+Receita do dia: Frango com Batata-Doce (420 kcal, 42g prot)
+Sinais comportamentais: Missão concluída: Jejum metabólico de 12 horas; Check-in selecionado: Nenhuma compulsão hoje
 
 Peso Atual: 78.2 kg (Emagreceu total de 1.8 kg desde o início)
 

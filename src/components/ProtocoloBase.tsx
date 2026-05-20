@@ -5,6 +5,7 @@ import BottomNav from "./BottomNav";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { playSound } from "../utils/sounds";
 import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
+import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -158,21 +159,89 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const receita = receitas.find(r => r.id === dia.receita_id);
   const receitaDetalhe = receitaAberta !== null ? receitas.find(r => r.id === receitaAberta) : null;
 
+  const buildProtocolMissions = (marked: number[]) =>
+    dia.missoes.map((m, i) => ({
+      id: `${protocoloId}-dia-${dia.n}-missao-${i + 1}`,
+      texto: formatMissao(m.texto),
+      sub: formatMissao(m.sub),
+      status: marked.includes(i) ? "concluida" as const : "pendente" as const,
+    }));
+
+  const buildBehavioralSignals = (marked: number[], checkin: string | null) => {
+    const missionSignals = buildProtocolMissions(marked)
+      .filter(m => m.status === "concluida")
+      .map(m => `Missão concluída: ${m.texto}`);
+    return checkin ? [...missionSignals, `Check-in selecionado: ${checkin}`] : missionSignals;
+  };
+
+  const persistProtocolDay = (
+    marked: number[] = missoesMarcadas,
+    checkin: string | null = checkinSelecionado,
+    status: "em_andamento" | "concluido" | "bloqueado" | "pendente" = "em_andamento",
+    xpEarned?: number
+  ) => {
+    saveProtocolContext({
+      id: protocoloId,
+      nome,
+      emoji,
+      totalDias: dias.length,
+      dia: dia.n,
+      missoesConcluidas: marked.length,
+      missoesTexto: dia.missoes.map(m => formatMissao(m.texto)),
+    });
+    saveProtocolDayTracking({
+      protocolId: protocoloId,
+      protocolName: nome,
+      protocolEmoji: emoji,
+      totalDays: dias.length,
+      day: dia.n,
+      missions: buildProtocolMissions(marked),
+      selectedCheckins: checkin ? [checkin] : [],
+      recipeOfDay: receita ? {
+        id: receita.id,
+        emoji: receita.emoji,
+        nome: receita.nome,
+        kcal: receita.kcal,
+        proteina: receita.proteina,
+        carbs: receita.carbs,
+        gordura: receita.gordura,
+        categoria: receita.categoria,
+      } : null,
+      dayStatus: status,
+      xpEarned,
+      behavioralSignals: buildBehavioralSignals(marked, checkin),
+    });
+  };
+
+  useEffect(() => {
+    persistProtocolDay(missoesMarcadas, checkinSelecionado, concluido ? "concluido" : "em_andamento", concluido ? dia.xp : undefined);
+  }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleMissao = (i: number) => {
-    setMissoesMarcadas(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+    setMissoesMarcadas(prev => {
+      const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
+      persistProtocolDay(next, checkinSelecionado, "em_andamento");
+      return next;
+    });
   };
 
   const formatMissao = (texto: string) =>
     texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
+  const handleSelectCheckin = (option: string) => {
+    setCheckinSelecionado(option);
+    persistProtocolDay(missoesMarcadas, option, "em_andamento");
+  };
+
   const handleConcluir = () => {
     playSound('concluir');
+    const xpDia = dia.xp ?? 30;
+    persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
 
     // XP float + confetti
-    const xpDia = dia.xp ?? 30;
     setXpValor(xpDia);
     setShowXP(true);
     setTimeout(() => setShowXP(false), 1500);
@@ -417,7 +486,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Check-in do dia</p>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {dia.checkin.map(opt => (
-                  <button key={opt} onClick={() => setCheckinSelecionado(opt)}
+                  <button key={opt} onClick={() => handleSelectCheckin(opt)}
                     className={`p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${checkinSelecionado === opt ? "bg-primary text-white border-primary" : "bg-[#F4F6F8] border-transparent text-text-main"}`}>
                     {opt}
                   </button>

@@ -27,7 +27,8 @@ import {
   saveBodyMeasurementsEntry,
   savePhotoProgressEntry,
   saveCheckInEntry,
-  saveProtocolContext
+  saveProtocolContext,
+  saveProtocolDayTracking
 } from '../../core/glpyLocalIntelligence';
 
 export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () => void }) {
@@ -133,17 +134,43 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
   }
 
   function handleSetProtocol() {
+    const missions = [
+      'Ingerir 2.5L de água',
+      'Evitar doces após às 19h',
+      'Jejum metabólico de 12 horas'
+    ];
     saveProtocolContext({
       id: 'anti_rebote',
       nome: 'Anti-Rebote Metabo',
       emoji: '⚖️',
       totalDias: 7,
       dia: 3,
-      missoesTexto: [
-        'Ingerir 2.5L de água',
-        'Evitar doces após às 19h',
-        'Jejum metabólico de 12 horas'
-      ]
+      missoesTexto: missions
+    });
+    saveProtocolDayTracking({
+      protocolId: 'anti_rebote',
+      protocolName: 'Anti-Rebote Metabo',
+      protocolEmoji: '⚖️',
+      totalDays: 7,
+      day: 3,
+      missions: missions.map((texto, index) => ({
+        id: `anti_rebote-dia-3-missao-${index + 1}`,
+        texto,
+        status: index === 0 ? 'concluida' : 'pendente',
+      })),
+      selectedCheckins: ['Sem compulsão hoje'],
+      recipeOfDay: {
+        id: 4,
+        emoji: '🍗',
+        nome: 'Frango com Batata-Doce',
+        kcal: 420,
+        proteina: 42,
+        carbs: 38,
+        gordura: 8,
+        categoria: 'Almoço · Pós-treino',
+      },
+      dayStatus: 'em_andamento',
+      behavioralSignals: ['Missão concluída: Ingerir 2.5L de água', 'Check-in selecionado: Sem compulsão hoje'],
     });
     alert('Protocolo "Anti-Rebote Metabo" definido no Dia 3!');
     triggerRefresh();
@@ -161,6 +188,7 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
         'glpy_latest_measurements', 'glpy_measurements_history',
         'glpy_photo_progress', 'glpy_ultimo_checkin', 'glpy_checkin_history',
         'glpy_protocolo_ativo', 'glpy_current_protocol_day', 'glpy_missoes_texto_hoje', 'glpy_protocol_context',
+        'glpy_protocol_day_today', 'glpy_protocol_day_history',
         'glpy_daily_tracking'
       ];
       keysToClear.forEach(k => localStorage.removeItem(k));
@@ -343,6 +371,59 @@ export default function LocalIntelligenceTestScreen({ onBack }: { onBack?: () =>
               </p>
               <GLPYButton variant="secondary" size="sm" onClick={handleSetProtocol}>
                 Ativar Protocolo Anti-Rebote (Simulado)
+              </GLPYButton>
+            </div>
+          )}
+        </GLPYCard>
+
+        {/* ── SEÇÃO 2.1: EXECUÇÃO DO PROTOCOLO HOJE ────────────────────────── */}
+        <GLPYCard variant="light">
+          <h3 style={{ margin: 0, fontSize: 16, fontFamily: fontFamily.primary, fontWeight: '700', color: lightColors.text.navy, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle2 size={18} color={lightColors.brand.greenDark} />
+            Execução do Protocolo Hoje
+          </h3>
+          {context.protocolDayToday ? (
+            <div style={{ marginTop: 10 }}>
+              <div style={rowStyle}>
+                <span style={{ fontSize: 13, color: lightColors.text.navy, fontWeight: '700' }}>
+                  {context.protocolDayToday.protocolEmoji} {context.protocolDayToday.protocolName}
+                </span>
+                <span style={context.protocolDayToday.dayStatus === 'concluido' ? badgeSuccess : badgeWarning}>
+                  {context.protocolDayToday.dayStatus}
+                </span>
+              </div>
+              <div style={rowStyle}>
+                <span style={{ fontSize: 12, color: lightColors.text.secondary }}>Dia</span>
+                <strong style={{ fontSize: 12, color: lightColors.text.navy }}>{context.protocolDayToday.day}/{context.protocolDayToday.totalDays}</strong>
+              </div>
+              {context.protocolDayToday.recipeOfDay?.nome && (
+                <div style={rowStyle}>
+                  <span style={{ fontSize: 12, color: lightColors.text.secondary }}>Receita do dia</span>
+                  <strong style={{ fontSize: 12, color: lightColors.text.navy }}>{context.protocolDayToday.recipeOfDay.nome}</strong>
+                </div>
+              )}
+              {context.protocolDayToday.selectedCheckins?.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 12, color: lightColors.text.navy }}>
+                  <strong>Check-in:</strong> {context.protocolDayToday.selectedCheckins.join(', ')}
+                </div>
+              )}
+              {context.protocolDayToday.missions?.length > 0 && (
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: 16, fontSize: 12, color: lightColors.text.navy }}>
+                  {context.protocolDayToday.missions.map((m, i) => (
+                    <li key={m.id || i} style={{ padding: '2px 0' }}>
+                      {m.status === 'concluida' ? '✓' : '○'} {m.texto}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 10 }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: 12, color: lightColors.text.secondary }}>
+                Nenhuma execução diária do protocolo registrada hoje.
+              </p>
+              <GLPYButton variant="secondary" size="sm" onClick={handleSetProtocol}>
+                Simular Execução do Protocolo
               </GLPYButton>
             </div>
           )}

@@ -95,6 +95,40 @@ export interface ProtocolContextEntry {
   missoesTexto?: string[];
 }
 
+export interface ProtocolDayMission {
+  id: string;
+  texto: string;
+  sub?: string;
+  status: "concluida" | "pendente";
+}
+
+export interface ProtocolDayRecipe {
+  id: number | string;
+  emoji?: string;
+  nome: string;
+  kcal?: number;
+  proteina?: number;
+  carbs?: number;
+  gordura?: number;
+  categoria?: string;
+}
+
+export interface ProtocolDayTrackingEntry {
+  protocolId: string;
+  protocolName: string;
+  protocolEmoji?: string;
+  totalDays: number;
+  day: number;
+  date?: string;
+  timestamp?: string;
+  missions?: ProtocolDayMission[];
+  selectedCheckins?: string[];
+  recipeOfDay?: ProtocolDayRecipe | null;
+  dayStatus?: "em_andamento" | "concluido" | "bloqueado" | "pendente";
+  xpEarned?: number;
+  behavioralSignals?: string[];
+}
+
 export interface DailyTrackingDay {
   date: string;
   weight?: number;
@@ -106,6 +140,7 @@ export interface DailyTrackingDay {
   activity?: ActivityEntry[];
   measurements?: BodyMeasurementsEntry;
   checkin?: CheckInEntry;
+  protocolDay?: ProtocolDayTrackingEntry;
 }
 
 // Auxiliares de leitura e gravação segura
@@ -436,7 +471,42 @@ export function saveProtocolContext(entry: ProtocolContextEntry): void {
   safeWrite("glpy_protocol_context", entry);
 }
 
-// 12. getGLPYIntelligenceContext()
+// 12. saveProtocolDayTracking(entry)
+export function saveProtocolDayTracking(entry: ProtocolDayTrackingEntry): void {
+  const date = entry.date || getTodayKey();
+  const timestamp = entry.timestamp || new Date().toISOString();
+  const existingToday = safeParse<ProtocolDayTrackingEntry | null>("glpy_protocol_day_today", null);
+
+  const fullEntry: ProtocolDayTrackingEntry = {
+    ...existingToday,
+    ...entry,
+    date,
+    timestamp,
+    missions: entry.missions || existingToday?.missions || [],
+    selectedCheckins: entry.selectedCheckins || existingToday?.selectedCheckins || [],
+    recipeOfDay: entry.recipeOfDay !== undefined ? entry.recipeOfDay : existingToday?.recipeOfDay || null,
+    dayStatus: entry.dayStatus || existingToday?.dayStatus || "em_andamento",
+    behavioralSignals: entry.behavioralSignals || existingToday?.behavioralSignals || [],
+  };
+
+  safeWrite("glpy_protocol_day_today", fullEntry);
+
+  const history = safeParse<ProtocolDayTrackingEntry[]>("glpy_protocol_day_history", []);
+  const nextHistory = [
+    fullEntry,
+    ...history.filter(item => !(item.date === date && item.protocolId === fullEntry.protocolId && item.day === fullEntry.day)),
+  ];
+  safeWrite("glpy_protocol_day_history", nextHistory.slice(0, 90));
+
+  const tracking = safeParse<Record<string, DailyTrackingDay>>("glpy_daily_tracking", {});
+  if (!tracking[date]) {
+    tracking[date] = { date };
+  }
+  tracking[date].protocolDay = fullEntry;
+  safeWrite("glpy_daily_tracking", tracking);
+}
+
+// 13. getGLPYIntelligenceContext()
 export function getGLPYIntelligenceContext() {
   const todayKey = getTodayKey();
 
@@ -461,8 +531,11 @@ export function getGLPYIntelligenceContext() {
   const activeProtocol = safeParse<any>("glpy_protocolo_ativo", null);
   const currentProtocolDay = parseInt(localStorage.getItem("glpy_current_protocol_day") || "1", 10);
   const todayMissionsText = safeParse<string[]>("glpy_missoes_texto_hoje", []);
+  const protocolDayToday = safeParse<ProtocolDayTrackingEntry | null>("glpy_protocol_day_today", null);
+  const protocolDayHistory = safeParse<ProtocolDayTrackingEntry[]>("glpy_protocol_day_history", []);
 
   const dailyTracking = safeParse<Record<string, DailyTrackingDay>>("glpy_daily_tracking", {});
+  const todayProtocolDay = dailyTracking[todayKey]?.protocolDay || protocolDayToday;
   
   const symptoms = {
     today: safeParse<any>("glpy_today_symptoms", null),
@@ -503,6 +576,7 @@ export function getGLPYIntelligenceContext() {
   if (food.today.length === 0) warnings.push("Nenhuma refeição registrada hoje.");
   if (!symptoms.today) warnings.push("Sem sintomas registrados hoje.");
   if (!emotion.today) warnings.push("Sem registro de humor/emoções hoje.");
+  if (activeProtocol && !todayProtocolDay) warnings.push("Sem execução do protocolo registrada hoje.");
 
   return {
     userProfile,
@@ -513,6 +587,8 @@ export function getGLPYIntelligenceContext() {
     activeProtocol,
     currentProtocolDay,
     todayMissionsText,
+    protocolDayToday: todayProtocolDay,
+    protocolDayHistory,
     dailyTracking,
     symptoms,
     emotion,
@@ -525,12 +601,12 @@ export function getGLPYIntelligenceContext() {
   };
 }
 
-// 13. buildGLPYContextForAI()
+// 14. buildGLPYContextForAI()
 export function buildGLPYContextForAI(): string {
   try {
     const ctx = getGLPYIntelligenceContext();
     const todayKey = getTodayKey();
-    const todayTrack = ctx.dailyTracking[todayKey] || {};
+    const todayTrack: Partial<DailyTrackingDay> = ctx.dailyTracking[todayKey] || {};
     const sections: string[] = ["=== GLPY LOCAL INTELLIGENCE STORE ==="];
 
     // 1. Perfil
@@ -541,7 +617,20 @@ export function buildGLPYContextForAI(): string {
       const total = ctx.activeProtocol.totalDias || 7;
       const dia = ctx.currentProtocolDay || ctx.activeProtocol.dia || 1;
       let prtStr = `Protocolo Ativo: ${ctx.activeProtocol.nome} — Dia ${dia}/${total}`;
-      if (ctx.todayMissionsText && ctx.todayMissionsText.length > 0) {
+      if (ctx.protocolDayToday?.missions && ctx.protocolDayToday.missions.length > 0) {
+        prtStr += `\nExecução do Protocolo Hoje: ${ctx.protocolDayToday.dayStatus || "em_andamento"}`;
+        prtStr += `\nMissões de hoje:\n${ctx.protocolDayToday.missions.map((m, idx) => `  ${idx + 1}. [${m.status === "concluida" ? "x" : " "}] ${m.texto}`).join("\n")}`;
+        if (ctx.protocolDayToday.selectedCheckins && ctx.protocolDayToday.selectedCheckins.length > 0) {
+          prtStr += `\nCheck-in do protocolo: ${ctx.protocolDayToday.selectedCheckins.join(", ")}`;
+        }
+        if (ctx.protocolDayToday.recipeOfDay?.nome) {
+          const recipe = ctx.protocolDayToday.recipeOfDay;
+          prtStr += `\nReceita do dia: ${recipe.nome}${recipe.kcal ? ` (${recipe.kcal} kcal, ${recipe.proteina || 0}g prot)` : ""}`;
+        }
+        if (ctx.protocolDayToday.behavioralSignals && ctx.protocolDayToday.behavioralSignals.length > 0) {
+          prtStr += `\nSinais comportamentais: ${ctx.protocolDayToday.behavioralSignals.join("; ")}`;
+        }
+      } else if (ctx.todayMissionsText && ctx.todayMissionsText.length > 0) {
         prtStr += `\nMissões de hoje:\n${ctx.todayMissionsText.map((m, idx) => `  ${idx + 1}. [ ] ${m}`).join("\n")}`;
       }
       sections.push(prtStr);
