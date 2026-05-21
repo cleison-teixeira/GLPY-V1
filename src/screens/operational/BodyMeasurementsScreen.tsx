@@ -24,7 +24,7 @@ interface BodyMeasurementsScreenProps {
   onBack?: () => void;
   onSave?: (data: {
     waist: string; hip: string; abdomen: string;
-    chest: string; arm: string;  thigh: string;
+    chest: string; arm: string;  thigh: string; calf: string;
   }) => void;
 }
 
@@ -33,6 +33,11 @@ interface BodyMeasurementsScreenProps {
 function isValidMeasurement(value: string): boolean {
   const n = parseFloat(value.replace(',', '.'));
   return !isNaN(n) && n > 0;
+}
+
+function fmtMeasure(value: string): string {
+  if (!isValidMeasurement(value)) return '— cm';
+  return `${formatDecimalBR(parseBRNumber(value))} cm`;
 }
 
 function loadSavedMeasures(): Record<string, string> {
@@ -46,22 +51,23 @@ type SaveState = 'idle' | 'saving' | 'saved';
 
 export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasurementsScreenProps) {
   const saved = loadSavedMeasures();
-  const [waist,   setWaist]   = useState(() => saved.waist   || saved.cintura  || '');
-  const [hip,     setHip]     = useState(() => saved.hip     || saved.quadril  || '');
-  const [abdomen, setAbdomen] = useState(() => saved.abdomen || '');
-  const [chest,   setChest]   = useState(() => saved.chest   || saved.busto    || '');
-  const [arm,     setArm]     = useState(() => saved.arm     || saved.braco    || '');
-  const [thigh,   setThigh]   = useState(() => saved.thigh   || saved.coxa     || '');
+  const [waist,       setWaist]       = useState(() => saved.waist       || saved.cintura      || '');
+  const [hip,         setHip]         = useState(() => saved.hip         || saved.quadril      || '');
+  const [abdomen,     setAbdomen]     = useState(() => saved.abdomen     || '');
+  const [chest,       setChest]       = useState(() => saved.chest       || saved.busto        || '');
+  const [arm,         setArm]         = useState(() => saved.arm         || saved.braco        || '');
+  const [thigh,       setThigh]       = useState(() => saved.thigh       || saved.coxa         || '');
+  const [calf,        setCalf]        = useState(() => saved.calf        || saved.panturrilha  || '');
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  const canSave = [waist, hip, abdomen, chest, arm, thigh].some(isValidMeasurement);
+  const canSave = [waist, hip, abdomen, chest, arm, thigh, calf].some(isValidMeasurement);
 
   function handleSave() {
     if (saveState !== 'idle') return;
     setSaveState('saving');
     setTimeout(() => {
       setSaveState('saved');
-      setTimeout(() => onSave?.({ waist, hip, abdomen, chest, arm, thigh }), 900);
+      setTimeout(() => onSave?.({ waist, hip, abdomen, chest, arm, thigh, calf }), 900);
     }, 500);
   }
 
@@ -184,15 +190,19 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Cintura</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(waist) ? `${formatDecimalBR(parseBRNumber(waist))} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{fmtMeasure(waist)}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Quadril</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(hip) ? `${formatDecimalBR(parseBRNumber(hip))} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{fmtMeasure(hip)}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Coxa</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(thigh) ? `${formatDecimalBR(parseBRNumber(thigh))} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{fmtMeasure(thigh)}</span>
+            </div>
+            <div style={summaryRowStyle}>
+              <span style={summaryLabelStyle}>Panturrilha</span>
+              <span style={summaryValueStyle}>{fmtMeasure(calf)}</span>
             </div>
           </div>
         </GLPYCard>
@@ -259,6 +269,15 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               type="number"
               centerWithUnit
               placeholder="58"
+            />
+            <GLPYInput
+              value={calf}
+              onChange={setCalf}
+              label="Panturrilha"
+              unit="cm"
+              type="number"
+              centerWithUnit
+              placeholder="36"
             />
           </div>
         </GLPYCard>

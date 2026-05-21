@@ -239,12 +239,13 @@ if (path === '/admin') {
           onSave={(data) => {
             localStorage.setItem('glpy_medidas_corporais', JSON.stringify({
               ...data,
-              cintura:    data.waist,
-              quadril:    data.hip,
-              busto:      data.chest,
-              braco:      data.arm,
-              coxa:       data.thigh,
-              savedAt:    Date.now(),
+              cintura:      data.waist,
+              quadril:      data.hip,
+              busto:        data.chest,
+              braco:        data.arm,
+              coxa:         data.thigh,
+              panturrilha:  data.calf,
+              savedAt:      Date.now(),
             }));
             window.location.href = '/preview/home-premium-v2';
           }}

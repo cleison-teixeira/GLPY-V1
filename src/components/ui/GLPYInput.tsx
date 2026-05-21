@@ -102,7 +102,7 @@ export default function GLPYInput({
       fontSize: fontSize.bodyDefault,
       fontWeight: '600',
       color: lightColors.text.secondary,
-      marginLeft: 5,
+      marginLeft: 8,
       flexShrink: 0,
       lineHeight: 1,
     };
