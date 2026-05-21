@@ -397,6 +397,36 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
           </GLPYCard>
         )}
 
+        {/* ── 2.5. RESUMO CALÓRICO COM ATIVIDADE ───────────────────────────── */}
+        {result && (
+          <GLPYCard variant="light" style={{ backgroundColor: '#0F172A', border: 'none' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 13, fontWeight: '700', color: '#38BDF8', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Activity size={15} color="#38BDF8" />Resumo Calórico com Atividade
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {([
+                { label: 'Meta calórica base',                value: `${result.caloriesTarget} kcal`,                      color: '#34D399' },
+                ...(result.activityCaloriesBurned > 0
+                  ? [
+                      { label: `Atividade detectada (${activitySource || 'manual'})`, value: `+${result.activityCaloriesBurned} kcal`, color: '#FB923C' },
+                      { label: 'Alvo calórico ajustado',     value: `${result.adjustedCaloriesTarget} kcal`,               color: '#A78BFA' },
+                    ]
+                  : [{ label: 'Atividade hoje',              value: 'Nenhuma registrada',                                   color: '#475569' }]
+                ),
+                { label: 'Consumo registrado',               value: `${consumed.calories} kcal`,                           color: '#38BDF8' },
+                { label: 'Calorias restantes ajustadas',     value: remaining?.calories.completed
+                    ? `✓ Meta atingida${remaining.calories.overage > 0 ? ` (+${remaining.calories.overage} kcal)` : ''}`
+                    : `${remaining?.calories.remaining ?? 0} kcal`,                                                          color: remaining?.calories.completed ? '#34D399' : '#F87171' },
+              ] as Array<{ label: string; value: string; color: string }>).map(({ label, value, color }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8' }}>{label}</span>
+                  <span style={{ fontSize: 12, fontWeight: '700', color, fontFamily: 'Courier, monospace' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </GLPYCard>
+        )}
+
         {/* ── 3. SIMULAR CONSUMO DO DIA ─────────────────────────────────────── */}
         <GLPYCard variant="light">
           <h3 style={sectionTitle}><Plus size={17} color={lightColors.brand.greenDark} />Simular Consumo do Dia</h3>
@@ -478,7 +508,7 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
-                { label: 'Calorias', consumed: consumed.calories, target: result.caloriesTarget, unit: ' kcal', color: lightColors.brand.greenDark },
+                { label: 'Calorias', consumed: consumed.calories, target: result.adjustedCaloriesTarget, unit: ' kcal', color: lightColors.brand.greenDark },
                 { label: 'Proteína', consumed: consumed.proteinGrams, target: result.proteinGrams, unit: 'g', color: '#0284C7' },
                 { label: 'Carboidratos', consumed: consumed.carbsGrams, target: result.carbsGrams, unit: 'g', color: '#7C3AED' },
                 { label: 'Gordura', consumed: consumed.fatGrams, target: result.fatGrams, unit: 'g', color: '#E28743' },

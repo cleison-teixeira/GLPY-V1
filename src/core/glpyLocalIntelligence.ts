@@ -359,10 +359,10 @@ export function saveActivityEntry(entry: ActivityEntry): void {
   const timestamp = entry.timestamp || new Date().toISOString();
   const fullEntry = { ...entry, date, timestamp };
 
-  // glpy_today_activity
+  // glpy_today_activity — upsert: uma atividade principal por dia em V1
   const todayAct = safeParse<ActivityEntry[]>("glpy_today_activity", []);
-  todayAct.unshift(fullEntry);
-  safeWrite("glpy_today_activity", todayAct);
+  const otherDays = todayAct.filter(e => e.date !== date);
+  safeWrite("glpy_today_activity", [fullEntry, ...otherDays]);
 
   // glpy_activity_history
   const history = safeParse<ActivityEntry[]>("glpy_activity_history", []);
@@ -377,7 +377,7 @@ export function saveActivityEntry(entry: ActivityEntry): void {
   if (!tracking[date].activity) {
     tracking[date].activity = [];
   }
-  tracking[date].activity!.unshift(fullEntry);
+  tracking[date].activity = [fullEntry]; // upsert: substitui atividade do dia
   safeWrite("glpy_daily_tracking", tracking);
 }
 
