@@ -1519,10 +1519,16 @@ export default function HomePremiumV2() {
               <div className="bg-white rounded-3xl p-4 border border-slate-100 custom-shadow space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <span className="text-[8px] text-[#3D5A70] font-bold uppercase tracking-wider block">Total eliminado até agora</span>
-                    <span className="text-xl font-black text-[#0A1628] font-mono">{lostKg} kg</span>
+                    <span className="text-[8px] text-[#3D5A70] font-bold uppercase tracking-wider block">
+                      {weightGaining ? 'Ajuste em andamento' : 'Total eliminado até agora'}
+                    </span>
+                    <span className="text-xl font-black text-[#0A1628] font-mono">
+                      {weightGaining ? '—' : `${lostKg} kg`}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold text-[#00C27A] bg-emerald-50 px-2 py-0.5 rounded-full">No Caminho Certo</span>
+                  <span className="text-[10px] font-bold text-[#00C27A] bg-emerald-50 px-2 py-0.5 rounded-full">
+                    {weightGaining ? 'Em Ajuste' : 'No Caminho Certo'}
+                  </span>
                 </div>
 
                 {/* Histórico de peso */}
@@ -1584,7 +1590,7 @@ export default function HomePremiumV2() {
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Peso Inicial</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.weightStart} kg</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{weightStart} kg</span>
                 </div>
               </div>
 
@@ -1653,7 +1659,7 @@ export default function HomePremiumV2() {
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
             <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso Atual ⚖️</h3>
-            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: {mockHomeData.user.weightStart} kg • Meta: {weightGoal} kg</p>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: {weightStart} kg • Meta: {weightGoal} kg</p>
             
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
               <input
