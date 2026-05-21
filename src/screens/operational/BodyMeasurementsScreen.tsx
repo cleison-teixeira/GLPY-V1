@@ -44,15 +44,16 @@ function loadSavedMeasures(): Record<string, string> {
 type SaveState = 'idle' | 'saving' | 'saved';
 
 export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasurementsScreenProps) {
-  const [waist,   setWaist]   = useState(() => loadSavedMeasures().waist   || '84');
-  const [hip,     setHip]     = useState(() => loadSavedMeasures().hip     || '104');
-  const [abdomen, setAbdomen] = useState(() => loadSavedMeasures().abdomen || '92');
-  const [chest,   setChest]   = useState(() => loadSavedMeasures().chest   || '96');
-  const [arm,     setArm]     = useState(() => loadSavedMeasures().arm     || '32');
-  const [thigh,   setThigh]   = useState(() => loadSavedMeasures().thigh   || '58');
+  const saved = loadSavedMeasures();
+  const [waist,   setWaist]   = useState(() => saved.waist   || saved.cintura  || '');
+  const [hip,     setHip]     = useState(() => saved.hip     || saved.quadril  || '');
+  const [abdomen, setAbdomen] = useState(() => saved.abdomen || '');
+  const [chest,   setChest]   = useState(() => saved.chest   || saved.busto    || '');
+  const [arm,     setArm]     = useState(() => saved.arm     || saved.braco    || '');
+  const [thigh,   setThigh]   = useState(() => saved.thigh   || saved.coxa     || '');
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  const canSave = [waist, hip, abdomen, chest, arm, thigh].every(isValidMeasurement);
+  const canSave = [waist, hip, abdomen, chest, arm, thigh].some(isValidMeasurement);
 
   function handleSave() {
     if (saveState !== 'idle') return;
@@ -182,15 +183,15 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Cintura</span>
-              <span style={summaryValueStyle}>{waist} cm</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(waist) ? `${waist} cm` : '— cm'}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Quadril</span>
-              <span style={summaryValueStyle}>{hip} cm</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(hip) ? `${hip} cm` : '— cm'}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Coxa</span>
-              <span style={summaryValueStyle}>{thigh} cm</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(thigh) ? `${thigh} cm` : '— cm'}</span>
             </div>
           </div>
         </GLPYCard>

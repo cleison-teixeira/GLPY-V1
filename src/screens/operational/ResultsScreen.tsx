@@ -1,14 +1,8 @@
 // GLPY — Results Screen
 // System: Operational — LIGHT PREMIUM
-// Authority: docs/glpy-results-screen-v1.md | docs/glpy-design-system-v1.md
-//
-// Esta tela consolida resultados mockados no MVP.
-// O GLPY não interpreta dados como diagnóstico nem promete resultado médico.
-// Futuramente esta tela será conectada ao WeightTrackingEngine, DailyTrackingEngine, ProgressEngine, PhotoEngine, XP/Streak Engine e GLPY IA.
-// A experiência deve reforçar progresso, clareza e motivação, sem gerar ansiedade ou culpa.
 
 import React from 'react';
-import { Ruler, CheckSquare, Flame, Scale, TrendingDown, Image, Sparkles, AlertCircle, Check, Camera } from 'lucide-react';
+import { Ruler, CheckSquare, Flame, Scale, TrendingDown, Image, Sparkles, Check, Camera } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -22,341 +16,262 @@ interface ResultsScreenProps {
   onBack?: () => void;
 }
 
-// ── Constants & Types ─────────────────────────────────────────────────────────
+// ── Data helpers ──────────────────────────────────────────────────────────────
 
-interface GridStat {
-  label: string;
-  value: string;
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-  color: string;
+function readOnboarding() {
+  try { return JSON.parse(localStorage.getItem('glpy_onboarding') || '{}') ?? {}; }
+  catch { return {}; }
 }
 
-const STATS_GRID: readonly GridStat[] = [
-  { label: 'Peso eliminado', value: '4,8 kg', Icon: Scale, color: lightColors.brand.greenDark },
-  { label: 'Cintura', value: '-16 cm', Icon: Ruler, color: lightColors.brand.greenDark },
-  { label: 'Check-ins', value: '12 dias', Icon: CheckSquare, color: lightColors.brand.greenDark },
-  { label: 'Atividade', value: '30 min hoje', Icon: Flame, color: lightColors.brand.greenDark },
-] as const;
-
-interface DayStatus {
-  label: string;
-  completed: boolean;
+function readMedidas() {
+  try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
+  catch { return {}; }
 }
 
-const WEEK_DAYS: readonly DayStatus[] = [
-  { label: 'S', completed: true },
-  { label: 'T', completed: true },
-  { label: 'Q', completed: true },
-  { label: 'Q', completed: true },
-  { label: 'S', completed: true },
-  { label: 'S', completed: true },
-  { label: 'D', completed: false },
-] as const;
+function readCheckinHistorico(): unknown[] {
+  try { return JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]') ?? []; }
+  catch { return []; }
+}
+
+function readAtividadeHoje() {
+  try {
+    const raw = localStorage.getItem('glpy_atividade_hoje');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    const savedDate = parsed?.savedAt
+      ? new Date(parsed.savedAt).toISOString().slice(0, 10)
+      : null;
+    return savedDate === today ? parsed : null;
+  } catch { return null; }
+}
+
+function readCurrentWeight(): number | null {
+  try {
+    const raw = localStorage.getItem('glpy_current_weight');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
+      if (!isNaN(v) && v > 0) return v;
+    }
+  } catch {}
+  try {
+    const onb = readOnboarding();
+    const v = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));
+    if (!isNaN(v) && v > 0) return v;
+  } catch {}
+  return null;
+}
+
+function readStreak(): number {
+  const v = parseInt(localStorage.getItem('glpy_streak') || '0', 10);
+  return isNaN(v) ? 0 : v;
+}
+
+function fmt(v: number | null, decimals = 1): string {
+  if (v === null) return '—';
+  return v.toFixed(decimals).replace('.', ',');
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ResultsScreen({ onBack }: ResultsScreenProps) {
+  const onb      = readOnboarding();
+  const medidas  = readMedidas();
+  const hist     = readCheckinHistorico();
+  const atividade = readAtividadeHoje();
+  const streak   = readStreak();
+
+  const pesoInicial: number | null = (() => {
+    const v = parseFloat(String(onb.pesoInicial ?? onb.peso_inicial ?? ''));
+    return !isNaN(v) && v > 0 ? v : null;
+  })();
+
+  const pesoAtual: number | null = readCurrentWeight();
+
+  const pesoMeta: number | null = (() => {
+    const v = parseFloat(String(onb.pesoMeta ?? onb.peso_meta ?? onb.targetWeight ?? ''));
+    return !isNaN(v) && v > 0 ? v : null;
+  })();
+
+  const pesoEliminado: number | null =
+    pesoInicial !== null && pesoAtual !== null
+      ? parseFloat(Math.max(0, pesoInicial - pesoAtual).toFixed(1))
+      : null;
+
+  const faltaEliminar: number | null =
+    pesoAtual !== null && pesoMeta !== null
+      ? parseFloat(Math.max(0, pesoAtual - pesoMeta).toFixed(1))
+      : null;
+
+  const totalRange =
+    pesoInicial !== null && pesoMeta !== null ? pesoInicial - pesoMeta : null;
+  const progressoPct =
+    pesoEliminado !== null && totalRange !== null && totalRange > 0
+      ? Math.min(100, Math.round((pesoEliminado / totalRange) * 100))
+      : 0;
+
+  const cinturaVal: string | null = (() => {
+    const v = parseFloat(String(medidas.cintura ?? medidas.waist ?? ''));
+    return !isNaN(v) && v > 0 ? `${v} cm` : null;
+  })();
+
+  const checkins = Array.isArray(hist) ? hist.length : 0;
+
+  const atividadeLabel: string | null = atividade
+    ? `${atividade.duration ?? '—'} min hoje`
+    : null;
+
+  const hasAnyData =
+    pesoInicial !== null || pesoAtual !== null || pesoMeta !== null || checkins > 0;
 
   // ── Shared Styles ──────────────────────────────────────────────────────────
 
   const containerStyle: React.CSSProperties = {
-    display:       'flex',
-    flexDirection: 'column',
-    gap:           gap.medium,
+    display: 'flex', flexDirection: 'column', gap: gap.medium,
   };
 
   const cardIconWrap: React.CSSProperties = {
-    width:          32,
-    height:         32,
-    borderRadius:   10,
-    background:     `linear-gradient(135deg, ${lightColors.brand.green}22, ${lightColors.brand.greenDark}33)`,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    flexShrink:     0,
+    width: 32, height: 32, borderRadius: 10,
+    background: `linear-gradient(135deg, ${lightColors.brand.green}22, ${lightColors.brand.greenDark}33)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   };
 
   const cardTitleRowStyle: React.CSSProperties = {
-    display:      'flex',
-    alignItems:   'center',
-    gap:          gap.small,
-    marginBottom: gap.small,
+    display: 'flex', alignItems: 'center', gap: gap.small, marginBottom: gap.small,
   };
 
   const cardTitleStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.bodyDefault,
-    fontWeight: fontWeight.h3,
-    color:      lightColors.text.navy,
+    fontFamily: fontFamily.primary, fontSize: fontSize.bodyDefault,
+    fontWeight: fontWeight.h3, color: lightColors.text.navy,
   };
 
   const cardSubtextStyle: React.CSSProperties = {
-    fontFamily:   fontFamily.primary,
-    fontSize:     fontSize.small,
-    color:        lightColors.text.secondary,
-    lineHeight:   1.5,
-    margin:       0,
+    fontFamily: fontFamily.primary, fontSize: fontSize.small,
+    color: lightColors.text.secondary, lineHeight: 1.5, margin: 0,
   };
-
-  // ── Card 1 — Conquista principal ────────────────────────────────────────────
-
-  const card1ValueStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   38,
-    fontWeight: '800',
-    color:      lightColors.brand.greenDark,
-    margin:     '8px 0',
-    letterSpacing: '-0.02em',
-  };
-
-  const badgeStyle: React.CSSProperties = {
-    display:       'inline-flex',
-    alignItems:    'center',
-    background:    `${lightColors.brand.green}14`,
-    border:        `1px solid ${lightColors.brand.green}33`,
-    borderRadius:  99,
-    padding:       '4px 12px',
-    fontSize:      fontSize.small - 1, // 13px
-    fontWeight:    '600',
-    color:         lightColors.brand.greenDark,
-    marginTop:     gap.small,
-  };
-
-  // ── Card 2 — Progresso da meta ──────────────────────────────────────────────
 
   const metaMetricsRowStyle: React.CSSProperties = {
-    display:       'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap:           gap.medium,
-    marginBottom:  gap.small,
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.medium, marginBottom: gap.small,
   };
 
   const metaMetricBoxStyle: React.CSSProperties = {
-    display:       'flex',
-    flexDirection: 'column',
-    gap:           2,
+    display: 'flex', flexDirection: 'column', gap: 2,
   };
 
   const metaLabelStyle: React.CSSProperties = {
-    fontSize:   fontSize.small - 2, // 12px
-    color:      lightColors.text.secondary,
-    fontWeight: '500',
+    fontSize: fontSize.small - 2, color: lightColors.text.secondary, fontWeight: '500',
   };
 
   const metaValueStyle: React.CSSProperties = {
-    fontSize:   fontSize.small,
-    fontWeight: '700',
-    color:      lightColors.text.navy,
+    fontSize: fontSize.small, fontWeight: '700', color: lightColors.text.navy,
   };
 
   const progressBarTrackStyle: React.CSSProperties = {
-    width:        '100%',
-    height:       10,
-    background:   lightColors.background.secondary,
-    borderRadius: 99,
-    overflow:     'hidden',
-    position:     'relative',
-    marginTop:    gap.medium,
+    width: '100%', height: 10, background: lightColors.background.secondary,
+    borderRadius: 99, overflow: 'hidden', position: 'relative', marginTop: gap.medium,
   };
 
   const progressBarFillStyle: React.CSSProperties = {
-    width:        '32%',
-    height:       '100%',
-    background:   lightColors.brand.green,
-    borderRadius: 99,
+    width: `${progressoPct}%`, height: '100%',
+    background: lightColors.brand.green, borderRadius: 99,
   };
 
   const labelsRowStyle: React.CSSProperties = {
-    display:        'flex',
-    justifyContent: 'space-between',
-    fontSize:       fontSize.small - 3, // 11px
-    color:          lightColors.text.secondary,
-    marginTop:      6,
-    fontWeight:     '600',
+    display: 'flex', justifyContent: 'space-between',
+    fontSize: fontSize.small - 3, color: lightColors.text.secondary,
+    marginTop: 6, fontWeight: '600',
   };
 
-  // ── Card 3 — Evolução resumida ──────────────────────────────────────────────
-
   const gridStyle: React.CSSProperties = {
-    display:             'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap:                 gap.small,
-    marginTop:           gap.medium,
+    display: 'grid', gridTemplateColumns: '1fr 1fr',
+    gap: gap.small, marginTop: gap.medium,
   };
 
   const gridItemStyle: React.CSSProperties = {
-    background:   lightColors.background.secondary,
-    padding:      '12px 14px',
-    borderRadius: radius.secondary,
-    display:      'flex',
-    flexDirection: 'column',
-    gap:          4,
+    background: lightColors.background.secondary, padding: '12px 14px',
+    borderRadius: radius.secondary, display: 'flex', flexDirection: 'column', gap: 4,
   };
 
   const gridValStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.bodyDefault,
-    fontWeight: '700',
-    color:      lightColors.text.navy,
+    fontFamily: fontFamily.primary, fontSize: fontSize.bodyDefault,
+    fontWeight: '700', color: lightColors.text.navy,
   };
 
-  // ── Card 4 — Transformação visual ───────────────────────────────────────────
-
   const photoContainerStyle: React.CSSProperties = {
-    display:       'flex',
-    gap:           gap.small,
-    marginTop:     gap.medium,
-    marginBottom:  gap.small,
+    display: 'flex', gap: gap.small, marginTop: gap.medium, marginBottom: gap.small,
+  };
+
+  const photoBoxBase: React.CSSProperties = {
+    flex: 1, height: 120, borderRadius: radius.secondary,
+    display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center', gap: 6,
   };
 
   const beforeBoxStyle: React.CSSProperties = {
-    flex:           1,
-    height:         120,
-    background:     lightColors.background.secondary,
-    borderRadius:   radius.secondary,
-    border:         `1px solid ${lightColors.border.soft}`,
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            6,
-    position:       'relative',
+    ...photoBoxBase,
+    background: lightColors.background.secondary,
+    border: `1px solid ${lightColors.border.soft}`,
   };
 
   const afterBoxStyle: React.CSSProperties = {
-    flex:           1,
-    height:         120,
-    background:     `${lightColors.brand.green}08`,
-    borderRadius:   radius.secondary,
-    border:         `1px dashed ${lightColors.brand.green}44`,
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            6,
-    position:       'relative',
+    ...photoBoxBase,
+    background: `${lightColors.brand.green}08`,
+    border: `1px dashed ${lightColors.brand.green}44`,
   };
 
   const photoLabelStyle: React.CSSProperties = {
-    fontSize:   fontSize.small - 2, // 12px
-    fontWeight: '600',
-    color:      lightColors.text.secondary,
+    fontSize: fontSize.small - 2, fontWeight: '600', color: lightColors.text.secondary,
   };
-
-  const placeholderIconStyle = (status: 'before' | 'after'): React.CSSProperties => ({
-    width:          36,
-    height:         36,
-    borderRadius:   '50%',
-    background:     status === 'before' ? lightColors.background.primary : '#FFF',
-    border:         `1px solid ${status === 'before' ? lightColors.border.soft : `${lightColors.brand.green}33`}`,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    margin:         '6px 0',
-    boxShadow:      status === 'after' ? `0 2px 8px ${lightColors.brand.green}14` : 'none',
-  });
 
   const photoWeightStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.small - 2, // 12px
-    fontWeight: '700',
-    color:      lightColors.text.secondary,
+    fontFamily: fontFamily.primary, fontSize: fontSize.small - 2,
+    fontWeight: '700', color: lightColors.text.secondary,
   };
-
-  const linkButtonStyle: React.CSSProperties = {
-    background: 'none',
-    border:     'none',
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.small,
-    fontWeight: '600',
-    color:      lightColors.brand.greenDark,
-    cursor:     'pointer',
-    padding:    '4px 0',
-    textAlign:  'left',
-    display:    'inline-block',
-  };
-
-  // ── Card 5 — Sequência e consistência ────────────────────────────────────────
 
   const seqRowStyle: React.CSSProperties = {
-    display:    'flex',
-    alignItems: 'baseline',
-    gap:        4,
-    margin:     '8px 0',
+    display: 'flex', alignItems: 'baseline', gap: 4, margin: '8px 0',
   };
 
   const seqValueStyle: React.CSSProperties = {
-    fontSize:   32,
-    fontWeight: '800',
-    color:      lightColors.text.navy,
+    fontSize: 32, fontWeight: '800', color: lightColors.text.navy,
   };
 
   const seqLabelStyle: React.CSSProperties = {
-    fontSize:   fontSize.small,
-    fontWeight: '600',
-    color:      lightColors.brand.greenDark,
+    fontSize: fontSize.small, fontWeight: '600', color: lightColors.brand.greenDark,
   };
 
-  const dotsRowStyle: React.CSSProperties = {
-    display:        'flex',
-    justifyContent: 'space-between',
-    marginTop:      gap.medium,
-    padding:        '0 4px',
+  const pendingBoxStyle: React.CSSProperties = {
+    background: lightColors.background.secondary,
+    borderRadius: radius.secondary,
+    padding: '16px',
+    textAlign: 'center',
   };
 
-  const dayDotContainerStyle: React.CSSProperties = {
-    display:       'flex',
-    flexDirection: 'column',
-    alignItems:    'center',
-    gap:           6,
-  };
-
-  const dayLabelStyle: React.CSSProperties = {
-    fontSize:   fontSize.small - 3, // 11px
-    fontWeight: '600',
-    color:      lightColors.text.secondary,
-  };
-
-  const dotStyle2 = (completed: boolean): React.CSSProperties => ({
-    width:          24,
-    height:         24,
-    borderRadius:   '50%',
-    background:     completed ? lightColors.brand.green : '#FFF',
-    border:         `2.5px solid ${completed ? 'transparent' : lightColors.border.soft}`,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    boxShadow:      completed ? `0 2px 6px ${lightColors.brand.green}44` : 'none',
-  });
-
-  // ── Card 6 — Próximo passo ───────────────────────────────────────────────────
-
-  const nextMilestoneBoxStyle: React.CSSProperties = {
-    background:    `${lightColors.brand.green}12`,
-    border:        `1px dashed ${lightColors.brand.green}66`,
-    borderRadius:  radius.secondary,
-    padding:       '12px 16px',
-    display:       'flex',
-    alignItems:    'center',
-    justifyContent: 'center',
-    gap:           gap.small,
-    marginTop:     gap.medium,
-  };
-
-  const nextMilestoneTextStyle: React.CSSProperties = {
+  const pendingTextStyle: React.CSSProperties = {
     fontFamily: fontFamily.primary,
-    fontSize:   fontSize.small,
-    fontWeight: '700',
-    color:      lightColors.brand.greenDark,
+    fontSize: fontSize.small,
+    color: lightColors.text.secondary,
+    lineHeight: 1.5,
   };
+
+  // ── Empty state card helper ────────────────────────────────────────────────
+
+  function PendingCard({ label }: { label: string }) {
+    return (
+      <div style={pendingBoxStyle}>
+        <p style={pendingTextStyle}>{label}</p>
+      </div>
+    );
+  }
 
   return (
     <GLPYScreen variant="light">
       <GLPYHeader title="Resultados" onBack={onBack} />
 
       <div style={containerStyle}>
-        
-        {/* ── Card 1 — Conquista principal ────────────────────────────────────── */}
+
+        {/* ── Card 1 — Conquista principal ──────────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -365,15 +280,34 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
             <span style={cardTitleStyle}>Você já eliminou</span>
           </div>
 
-          <div style={card1ValueStyle}>4,8 kg</div>
-          <p style={cardSubtextStyle}>desde o início da sua jornada.</p>
-          
-          <div style={badgeStyle}>
-            32% da sua meta concluída
-          </div>
+          {pesoEliminado !== null ? (
+            <>
+              <div style={{
+                fontFamily: fontFamily.primary, fontSize: 38, fontWeight: '800',
+                color: lightColors.brand.greenDark, margin: '8px 0', letterSpacing: '-0.02em',
+              }}>
+                {fmt(pesoEliminado)} kg
+              </div>
+              <p style={cardSubtextStyle}>desde o início da sua jornada.</p>
+              {progressoPct > 0 && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  background: `${lightColors.brand.green}14`,
+                  border: `1px solid ${lightColors.brand.green}33`,
+                  borderRadius: 99, padding: '4px 12px',
+                  fontSize: fontSize.small - 1, fontWeight: '600',
+                  color: lightColors.brand.greenDark, marginTop: gap.small,
+                }}>
+                  {progressoPct}% da sua meta concluída
+                </div>
+              )}
+            </>
+          ) : (
+            <PendingCard label="Registre seu peso para acompanhar seu progresso." />
+          )}
         </GLPYCard>
 
-        {/* ── Card 2 — Progresso da meta ──────────────────────────────────────── */}
+        {/* ── Card 2 — Progresso da meta ────────────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -382,36 +316,43 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
             <span style={cardTitleStyle}>Progresso da meta</span>
           </div>
 
-          <div style={metaMetricsRowStyle}>
-            <div style={metaMetricBoxStyle}>
-              <span style={metaLabelStyle}>Peso inicial</span>
-              <span style={metaValueStyle}>84,8 kg</span>
-            </div>
-            <div style={metaMetricBoxStyle}>
-              <span style={metaLabelStyle}>Peso atual</span>
-              <span style={metaValueStyle}>80,0 kg</span>
-            </div>
-            <div style={metaMetricBoxStyle}>
-              <span style={metaLabelStyle}>Meta</span>
-              <span style={metaValueStyle}>58,0 kg</span>
-            </div>
-            <div style={metaMetricBoxStyle}>
-              <span style={metaLabelStyle}>Falta eliminar</span>
-              <span style={{ ...metaValueStyle, color: lightColors.brand.greenDark }}>22,0 kg</span>
-            </div>
-          </div>
-
-          <div style={progressBarTrackStyle}>
-            <div style={progressBarFillStyle} />
-          </div>
-          <div style={labelsRowStyle}>
-            <span>0%</span>
-            <span>32%</span>
-            <span>META</span>
-          </div>
+          {hasAnyData ? (
+            <>
+              <div style={metaMetricsRowStyle}>
+                <div style={metaMetricBoxStyle}>
+                  <span style={metaLabelStyle}>Peso inicial</span>
+                  <span style={metaValueStyle}>{fmt(pesoInicial)} kg</span>
+                </div>
+                <div style={metaMetricBoxStyle}>
+                  <span style={metaLabelStyle}>Peso atual</span>
+                  <span style={metaValueStyle}>{fmt(pesoAtual)} kg</span>
+                </div>
+                <div style={metaMetricBoxStyle}>
+                  <span style={metaLabelStyle}>Meta</span>
+                  <span style={metaValueStyle}>{fmt(pesoMeta)} kg</span>
+                </div>
+                <div style={metaMetricBoxStyle}>
+                  <span style={metaLabelStyle}>Falta eliminar</span>
+                  <span style={{ ...metaValueStyle, color: lightColors.brand.greenDark }}>
+                    {fmt(faltaEliminar)} kg
+                  </span>
+                </div>
+              </div>
+              <div style={progressBarTrackStyle}>
+                <div style={progressBarFillStyle} />
+              </div>
+              <div style={labelsRowStyle}>
+                <span>0%</span>
+                <span>{progressoPct}%</span>
+                <span>META</span>
+              </div>
+            </>
+          ) : (
+            <PendingCard label="Complete seu perfil para ver seu progresso de meta." />
+          )}
         </GLPYCard>
 
-        {/* ── Card 3 — Evolução resumida ──────────────────────────────────────── */}
+        {/* ── Card 3 — Evolução resumida ────────────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -421,7 +362,12 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
           </div>
 
           <div style={gridStyle}>
-            {STATS_GRID.map((stat) => {
+            {[
+              { label: 'Peso eliminado', value: pesoEliminado !== null ? `${fmt(pesoEliminado)} kg` : '—', Icon: Scale },
+              { label: 'Cintura', value: cinturaVal ?? '—', Icon: Ruler },
+              { label: 'Check-ins', value: checkins > 0 ? `${checkins} dias` : '0 dias', Icon: CheckSquare },
+              { label: 'Atividade', value: atividadeLabel ?? 'Nenhuma hoje', Icon: Flame },
+            ].map((stat) => {
               const StatIcon = stat.Icon;
               return (
                 <div key={stat.label} style={gridItemStyle}>
@@ -436,7 +382,7 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
           </div>
         </GLPYCard>
 
-        {/* ── Card 4 — Transformação visual ───────────────────────────────────── */}
+        {/* ── Card 4 — Transformação visual ─────────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -448,31 +394,39 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
           <div style={photoContainerStyle}>
             <div style={beforeBoxStyle}>
               <span style={photoLabelStyle}>Antes</span>
-              <div style={placeholderIconStyle('before')}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: lightColors.background.primary,
+                border: `1px solid ${lightColors.border.soft}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0',
+              }}>
                 <Camera size={16} color={lightColors.text.secondary} strokeWidth={2.25} />
               </div>
-              <span style={photoWeightStyle}>84,8 kg</span>
+              <span style={photoWeightStyle}>{fmt(pesoInicial)} kg</span>
             </div>
             <div style={afterBoxStyle}>
               <span style={photoLabelStyle}>Depois</span>
-              <div style={placeholderIconStyle('after')}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: '#FFF',
+                border: `1px solid ${lightColors.brand.green}33`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0',
+                boxShadow: `0 2px 8px ${lightColors.brand.green}14`,
+              }}>
                 <Camera size={16} color={lightColors.brand.greenDark} strokeWidth={2.25} />
               </div>
-              <span style={{ ...photoWeightStyle, color: lightColors.brand.greenDark }}>80,0 kg</span>
+              <span style={{ ...photoWeightStyle, color: lightColors.brand.greenDark }}>
+                {fmt(pesoAtual)} kg
+              </span>
             </div>
           </div>
 
-          <button
-            style={linkButtonStyle}
-            onClick={() => {
-              console.log("open_visual_progress_share");
-            }}
-          >
-            Ver evolução visual &gt;
-          </button>
+          <p style={{ ...cardSubtextStyle, marginTop: 4 }}>
+            Adicione fotos pelo registro de progresso para visualizar sua transformação.
+          </p>
         </GLPYCard>
 
-        {/* ── Card 5 — Sequência e consistência ────────────────────────────────── */}
+        {/* ── Card 5 — Sequência e consistência ─────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -482,26 +436,17 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
           </div>
 
           <div style={seqRowStyle}>
-            <span style={seqValueStyle}>12</span>
+            <span style={seqValueStyle}>{streak}</span>
             <span style={seqLabelStyle}>dias</span>
           </div>
           <p style={cardSubtextStyle}>
-            Continue assim. Pequenos registros constroem grandes mudanças.
+            {streak > 0
+              ? 'Continue assim. Pequenos registros constroem grandes mudanças.'
+              : 'Faça seu primeiro check-in para iniciar sua sequência.'}
           </p>
-
-          <div style={dotsRowStyle}>
-            {WEEK_DAYS.map((day, i) => (
-              <div key={i} style={dayDotContainerStyle}>
-                <span style={dayLabelStyle}>{day.label}</span>
-                <div style={dotStyle2(day.completed)}>
-                  {day.completed && <Check size={11} color="#FFF" strokeWidth={3.5} />}
-                </div>
-              </div>
-            ))}
-          </div>
         </GLPYCard>
 
-        {/* ── Card 6 — Próximo passo ───────────────────────────────────────────── */}
+        {/* ── Card 6 — Próximo passo ────────────────────────────────────────── */}
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
@@ -510,24 +455,21 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
             <span style={cardTitleStyle}>Próximo passo</span>
           </div>
           <p style={cardSubtextStyle}>
-            Completar 14 dias de consistência.
+            {checkins === 0
+              ? 'Faça seu primeiro check-in diário para acompanhar sua evolução.'
+              : checkins < 7
+                ? `Você tem ${checkins} check-in${checkins > 1 ? 's' : ''}. Continue por mais ${7 - checkins} dias para completar sua primeira semana.`
+                : 'Continue registrando seu progresso diariamente.'}
           </p>
-
-          <div style={nextMilestoneBoxStyle}>
-            <span style={nextMilestoneTextStyle}>Faltam 2 dias</span>
-          </div>
         </GLPYCard>
 
-        {/* ── CTA ─────────────────────────────────────────────────────────────── */}
         <GLPYButton
           variant="primary"
           size="lg"
           fullWidth
-          onClick={() => {
-            console.log("open_progress_timeline");
-          }}
+          onClick={onBack}
         >
-          Ver linha do tempo
+          Voltar para o início
         </GLPYButton>
 
       </div>

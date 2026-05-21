@@ -42,7 +42,7 @@ if (path === '/admin') {
         <ProtocolHub
           onNavigate={(screen) => {
             const dest = PREVIEW_ROTA_MAP[screen];
-            window.location.href = dest ?? '/preview';
+            window.location.href = dest ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -231,10 +231,12 @@ if (path === '/admin') {
           onSave={(data) => {
             localStorage.setItem('glpy_medidas_corporais', JSON.stringify({
               ...data,
-              cintura: data.waist,
-              busto:   data.chest,
-              coxa:    data.thigh,
-              savedAt: Date.now(),
+              cintura:    data.waist,
+              quadril:    data.hip,
+              busto:      data.chest,
+              braco:      data.arm,
+              coxa:       data.thigh,
+              savedAt:    Date.now(),
             }));
             window.location.href = '/preview/home-premium-v2';
           }}

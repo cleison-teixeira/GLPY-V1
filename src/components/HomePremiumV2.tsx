@@ -505,7 +505,7 @@ export default function HomePremiumV2() {
     const directOnb = onboarding.pesoInicial;
     if (directOnb > 0) return directOnb;
 
-    return 80.0; // Fallback mock final
+    return weightCurrent; // sem mock — usuário novo parte do peso atual
   })();
 
   const weightGaining = weightCurrent >= weightStart;
@@ -1178,28 +1178,28 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura || '—'} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto || '—'} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa || '—'} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Panturrilha</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.panturrilha} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.panturrilha || '—'} cm</span>
                       </div>
                     </div>
 
@@ -1551,10 +1551,10 @@ export default function HomePremiumV2() {
                       </div>
                     </div>
                     <p className="text-[10px] text-[#3D5A70] font-medium">
-                      Complete o onboarding para iniciar o Dia 1 de 7.
+                      Escolha um protocolo para iniciar sua jornada GLPY.
                     </p>
                     <button
-                      onClick={() => { window.location.href = '/'; }}
+                      onClick={() => goTo('/preview/protocols')}
                       className="w-full bg-[#00C27A] text-white text-sm font-extrabold py-2.5 rounded-2xl active:opacity-80 transition"
                     >
                       Começar agora
@@ -1624,7 +1624,11 @@ export default function HomePremiumV2() {
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
                   <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">
-                    {(hasValidProfile && hasRealActiveProtocol) ? mockHomeData.social : 'Complete seu perfil para entrar na jornada GLPY.'}
+                    {(hasValidProfile && hasRealActiveProtocol)
+                      ? mockHomeData.social
+                      : hasValidProfile
+                        ? 'Inicie um protocolo para entrar na jornada GLPY.'
+                        : 'Complete seu perfil para entrar na jornada GLPY.'}
                   </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
@@ -1721,7 +1725,7 @@ export default function HomePremiumV2() {
                 <div className="grid grid-cols-2 gap-3 text-center text-xs">
                   <div className="p-3 bg-slate-50/80 rounded-2xl">
                     <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Peso de Partida</span>
-                    <span className="font-extrabold text-[#0a1628] text-base font-mono">80.0 kg</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{weightStart} kg</span>
                   </div>
                   <div className="p-3 bg-slate-50/80 rounded-2xl">
                     <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Meta Definida</span>
