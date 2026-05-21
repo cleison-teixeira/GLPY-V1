@@ -20,13 +20,23 @@ import {
   Shield,
   Sparkles,
   Plus,
-  Utensils
+  Utensils,
+  Activity
 } from "lucide-react";
+
+import glpyLogoSymbol from '@/assets/logos/logo-symbol-dark.png';
+
+// TODO Fase 1F.2:
+// Substituir mockHomeData por dados derivados de:
+// - getGLPYIntelligenceContext()
+// - calculateDailyRemaining()
+// - getProtocolRegistryItem()
+// - Protocol Day Tracking
 
 // Mock data estruturado de forma limpa e isolada no topo
 export const mockHomeData = {
   user: {
-    name: "Silvana",
+    name: "Usuário GLPY",
     avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120&h=120",
     streakCoins: 12,
     weightCurrent: 72.6,
@@ -49,10 +59,11 @@ export const mockHomeData = {
     suplements: { name: "Suplementação", activeCount: 4, takenToday: 3, nextTime: "Magnésio" }
   },
   nutrients: {
-    proteins: { current: 1432, target: 1800, unit: "kcal", percent: 80 },
-    carbs: { current: 260, target: 300, unit: "g", percent: 87 },
-    lipids: { current: 69, target: 80, unit: "g", percent: 86 },
-    water: { current: 1.8, target: 2.5, unit: "L", percent: 72 }
+    protein: { current: 35, target: 120, unit: "g", percent: 29 },
+    carbs: { current: 35, target: 230, unit: "g", percent: 15 },
+    fat: { current: 10, target: 52, unit: "g", percent: 19 },
+    water: { current: 0.8, target: 2.8, unit: "L", percent: 29 },
+    calories: { remaining: 1446, target: 2200, consumed: 754, unit: "kcal" }
   },
   actions: [
     { id: "agua", label: "Água", icon: "GlassWater", color: "text-blue-500 bg-blue-50" },
@@ -66,10 +77,10 @@ export const mockHomeData = {
   ],
   protocol: {
     name: "Anti-Rebote",
-    module: "Módulo 1 de 4",
-    currentDay: 3,
+    module: "Dia 1 de 7",
+    currentDay: 1,
     totalDays: 7,
-    percentage: 42
+    percentage: 14
   },
   social: "128.450 kg eliminados sem rebote 🔥"
 };
@@ -89,6 +100,120 @@ interface ConfettiParticle {
 interface QuickToast {
   id: number;
   msg: string;
+}
+
+interface NutritionGoalCardProps {
+  label: string;
+  current: number;
+  target: number;
+  unit: string;
+  color: "red" | "green" | "amber" | "blue";
+  onClick?: () => void;
+}
+
+function NutritionGoalCard({
+  label,
+  current,
+  target,
+  unit,
+  color,
+  onClick
+}: NutritionGoalCardProps) {
+  const colorMap = {
+    red: {
+      text: "text-[#E8445A]",
+      stroke: "stroke-[#E8445A]",
+      bgStroke: "stroke-[#FDF2F4]",
+      iconBg: "bg-red-50",
+      accentBorder: "group-hover:border-red-200"
+    },
+    green: {
+      text: "text-[#00C27A]",
+      stroke: "stroke-[#00C27A]",
+      bgStroke: "stroke-[#EEFBF6]",
+      iconBg: "bg-emerald-50",
+      accentBorder: "group-hover:border-emerald-200"
+    },
+    amber: {
+      text: "text-[#F5A623]",
+      stroke: "stroke-[#F5A623]",
+      bgStroke: "stroke-[#FFFDF5]",
+      iconBg: "bg-amber-50",
+      accentBorder: "group-hover:border-amber-200"
+    },
+    blue: {
+      text: "text-blue-500",
+      stroke: "stroke-blue-500",
+      bgStroke: "stroke-blue-50",
+      iconBg: "bg-blue-50",
+      accentBorder: "group-hover:border-blue-200"
+    }
+  };
+
+  const theme = colorMap[color];
+  const percentage = Math.min(100, Math.round((current / target) * 100));
+
+  const radius = 18;
+  const strokeWidth = 3.5;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  const renderIcon = () => {
+    switch (color) {
+      case "red":
+        return <Flame className="w-3.5 h-3.5 text-[#E8445A] stroke-[2.5]" />;
+      case "green":
+        return <Utensils className="w-3.5 h-3.5 text-[#00C27A] stroke-[2.5]" />;
+      case "amber":
+        return <Activity className="w-3.5 h-3.5 text-[#F5A623] stroke-[2.5]" />;
+      case "blue":
+        return <GlassWater className="w-3.5 h-3.5 text-blue-500 stroke-[2.5]" />;
+    }
+  };
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`group bg-white rounded-2xl p-3 border border-[#E2EBE7]/70 shadow-xs hover:shadow-sm transition-all duration-300 flex items-center gap-2.5 min-w-0 select-none ${onClick ? "cursor-pointer active:scale-[0.98]" : ""} ${theme.accentBorder}`}
+    >
+      <div className="relative w-11 h-11 shrink-0 flex items-center justify-center">
+        <svg className="w-11 h-11 transform -rotate-90" viewBox="0 0 44 44">
+          <circle
+            cx="22"
+            cy="22"
+            r={radius}
+            className={`${theme.bgStroke}`}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+          <circle
+            cx="22"
+            cy="22"
+            r={radius}
+            className={`${theme.stroke} transition-all duration-500`}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`w-6.5 h-6.5 rounded-full flex items-center justify-center ${theme.iconBg}`}>
+            {renderIcon()}
+          </div>
+        </div>
+      </div>
+
+      <div className="min-w-0 text-left flex-1">
+        <span className="text-[10px] text-[#3D5A70] font-black uppercase tracking-wider block leading-tight">{label}</span>
+        <div className="flex items-baseline mt-0.5 leading-none">
+          <span className="text-sm font-black text-[#0A1628] tracking-tight">{current}</span>
+          <span className="text-[10px] text-slate-400 font-extrabold">/{target}{unit}</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function HomePremiumV2() {
@@ -114,6 +239,7 @@ export default function HomePremiumV2() {
   const lostKg = parseFloat((mockHomeData.user.weightStart - weightCurrent).toFixed(1));
   const toGoKg = parseFloat((weightCurrent - mockHomeData.user.weightGoal).toFixed(1));
   const progressPercent = Math.round((lostKg / (mockHomeData.user.weightStart - mockHomeData.user.weightGoal)) * 100);
+  const waterRemaining = Math.max(0, mockHomeData.nutrients.water.target - waterAmount);
 
   // Live Toast dispatcher
   const triggerToast = (msg: string) => {
@@ -171,7 +297,7 @@ export default function HomePremiumV2() {
       triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);
       if (newWater >= mockHomeData.nutrients.water.target) {
         triggerConfetti();
-        triggerToast("🎉 Excelente, Silvana! Meta de hidratação atingida!");
+        triggerToast(`🎉 Excelente, ${mockHomeData.user.name}! Meta de hidratação atingida!`);
       }
     }
   };
@@ -182,7 +308,7 @@ export default function HomePremiumV2() {
       setWeightCurrent(numeric);
       setShowWeightModal(false);
       triggerConfetti();
-      triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue focada.`);
+      triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue no foco.`);
     } else {
       triggerToast("Digite um peso válido coerente!");
     }
@@ -214,15 +340,15 @@ export default function HomePremiumV2() {
   // Helper mapping icon identification strings to lucide elements
   const renderActionIcon = (iconName: string) => {
     switch (iconName) {
-      case "GlassWater": return <GlassWater className="w-5 h-5 text-blue-500" />;
-      case "Utensils": return <Utensils className="w-5 h-5 text-[#00C27A]" />;
-      case "Smile": return <Smile className="w-5 h-5 text-amber-500" />;
-      case "Scale": return <Scale className="w-5 h-5 text-[#00C27A]" />;
-      case "Ruler": return <Ruler className="w-5 h-5 text-teal-500" />;
-      case "Syringe": return <Syringe className="w-5 h-5 text-purple-500" />;
-      case "Camera": return <Camera className="w-5 h-5 text-pink-500" />;
-      case "Check": return <Check className="w-5 h-5 text-emerald-500" />;
-      default: return <Sparkles className="w-5 h-5 text-emerald-500" />;
+      case "GlassWater": return <GlassWater className="w-[18px] h-[18px] text-blue-500" />;
+      case "Utensils": return <Utensils className="w-[18px] h-[18px] text-[#00C27A]" />;
+      case "Smile": return <Smile className="w-[18px] h-[18px] text-amber-500" />;
+      case "Scale": return <Scale className="w-[18px] h-[18px] text-[#00C27A]" />;
+      case "Ruler": return <Ruler className="w-[18px] h-[18px] text-teal-500" />;
+      case "Syringe": return <Syringe className="w-[18px] h-[18px] text-purple-500" />;
+      case "Camera": return <Camera className="w-[18px] h-[18px] text-pink-500" />;
+      case "Check": return <Check className="w-[18px] h-[18px] text-emerald-500" />;
+      default: return <Sparkles className="w-[18px] h-[18px] text-emerald-500" />;
     }
   };
 
@@ -355,15 +481,17 @@ export default function HomePremiumV2() {
               {/* TOP HEADER */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-sm">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
+                  <img 
+                    src={glpyLogoSymbol} 
+                    alt="GLPY Symbol" 
+                    className="w-8 h-8 object-contain shrink-0" 
+                  />
                   <span className="text-xl font-black tracking-tight text-[#0A1628]">GLPY</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => triggerToast("🔔 Silvana, seu plano de transição anti-rebote entra em nova fase em 2 dias.")}
+                    onClick={() => triggerToast(`🔔 ${mockHomeData.user.name}, seu plano de transição anti-rebote entra em nova fase em 2 dias.`)}
                     className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition active:scale-95 cursor-pointer"
                   >
                     <Bell className="w-5 h-5 text-[#3D5A70]" />
@@ -389,7 +517,7 @@ export default function HomePremiumV2() {
               {/* HEADING ACCENTS AND STREAK COUNTER */}
               <div className="flex justify-between items-start gap-2">
                 <div className="space-y-0.5">
-                  <h2 className="text-xl font-extrabold text-[#0A1628] tracking-tight">Olá, Silvana! 👋</h2>
+                  <h2 className="text-xl font-extrabold text-[#0A1628] tracking-tight">Olá, {mockHomeData.user.name}! 👋</h2>
                   <p className="text-[#3D5A70] text-xs font-semibold">Foco hoje, liberdade amanhã.</p>
                 </div>
 
@@ -488,86 +616,140 @@ export default function HomePremiumV2() {
                   </div>
                 </div>
 
-                {/* Properties list split */}
-                <div className="grid grid-cols-12 gap-3 pt-1">
+                {/* Reorganized cards in 2x2 grid */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   
-                  {/* Left properties block list */}
-                  <div className="col-span-7 space-y-2">
-                    <div 
-                      onClick={() => { setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
-                      className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#00C27A] hover:bg-emerald-50/20 transition cursor-pointer"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-[#00C27A] flex items-center justify-center shrink-0">
-                        <Scale className="w-3.5 h-3.5 stroke-[2.5]" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Peso Atual</span>
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{weightCurrent} kg</span>
-                      </div>
+                  {/* Peso Atual */}
+                  <div 
+                    onClick={() => { setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#00C27A] hover:bg-emerald-50/20 transition cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-[#00C27A] flex items-center justify-center shrink-0">
+                      <Scale className="w-4 h-4 stroke-[2.5]" />
                     </div>
-
-                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                        <Flag className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Meta</span>
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.user.weightGoal} kg</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                      <div className="w-6 h-6 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
-                        <Ruler className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Altura</span>
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.user.height} m</span>
-                      </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Peso Atual</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{weightCurrent} kg</span>
                     </div>
                   </div>
 
-                  {/* Right teaser visual representation */}
-                  <div className="col-span-5 bg-gradient-to-br from-[#FAFCFB] to-[#F2FAF6] border border-[#D5E6DF] rounded-[18px] p-2 flex flex-col justify-between items-center text-center relative overflow-hidden group select-none">
+                  {/* Meta */}
+                  <div 
+                    onClick={() => triggerToast(`🎯 Meta de peso: ${mockHomeData.user.weightGoal} kg. Foco no processo!`)}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:bg-blue-50/10 transition cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                      <Flag className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Meta</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{mockHomeData.user.weightGoal} kg</span>
+                    </div>
+                  </div>
+
+                  {/* Altura */}
+                  <div 
+                    onClick={() => triggerToast(`📏 Sua altura cadastrada é de ${mockHomeData.user.height} m.`)}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-orange-300 hover:bg-orange-50/10 transition cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
+                      <Ruler className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Altura</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{mockHomeData.user.height} m</span>
+                    </div>
+                  </div>
+
+                  {/* IMC */}
+                  <div 
+                    onClick={() => triggerToast("⚖️ IMC 26,7: Classificação de Sobrepeso. O protocolo GLPY protege seus tecidos metabolicamente ativos enquanto reduz gordura.")}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-purple-300 hover:bg-purple-50/10 transition cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                      <Activity className="w-4 h-4 stroke-[2.5]" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">IMC</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">26,7</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SECTION: SEU ALVO METABÓLICO DE HOJE (Fase 1F.1B / Refined) */}
+              <div className="bg-white rounded-[24px] p-5 custom-shadow border border-[#E2EBE7]/70 space-y-4">
+                <div className="flex justify-between items-center gap-1.5">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-[15px] shrink-0">🔥</span>
+                    <h3 className="text-[12.5px] font-extrabold text-[#0A1628] tracking-tighter whitespace-nowrap truncate">
+                      Seu alvo metabólico de hoje
+                    </h3>
+                  </div>
+                  <span className="text-[7.5px] font-bold text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md font-mono shrink-0 select-none">
+                    Proteção Metabólica
+                  </span>
+                </div>
+
+                {/* Calories Highlight Card */}
+                <div 
+                  onClick={() => triggerToast("🔥 Alvo Metabólico: Margem térmica de 1.446 kcal calculada pela IA para manter seu gasto calórico otimizado.")}
+                  className="bg-gradient-to-r from-orange-500/5 to-rose-500/5 border border-orange-100/40 rounded-2xl p-3 flex justify-between items-center cursor-pointer hover:bg-orange-50/20 active:scale-[0.99] transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+                      <Flame className="w-5 h-5 text-orange-600 fill-orange-600" />
+                    </div>
                     <div>
-                      <span className="text-[10px] font-extrabold text-[#0A1628] block leading-none">Visão Saudável</span>
-                      <span className="text-[8px] font-bold text-[#00C27A] bg-[#00C27A]/10 px-1.5 py-0.5 rounded-full inline-block mt-1 uppercase tracking-wider font-mono">
-                        GLPY.IA
-                      </span>
+                      <span className="text-[10px] font-bold text-orange-800/80 uppercase tracking-wider block leading-none mb-1">Calorias Restantes</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">1.446</span>
+                        <span className="text-xs font-bold text-orange-600">kcal</span>
+                      </div>
                     </div>
+                  </div>
+                  <span className="text-[9px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full select-none font-mono">
+                    Margem Segura
+                  </span>
+                </div>
 
-                    <div className="relative w-full h-[76px] my-1 flex justify-center items-center">
-                      <div className="absolute inset-0 bg-[#00C27A]/5 rounded-full blur-md" />
-                      
-                      {/* Premium abstract path */}
-                      <svg viewBox="0 0 100 80" className="w-16 h-16 drop-shadow-[0_2px_8px_rgba(0,194,122,0.15)] select-none">
-                        <path 
-                          d="M10,65 Q30,60 45,35 T90,15" 
-                          fill="none" 
-                          stroke="#00C27A" 
-                          strokeWidth="2.5" 
-                          strokeLinecap="round" 
-                        />
-                        <path 
-                          d="M10,65 Q30,60 45,35 T90,15" 
-                          fill="none" 
-                          stroke="#3B82F6" 
-                          strokeWidth="1" 
-                          strokeLinecap="round" 
-                          strokeDasharray="3 3"
-                          className="opacity-50"
-                        />
-                        <circle cx="45" cy="35" r="3.5" fill="#00C27A" className="animate-pulse" />
-                        <circle cx="90" cy="15" r="5" fill="none" stroke="#F5A623" strokeWidth="1" className="animate-pulse" />
-                        <circle cx="90" cy="15" r="3" fill="#F5A623" />
-                      </svg>
-                    </div>
-
-                    <span className="text-[9px] font-bold text-[#3D5A70] bg-[#E2EBE7]/50 block w-full py-1 rounded-[10px]">
-                      Progresso Seguro
+                {/* Three Sub-chips Grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Protein Chip */}
+                  <div 
+                    onClick={() => triggerToast("💪 Proteína Protege Músculos: Faltam 85g. Bater essa meta evita a perda de massa magra sob efeito da medicação.")}
+                    className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-emerald-50 transition active:scale-95"
+                  >
+                    <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Proteína</span>
+                    <span className="text-[11px] font-black text-[#00C27A] font-mono mt-0.5 truncate w-full">
+                      faltam 85g
                     </span>
                   </div>
 
+                  {/* Water Chip */}
+                  <div 
+                    onClick={() => triggerToast(`💧 Hidratação Celular: Faltam ${waterRemaining.toFixed(1)}L. Beba água para acelerar a depuração e reduzir retenção.`)}
+                    className="bg-blue-50/60 border border-blue-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition active:scale-95"
+                  >
+                    <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Água</span>
+                    <span className="text-[11px] font-black text-blue-500 font-mono mt-0.5 truncate w-full">
+                      faltam {waterRemaining.toFixed(1)}L
+                    </span>
+                  </div>
+
+                  {/* Protocol Chip */}
+                  <div 
+                    onClick={() => triggerToast("🛡️ Protocolo Anti-Rebote: Dia 1 de 7. Esta fase reabilita seus receptores de saciedade e estabiliza o peso.")}
+                    className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#00C27A]/20 transition active:scale-95"
+                  >
+                    <span className="text-[9px] font-extrabold text-[#00C27A] uppercase tracking-wider truncate w-full">
+                      {mockHomeData.protocol.name}
+                    </span>
+                    <span className="text-[11px] font-black text-[#0D2C20] font-mono mt-0.5">
+                      Dia {mockHomeData.protocol.currentDay}/{mockHomeData.protocol.totalDays}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -678,7 +860,7 @@ export default function HomePremiumV2() {
                     
                     {/* Glowing Markers */}
                     {/* Busto marker */}
-                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("📏 Busto de Silvana: 91 cm (-1cm).")}>
+                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`📏 Busto de ${mockHomeData.user.name}: 91 cm (-1cm).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white"></span>
@@ -686,7 +868,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Cintura marker */}
-                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("🔥 Cintura de Silvana: 91 cm (-5cm, progresso excelente!).")}>
+                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`🔥 Cintura de ${mockHomeData.user.name}: 91 cm (-5cm, progresso excelente!).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00C27A] border border-white"></span>
@@ -694,7 +876,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Coxa marker */}
-                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("💪 Coxa de Silvana: 53 cm (-4cm).")}>
+                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`💪 Coxa de ${mockHomeData.user.name}: 53 cm (-4cm).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
@@ -822,84 +1004,76 @@ export default function HomePremiumV2() {
               </div>
 
               {/* CARD: METAS DIÁRIAS DE NUTRIÇÃO */}
-              <div className="bg-white rounded-[24px] p-3.5 custom-shadow border border-[#E2EBE7]/70 space-y-2.5">
-                <span className="text-sm font-extrabold text-[#0A1628] tracking-tight block">Metas diárias de nutrição</span>
+              <div className="bg-white rounded-[24px] px-3.5 py-4 custom-shadow border border-[#E2EBE7]/70 space-y-3">
+                <span className="text-[13px] font-extrabold text-[#0A1628] tracking-tight block px-0.5">Metas diárias de nutrição</span>
                 
-                <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
+                <div className="grid grid-cols-2 gap-2.5">
                   
-                  {/* Proteins */}
-                  <div className="space-y-1">
-                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
-                      <span className="font-extrabold text-[#0A1628]">1432</span>
-                      <span className="text-[7px] text-slate-400 font-semibold">/1800</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-bold block truncate">Prot (kcal)</span>
-                    <div className="h-[4px] bg-red-100 rounded-full overflow-hidden">
-                      <div className="bg-[#E8445A] h-full" style={{ width: "80%" }} />
-                    </div>
-                  </div>
+                  {/* Proteína */}
+                  <NutritionGoalCard
+                    label="Proteína"
+                    current={mockHomeData.nutrients.protein.current}
+                    target={mockHomeData.nutrients.protein.target}
+                    unit={mockHomeData.nutrients.protein.unit}
+                    color="red"
+                  />
 
-                  {/* Carbs */}
-                  <div className="space-y-1">
-                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
-                      <span className="font-extrabold text-[#0A1628]">260</span>
-                      <span className="text-[7px] text-slate-400 font-semibold">/300</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-bold block truncate">Carbs (g)</span>
-                    <div className="h-[4px] bg-emerald-100 rounded-full overflow-hidden">
-                      <div className="bg-[#00C27A] h-full" style={{ width: "87%" }} />
-                    </div>
-                  </div>
+                  {/* Carboidratos */}
+                  <NutritionGoalCard
+                    label="Carbs"
+                    current={mockHomeData.nutrients.carbs.current}
+                    target={mockHomeData.nutrients.carbs.target}
+                    unit={mockHomeData.nutrients.carbs.unit}
+                    color="green"
+                  />
 
-                  {/* Lipids */}
-                  <div className="space-y-1">
-                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
-                      <span className="font-extrabold text-[#0A1628]">69</span>
-                      <span className="text-[7px] text-slate-400 font-semibold">/80</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-bold block truncate">Gord (g)</span>
-                    <div className="h-[4px] bg-amber-100 rounded-full overflow-hidden">
-                      <div className="bg-[#F5A623] h-full" style={{ width: "86%" }} />
-                    </div>
-                  </div>
+                  {/* Gordura */}
+                  <NutritionGoalCard
+                    label="Gordura"
+                    current={mockHomeData.nutrients.fat.current}
+                    target={mockHomeData.nutrients.fat.target}
+                    unit={mockHomeData.nutrients.fat.unit}
+                    color="amber"
+                  />
 
-                  {/* Water */}
-                  <div className="space-y-1 cursor-pointer" onClick={handleAddWater}>
-                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
-                      <span className="font-extrabold text-blue-600">{waterAmount}</span>
-                      <span className="text-[7px] text-slate-400 font-semibold">/2.5</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-bold block truncate">Água (L)</span>
-                    <div className="h-[4px] bg-blue-100 rounded-full overflow-hidden">
-                      <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${Math.min((waterAmount / 2.5) * 100, 100)}%` }} />
-                    </div>
-                  </div>
+                  {/* Água */}
+                  <NutritionGoalCard
+                    label="Água"
+                    current={waterAmount}
+                    target={mockHomeData.nutrients.water.target}
+                    unit={mockHomeData.nutrients.water.unit}
+                    color="blue"
+                    onClick={handleAddWater}
+                  />
 
                 </div>
               </div>
 
-              {/* SECTION: AÇÕES RÁPIDAS ROLLER */}
+              {/* COMPACTED ACTIONS & PROTOCOL WRAPPER (Fase 1F.1B / Refinement) */}
               <div className="space-y-2">
-                <span className="text-sm font-extrabold text-[#0A1628] tracking-tight block">Ações rápidas</span>
                 
-                <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1 select-none">
-                  {mockHomeData.actions.map((act) => (
-                    <button 
-                      key={act.id} 
-                      onClick={() => handleQuickAction(act.id)}
-                      className="min-w-[62px] w-[62px] hover:scale-105 active:scale-95 transition flex flex-col items-center justify-center space-y-1 shrink-0 cursor-pointer"
-                    >
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${act.color} shadow-sm border border-slate-50`}>
-                        {renderActionIcon(act.icon)}
-                      </div>
-                      <span className="text-[10px] text-[#3D5A70] font-bold text-center block truncate w-full">{act.label}</span>
-                    </button>
-                  ))}
+                {/* SECTION: AÇÕES RÁPIDAS ROLLER */}
+                <div className="space-y-1">
+                  <span className="text-[13px] font-extrabold text-[#0A1628] tracking-tight block">Ações rápidas</span>
+                  
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 select-none">
+                    {mockHomeData.actions.map((act) => (
+                      <button 
+                        key={act.id} 
+                        onClick={() => handleQuickAction(act.id)}
+                        className="min-w-[52px] w-[52px] hover:scale-105 active:scale-95 transition flex flex-col items-center justify-center space-y-0.5 shrink-0 cursor-pointer"
+                      >
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${act.color} shadow-xs border border-slate-50/50`}>
+                          {renderActionIcon(act.icon)}
+                        </div>
+                        <span className="text-[9px] text-[#3D5A70] font-extrabold text-center block truncate w-full">{act.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* SECTION: PROTOCOLO EM ANDAMENTO */}
-              <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
+                {/* SECTION: PROTOCOLO EM ANDAMENTO */}
+                <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
                   <button 
@@ -924,7 +1098,7 @@ export default function HomePremiumV2() {
                       </span>
                     </div>
                     <span className="text-xs font-extrabold text-[#0A1628] block mt-1">
-                      {mockHomeData.protocol.module} • Dia {mockHomeData.protocol.currentDay} de {mockHomeData.protocol.totalDays}
+                      {mockHomeData.protocol.name} • Dia {mockHomeData.protocol.currentDay} de {mockHomeData.protocol.totalDays}
                     </span>
                     <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
                       <div className="bg-[#00C27A] h-full" style={{ width: "42%" }} />
@@ -948,8 +1122,9 @@ export default function HomePremiumV2() {
                 </div>
 
               </div>
+            </div>
 
-              {/* CARD SOCIAL TRAFFIC BANNER */}
+            {/* CARD SOCIAL TRAFFIC BANNER */}
               <div 
                 onClick={() => { triggerConfetti(); triggerToast("🔥 GLPY Anti-Rebote ativo!"); }}
                 className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between hover:bg-emerald-50/50 cursor-pointer transition select-none"
@@ -975,7 +1150,7 @@ export default function HomePremiumV2() {
               <div className="bg-gradient-to-br from-[#0A1628] to-[#122A4E] rounded-3xl p-5 text-white space-y-3 shadow-lg">
                 <span className="text-[8px] font-bold tracking-widest bg-emerald-500/20 text-[#00C27A] px-2.5 py-1 rounded-full uppercase">Protocolos Ativos Vivos</span>
                 <h3 className="text-base font-extrabold">Seu metabolismo no piloto automático</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">Desenvolvido com o acompanhamento médico da Silvana, ajustado para evitar a perda muscular e queda de cabelo durante o uso das Canetas.</p>
+                <p className="text-xs text-slate-300 leading-relaxed">Desenvolvido com o acompanhamento médico de {mockHomeData.user.name}, ajustado para evitar a perda muscular e queda de cabelo durante o uso das Canetas.</p>
               </div>
 
               <div className="space-y-3">
