@@ -329,7 +329,8 @@ export default function HomePremiumV2() {
     const n = parseFloat(String(raw).replace(',', '.').replace(/[^0-9.]/g, ''));
     return (isNaN(n) || n <= 0) ? '—' : formatUnit(n, 'mg', 2);
   })();
-  const userMedicamento = onboarding.medicamento || mockHomeData.performance.glp1.name;
+  const userMedicamento  = onboarding.medicamento || mockHomeData.performance.glp1.name;
+  const userFrequencia   = localStorage.getItem('glpy_frequencia') || String((onboarding as Record<string, unknown>).frequencia ?? '') || 'Configure';
 
   // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
   const targetProteinG  = nutritionTargets?.proteinGrams  ?? mockHomeData.nutrients.protein.target;
@@ -1353,10 +1354,8 @@ export default function HomePremiumV2() {
                         <span className="font-black text-[#0a1628] font-mono">{userDose}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Efeitos</span>
-                        <span className="font-extrabold text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md text-[9px] block">
-                          😊 {mockHomeData.performance.glp1.sideEffect}
-                        </span>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Frequência</span>
+                        <span className="font-extrabold text-[#0A1628] block">{userFrequencia}</span>
                       </div>
                     </div>
                   </div>

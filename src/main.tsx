@@ -207,6 +207,7 @@ if (path === '/admin') {
               if (!isNaN(parsedDose) && parsedDose > 0) onb.dose = parsedDose;
               localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
             } catch {}
+            window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = '/preview/home-premium-v2';
           }}
         />

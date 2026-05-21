@@ -15,6 +15,7 @@ type Unit = 'kg' | 'cm' | 'lbs' | 'ft' | 'L' | 'ml' | string;
 interface GLPYInputProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   label?: string;
   helperText?: string;
   unit?: Unit;
@@ -29,6 +30,7 @@ interface GLPYInputProps {
 export default function GLPYInput({
   value,
   onChange,
+  onBlur,
   label,
   helperText,
   unit,
@@ -127,7 +129,7 @@ export default function GLPYInput({
             autoFocus={autoFocus}
             style={centeredInputStyle}
             onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onBlur={() => { setFocused(false); onBlur?.(); }}
           />
           <span style={centeredUnitStyle}>{unit}</span>
         </div>
@@ -194,7 +196,7 @@ export default function GLPYInput({
           autoFocus={autoFocus}
           style={inputStyle}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={() => { setFocused(false); onBlur?.(); }}
         />
         {unit && <span style={unitStyle}>{unit}</span>}
       </div>

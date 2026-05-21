@@ -96,6 +96,11 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
     setFreqModalOpen(false);
   }
 
+  function handleDoseBlur() {
+    const n = parseFloat(dose.replace(',', '.').replace(/[^0-9.]/g, ''));
+    if (!isNaN(n) && n > 0) setDose(n.toFixed(2).replace('.', ','));
+  }
+
   function handleSave() {
     if (saveState !== 'idle') return;
     setSaveState('saving');
@@ -255,6 +260,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
             <GLPYInput
               value={dose}
               onChange={setDose}
+              onBlur={handleDoseBlur}
               unit="mg"
               type="number"
               centerWithUnit
