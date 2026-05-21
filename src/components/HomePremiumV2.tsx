@@ -34,7 +34,7 @@ import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
-import { formatDecimalBR, formatLiters, formatMeters, parseBRNumber } from '../utils/formatters';
+import { formatDecimalBR, formatLiters, formatMeters, formatUnit, parseBRNumber } from '../utils/formatters';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -1126,19 +1126,16 @@ export default function HomePremiumV2() {
                     <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center space-y-1.5">
                       <p className="text-xs font-extrabold text-[#0A1628]">Complete seu perfil para calcular suas metas</p>
                       <p className="text-[10px] text-[#3D5A70] font-medium leading-relaxed">
-                        Suas metas de calorias, proteínas, água e proteção anti-rebote serão geradas após o onboarding.
+                        Suas metas de calorias, proteínas e água serão geradas após o onboarding.
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['Calorias', 'Proteínas', 'Água'] as const).map(l => (
-                        <div key={l} className="bg-slate-50/60 border border-slate-100/40 rounded-xl p-2.5 flex flex-col items-center text-center">
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['Proteínas', 'Água'] as const).map(l => (
+                        <div key={l} className="bg-slate-50/60 border border-slate-100/40 rounded-xl p-3 flex flex-col items-center text-center">
                           <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">{l}</span>
-                          <span className="text-[11px] font-black text-slate-300 font-mono mt-0.5">—</span>
+                          <span className="text-[12px] font-black text-slate-300 font-mono mt-0.5">—</span>
                         </div>
                       ))}
-                    </div>
-                    <div className="bg-slate-50/60 border border-slate-100/40 rounded-xl p-2.5 text-center">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wide">Protocolo aguardando perfil</span>
                     </div>
                   </div>
                 )}
@@ -1173,39 +1170,25 @@ export default function HomePremiumV2() {
                   </span>
                 </div>
 
-                {/* Three Sub-chips Grid */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Two Sub-chips Grid */}
+                <div className="grid grid-cols-2 gap-3">
                   {/* Protein Chip */}
                   <div
-                    className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
+                    className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-3 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Proteínas</span>
-                    <span className="text-[11px] font-black text-[#00C27A] font-mono mt-0.5 truncate w-full">
-                      faltam 85g
+                    <span className="text-[12px] font-black text-[#00C27A] font-mono mt-0.5">
+                      faltam {formatUnit(Math.max(0, targetProteinG - nutritionConsumed.consumedProtein), 'g', 0)}
                     </span>
                   </div>
 
                   {/* Water Chip */}
                   <div
-                    className="bg-blue-50/60 border border-blue-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
+                    className="bg-blue-50/60 border border-blue-100/30 rounded-xl p-3 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Água</span>
-                    <span className="text-[11px] font-black text-blue-500 font-mono mt-0.5 truncate w-full">
-                      faltam {formatLiters(waterRemaining)}L
-                    </span>
-                  </div>
-
-                  {/* Protocol Chip */}
-                  <div
-                    className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
-                  >
-                    <span className="text-[9px] font-extrabold text-[#00C27A] uppercase tracking-wider truncate w-full">
-                      {hasRealActiveProtocol ? activeProtocol.name : 'PROTOCOLO'}
-                    </span>
-                    <span className="text-[11px] font-black text-[#0D2C20] font-mono mt-0.5">
-                      {hasRealActiveProtocol
-                        ? `Dia ${activeProtocol.currentDay}/${activeProtocol.totalDays}`
-                        : 'Dia 0/7'}
+                    <span className="text-[12px] font-black text-blue-500 font-mono mt-0.5">
+                      faltam {formatUnit(waterRemaining, 'L', 2)}
                     </span>
                   </div>
                 </div>
