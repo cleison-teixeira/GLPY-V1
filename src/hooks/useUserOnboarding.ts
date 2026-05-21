@@ -9,6 +9,7 @@ export interface UserOnboardingData {
   modo: string;
   medicamento: string;
   dose: string;
+  frequencia: string;
   sexo: string | null;
   idade: number | null;
   activityLevel: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extra_active';
@@ -23,6 +24,7 @@ const FALLBACK: UserOnboardingData = {
   modo: '🧘 Equilibrado',
   medicamento: '',
   dose: '—',
+  frequencia: '',
   sexo: null,
   idade: null,
   activityLevel: 'lightly_active',
@@ -98,6 +100,9 @@ function readOnboarding(): UserOnboardingData {
         localStorage.getItem('glpy_dose')?.trim() ||
         String(onb.dose ?? '').trim() ||
         FALLBACK.dose,
+      frequencia:
+        localStorage.getItem('glpy_frequencia')?.trim() ||
+        String(onb.frequencia ?? ''),
       sexo: sexo || null,
       idade,
       activityLevel: mapActivityLevel(String(onb.atividade ?? '')),

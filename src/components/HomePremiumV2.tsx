@@ -330,7 +330,7 @@ export default function HomePremiumV2() {
     return (isNaN(n) || n <= 0) ? '—' : formatUnit(n, 'mg', 2);
   })();
   const userMedicamento  = onboarding.medicamento || mockHomeData.performance.glp1.name;
-  const userFrequencia   = localStorage.getItem('glpy_frequencia') || String((onboarding as Record<string, unknown>).frequencia ?? '') || 'Configure';
+  const userFrequencia   = onboarding.frequencia || 'Configure';
 
   // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
   const targetProteinG  = nutritionTargets?.proteinGrams  ?? mockHomeData.nutrients.protein.target;
