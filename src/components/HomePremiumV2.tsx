@@ -28,6 +28,7 @@ import glpyLogoSymbol from '@/assets/logos/logo-light.png';
 import { useCurrentWeight } from '../hooks/useCurrentWeight';
 import { useUserOnboarding } from '../hooks/useUserOnboarding';
 import { useNutritionTargets } from '../hooks/useNutritionTargets';
+import { useNutritionConsumed } from '../hooks/useNutritionConsumed';
 import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
@@ -247,6 +248,7 @@ export default function HomePremiumV2() {
   const currentWeightData = useCurrentWeight();
   const onboarding = useUserOnboarding();
   const nutritionTargets = useNutritionTargets();
+  const nutritionConsumed = useNutritionConsumed();
   const activeProtocol = useActiveProtocol();
   const dailyLimits = useDailyLimits();
   const protocolPercent = activeProtocol.totalDays > 0
@@ -1330,7 +1332,7 @@ export default function HomePremiumV2() {
                   {/* Proteína */}
                   <NutritionGoalCard
                     label="Proteína"
-                    current={mockHomeData.nutrients.protein.current}
+                    current={nutritionConsumed.consumedProtein}
                     target={targetProteinG}
                     unit={mockHomeData.nutrients.protein.unit}
                     color="red"
@@ -1339,7 +1341,7 @@ export default function HomePremiumV2() {
                   {/* Carboidratos */}
                   <NutritionGoalCard
                     label="Carbs"
-                    current={mockHomeData.nutrients.carbs.current}
+                    current={nutritionConsumed.consumedCarbs}
                     target={targetCarbsG}
                     unit={mockHomeData.nutrients.carbs.unit}
                     color="green"
@@ -1348,7 +1350,7 @@ export default function HomePremiumV2() {
                   {/* Gordura */}
                   <NutritionGoalCard
                     label="Gordura"
-                    current={mockHomeData.nutrients.fat.current}
+                    current={nutritionConsumed.consumedFat}
                     target={targetFatG}
                     unit={mockHomeData.nutrients.fat.unit}
                     color="amber"

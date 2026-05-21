@@ -154,6 +154,7 @@ if (path === '/admin') {
             } catch {
               localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
             }
+            window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = '/preview/home-premium-v2';
           }}
         />

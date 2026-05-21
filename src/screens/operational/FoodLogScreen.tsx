@@ -8,7 +8,7 @@
 // dados locais/mockados.
 
 import React, { useState } from 'react';
-import { Camera, Coffee, Utensils, Moon, Apple, Lightbulb, Check } from 'lucide-react';
+import { Camera, Coffee, Utensils, Moon, Apple, Lightbulb, Check, Flame } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -33,11 +33,15 @@ interface MealEntry {
   description: string;
   photoAdded:  boolean;
   savedAt:     number;
+  calories?:   number;
+  protein?:    number;
+  carbs?:      number;
+  fat?:        number;
 }
 
 interface FoodLogScreenProps {
   onBack?: () => void;
-  onSave?: (data: { mealType: MealType; description: string; photoAdded: boolean }) => void;
+  onSave?: (data: { mealType: MealType; description: string; photoAdded: boolean; calories?: number; protein?: number; carbs?: number; fat?: number }) => void;
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -58,6 +62,10 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
   const [description, setDescription] = useState('');
   const [photoAdded,  setPhotoAdded]  = useState(false);
   const [saveState,   setSaveState]   = useState<MealSaveState>('idle');
+  const [calories,    setCalories]    = useState('');
+  const [protein,     setProtein]     = useState('');
+  const [carbs,       setCarbs]       = useState('');
+  const [fat,         setFat]         = useState('');
   const [todayMeals,  setTodayMeals]  = useState<MealEntry[]>(() => {
     try { return JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]'); }
     catch { return []; }
@@ -70,11 +78,15 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
   function handleSave() {
     if (saveState !== 'idle') return;
     setSaveState('saving');
+    const calNum  = parseFloat(calories) || undefined;
+    const protNum = parseFloat(protein)  || undefined;
+    const carbNum = parseFloat(carbs)    || undefined;
+    const fatNum  = parseFloat(fat)      || undefined;
     setTimeout(() => {
       setSaveState('saved');
-      const newEntry: MealEntry = { mealType, description, photoAdded, savedAt: Date.now() };
+      const newEntry: MealEntry = { mealType, description, photoAdded, savedAt: Date.now(), calories: calNum, protein: protNum, carbs: carbNum, fat: fatNum };
       setTodayMeals(prev => [...prev, newEntry]);
-      setTimeout(() => onSave?.({ mealType, description, photoAdded }), 900);
+      setTimeout(() => onSave?.({ mealType, description, photoAdded, calories: calNum, protein: protNum, carbs: carbNum, fat: fatNum }), 900);
     }, 500);
   }
 
@@ -320,6 +332,58 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
               e.target.style.boxShadow = lightShadows.soft;
             }}
           />
+        </GLPYCard>
+
+        {/* ── Macros opcionais ────────────────────────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={cardTitleRowStyle}>
+            <div style={cardIconWrap}>
+              <Flame size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={cardTitleStyle}>Macros (opcional)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.small }}>
+            {([
+              { label: 'Calorias', unit: 'kcal', value: calories, set: setCalories },
+              { label: 'Proteína', unit: 'g',    value: protein,  set: setProtein  },
+              { label: 'Carboidratos', unit: 'g', value: carbs,   set: setCarbs    },
+              { label: 'Gordura',   unit: 'g',    value: fat,      set: setFat      },
+            ] as const).map(({ label, unit, value, set }) => (
+              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: fontFamily.primary, fontSize: 11, fontWeight: '700', color: lightColors.text.secondary }}>
+                  {label} ({unit})
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={value}
+                  onChange={e => set(e.target.value)}
+                  placeholder="—"
+                  style={{
+                    width:        '100%',
+                    borderRadius: radius.input,
+                    border:       `1.5px solid ${lightColors.border.soft}`,
+                    background:   lightColors.background.primary,
+                    fontFamily:   fontFamily.primary,
+                    fontSize:     fontSize.bodyDefault,
+                    color:        lightColors.text.navy,
+                    padding:      '8px 12px',
+                    outline:      'none',
+                    boxSizing:    'border-box',
+                  }}
+                  onFocus={e => {
+                    e.target.style.border = `2px solid ${lightColors.brand.green}`;
+                    e.target.style.boxShadow = `0 0 0 3px rgba(106,210,143,0.18)`;
+                  }}
+                  onBlur={e => {
+                    e.target.style.border = `1.5px solid ${lightColors.border.soft}`;
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </GLPYCard>
 
         {/* ── Dica GLPY ───────────────────────────────────────────────────── */}
