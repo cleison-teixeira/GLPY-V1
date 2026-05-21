@@ -432,13 +432,14 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                   <input
                     type="text"
                     inputMode="numeric"
+                    autoComplete="off"
                     value={dateText}
                     onChange={e => { setDateText(maskDate(e.target.value)); setTextError(""); }}
                     onKeyDown={e => e.key === "Enter" && handleDate()}
                     placeholder="00/00/0000"
                     maxLength={10}
                     autoFocus
-                    className="w-full text-text-main text-3xl font-black tracking-widest bg-transparent outline-none placeholder:text-text-muted/30"
+                    className="w-full text-text-main text-3xl font-black tracking-widest bg-transparent outline-none placeholder:text-text-muted/30 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden"
                   />
                 </div>
 
