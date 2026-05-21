@@ -255,6 +255,18 @@ export default function HomePremiumV2() {
     ? Math.min(100, Math.round((activeProtocol.currentDay / activeProtocol.totalDays) * 100))
     : 0;
 
+  // Onboarding guard: true se o usuário completou o onboarding com dados reais
+  const hasValidProfile = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_onboarding');
+      if (!raw) return false;
+      const onb = JSON.parse(raw);
+      const peso = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));
+      const alt  = parseFloat(String(onb.altura ?? ''));
+      return !isNaN(peso) && peso > 0 && !isNaN(alt) && alt > 0;
+    } catch { return false; }
+  })();
+
   // Reactivity unchained: weightCurrent e weightGoal dinâmicos a partir de hooks e cascades
   const weightCurrent = currentWeightData.weight;
   
@@ -807,6 +819,38 @@ export default function HomePremiumV2() {
 
               {/* TRANSFORM PROGRESS WEIGHT PROGRESSIVE WIDGET */}
               <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
+                {!hasValidProfile ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-extrabold text-[#0A1628] leading-tight">
+                        Sua jornada GLPY ainda não começou
+                      </h3>
+                      <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-full select-none">
+                        Pendente
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#3D5A70] font-medium leading-relaxed">
+                      Complete seu perfil metabólico para liberar sua meta, evolução corporal e plano de proteção anti-rebote.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['Peso Atual', 'Meta', 'Altura', 'IMC'] as const).map(l => (
+                        <div key={l} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                          <div className="min-w-0">
+                            <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">{l}</span>
+                            <span className="text-xs font-black text-slate-300 font-mono block mt-1">—</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { window.location.href = '/'; }}
+                      className="w-full bg-[#00C27A] text-white text-sm font-extrabold py-3 rounded-2xl active:opacity-80 transition"
+                    >
+                      Começar agora
+                    </button>
+                  </div>
+                ) : (
+                <>
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-extrabold text-[#0A1628] leading-tight flex items-center gap-1">
                     Sua transformação está acontecendo! <span className="text-[#00C27A]">✨</span>
@@ -953,6 +997,8 @@ export default function HomePremiumV2() {
                   </div>
 
                 </div>
+                </>
+                )}
               </div>
 
               {/* SECTION: SEU ALVO METABÓLICO DE HOJE (Fase 1F.1B / Refined) */}
@@ -968,6 +1014,30 @@ export default function HomePremiumV2() {
                     Proteção Metabólica
                   </span>
                 </div>
+
+                {!hasValidProfile && (
+                  <div className="space-y-3">
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center space-y-1.5">
+                      <p className="text-xs font-extrabold text-[#0A1628]">Complete seu perfil para calcular suas metas</p>
+                      <p className="text-[10px] text-[#3D5A70] font-medium leading-relaxed">
+                        Suas metas de calorias, proteínas, água e proteção anti-rebote serão geradas após o onboarding.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['Calorias', 'Proteínas', 'Água'] as const).map(l => (
+                        <div key={l} className="bg-slate-50/60 border border-slate-100/40 rounded-xl p-2.5 flex flex-col items-center text-center">
+                          <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">{l}</span>
+                          <span className="text-[11px] font-black text-slate-300 font-mono mt-0.5">—</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-slate-50/60 border border-slate-100/40 rounded-xl p-2.5 text-center">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wide">Protocolo aguardando perfil</span>
+                    </div>
+                  </div>
+                )}
+
+                {hasValidProfile && (<>
 
                 {/* Calories Highlight Card */}
                 <div
@@ -1031,6 +1101,7 @@ export default function HomePremiumV2() {
                     </span>
                   </div>
                 </div>
+                </>)}
               </div>
 
               {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
@@ -1329,8 +1400,13 @@ export default function HomePremiumV2() {
               <div className="bg-white rounded-[24px] px-3.5 py-4 custom-shadow border border-[#E2EBE7]/70 space-y-3">
                 <span className="text-[13px] font-extrabold text-[#0A1628] tracking-tight block px-0.5">Metas diárias de nutrição</span>
                 
+                {!hasValidProfile ? (
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 text-center">
+                    <p className="text-[10px] font-extrabold text-slate-400">Complete seu perfil para liberar suas metas.</p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 gap-2.5">
-                  
+
                   {/* Proteínas */}
                   <NutritionGoalCard
                     label="Proteínas"
@@ -1369,6 +1445,7 @@ export default function HomePremiumV2() {
                   />
 
                 </div>
+                )}
               </div>
 
               {/* COMPACTED ACTIONS & PROTOCOL WRAPPER (Fase 1F.1B / Refinement) */}
