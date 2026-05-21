@@ -349,6 +349,23 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/home-legacy') {
+  import('./components/Dashboard.tsx').then(({ default: Dashboard }) => {
+    root.render(
+      <StrictMode>
+        <Dashboard onNavigate={(tela: string) => {
+          const map: Record<string, string> = {
+            chatIA:       '/preview/chat-ia',
+            checkin:      '/preview/check-in',
+            protocolHub:  '/preview/protocols',
+            progress:     '/preview',
+            perfil:       '/preview',
+          };
+          window.location.href = map[tela] ?? '/preview/home-legacy';
+        }} />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/daily-targets-test') {
   import('./screens/debug/DailyTargetsTestScreen.tsx').then(({ default: DailyTargetsTestScreen }) => {
     root.render(

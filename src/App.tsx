@@ -10,7 +10,7 @@ import { syncFromFirestore } from './services/firestore';
 import Login from './components/Login';
 import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
-import Dashboard from './components/Dashboard';
+import HomePremiumV2 from './components/HomePremiumV2';
 import ProtocolHub from './components/ProtocolHub';
 import ProtocolDay from './components/ProtocolDay';
 import ChatIA from './components/ChatIA';
@@ -129,7 +129,7 @@ export default function App() {
           />
         );
       case 'onboarding':   return <Onboarding onNext={() => setTelaAtual('planos')} />;
-      case 'dashboard':    return <Dashboard onNavigate={setTelaAtual} />;
+      case 'dashboard':    return <HomePremiumV2 />;
       case 'protocolHub':  return <ProtocolHub onNavigate={setTelaAtual} />;
       case 'protocolDay':  return <ProtocolDay onNavigate={setTelaAtual} />;
       case 'chatIA':       return <ChatIA onNavigate={setTelaAtual} />;
@@ -161,7 +161,7 @@ export default function App() {
       case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
       case 'localIntelligenceTest': return <LocalIntelligenceTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'dailyTargetsTest': return <DailyTargetsTestScreen onBack={() => setTelaAtual('dashboard')} />;
-      default:                      return <Dashboard onNavigate={setTelaAtual} />;
+      default:                      return <HomePremiumV2 />;
     }
   };
 
