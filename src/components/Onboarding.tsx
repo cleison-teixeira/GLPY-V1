@@ -433,6 +433,9 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                     type="text"
                     inputMode="numeric"
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     value={dateText}
                     onChange={e => { setDateText(maskDate(e.target.value)); setTextError(""); }}
                     onKeyDown={e => e.key === "Enter" && handleDate()}
