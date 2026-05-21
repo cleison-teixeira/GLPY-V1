@@ -194,7 +194,23 @@ export function saveWeightEntry(entry: WeightEntry): void {
   // glpy_results_summary
   const summary = safeParse<Record<string, any>>("glpy_results_summary", {});
   if (!summary.initialWeight) {
-    summary.initialWeight = entry.weight;
+    // Prioridade: peso inicial do onboarding (peso no momento do cadastro),
+    // não o peso atual que está sendo registrado agora.
+    const onbInitialWeight = (() => {
+      try {
+        const onb = safeParse<Record<string, any>>("glpy_onboarding", {});
+        const candidates = [
+          parseFloat(String(onb.pesoInicial  ?? '')),
+          parseFloat(String(onb.peso_inicial ?? '')),
+          parseFloat(String(onb.pesoAtual    ?? '')),
+          parseFloat(String(onb.peso_atual   ?? '')),
+        ];
+        return candidates.find(n => !isNaN(n) && n > 20 && n < 300) ?? null;
+      } catch {
+        return null;
+      }
+    })();
+    summary.initialWeight = onbInitialWeight ?? entry.weight;
   }
   summary.latestWeight = entry.weight;
   summary.weightChange = (summary.initialWeight - entry.weight);
