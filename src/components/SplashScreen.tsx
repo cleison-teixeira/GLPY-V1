@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
+import glpyLogoLight from '@/assets/logos/logo-light.png';
 
 export default function SplashScreen({ onNext, onDashboard }: { onNext: () => void, onDashboard: () => void }) {
   useEffect(() => {
@@ -17,16 +18,8 @@ export default function SplashScreen({ onNext, onDashboard }: { onNext: () => vo
         transition={{ duration: 0.8 }}
         className="text-center"
       >
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-10 h-10 flex items-center justify-center rounded-xl flex-shrink-0" style={{ background: "#00C27A" }}>
-            <svg width="24" height="21" viewBox="0 0 32 28" fill="none">
-              <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="22" cy="9" r="2.5" fill="#fff"/>
-            </svg>
-          </div>
-          <span className="text-5xl font-black tracking-tighter text-[#0A1628]">GLPY</span>
+        <div className="flex items-center justify-center mb-4">
+          <img src={glpyLogoLight} alt="GLPY" className="h-16 object-contain" />
         </div>
         <p className="text-xl text-text-muted mb-12 max-w-xs">
           Sua jornada metabólica inteligente.

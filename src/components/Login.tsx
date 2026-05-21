@@ -1,5 +1,6 @@
 import { useState, FormEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import glpyLogoLight from '@/assets/logos/logo-light.png';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -93,23 +94,10 @@ export default function Login() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 mb-8"
+        className="flex flex-col items-center gap-2 mb-8"
       >
-        <div
-          className="w-12 h-12 flex items-center justify-center rounded-2xl flex-shrink-0"
-          style={{ background: "#00C27A" }}
-        >
-          <svg width="26" height="23" viewBox="0 0 32 28" fill="none">
-            <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-            <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-            <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-            <circle cx="22" cy="9" r="2.5" fill="#fff"/>
-          </svg>
-        </div>
-        <div>
-          <span className="font-black text-3xl tracking-tight text-[#0A1628]">GLPY</span>
-          <p className="text-xs text-text-muted -mt-1">Sua jornada metabólica inteligente</p>
-        </div>
+        <img src={glpyLogoLight} alt="GLPY" className="h-12 object-contain" />
+        <p className="text-xs text-text-muted">Sua jornada metabólica inteligente</p>
       </motion.div>
 
       {/* Card */}

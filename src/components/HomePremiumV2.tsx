@@ -267,6 +267,34 @@ export default function HomePremiumV2() {
     } catch { return false; }
   })();
 
+  // Medidas corporais reais: true somente se existir pelo menos um valor válido salvo
+  const hasRealBodyMeasurements = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_medidas_corporais');
+      if (!raw) return false;
+      const m = JSON.parse(raw);
+      if (!m || typeof m !== 'object') return false;
+      return ['cintura', 'busto', 'coxa', 'panturrilha', 'quadril', 'braco'].some(k => {
+        const v = parseFloat(String(m[k] ?? ''));
+        return !isNaN(v) && v > 0;
+      });
+    } catch { return false; }
+  })();
+
+  // Protocolo real: true somente se o usuário realmente iniciou um protocolo
+  const hasRealActiveProtocol = (() => {
+    try {
+      for (const key of ['glpy_protocol_day_today', 'glpy_protocol_context', 'glpy_protocolo_ativo']) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const p = JSON.parse(raw);
+        const name = String(p?.protocolName ?? p?.nome ?? '').trim();
+        if (name) return true;
+      }
+      return false;
+    } catch { return false; }
+  })();
+
   // Reactivity unchained: weightCurrent e weightGoal dinâmicos a partir de hooks e cascades
   const weightCurrent = currentWeightData.weight;
   
@@ -1109,14 +1137,14 @@ export default function HomePremiumV2() {
                 onClick={() => goTo('/preview/body-measurements')}
                 className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
               >
-                {!hasValidProfile ? (
+                {!hasRealBodyMeasurements ? (
                   <div className="space-y-3 py-1">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
                       <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-full select-none">Pendente</span>
                     </div>
                     <p className="text-[11px] text-[#3D5A70] font-medium leading-relaxed">
-                      Complete seu perfil para iniciar seu histórico corporal.
+                      Registre suas primeiras medidas para acompanhar sua evolução.
                     </p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {(['Cintura', 'Busto', 'Coxa', 'Panturrilha'] as const).map(l => (
@@ -1127,10 +1155,10 @@ export default function HomePremiumV2() {
                       ))}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); window.location.href = '/'; }}
+                      onClick={(e) => { e.stopPropagation(); window.location.href = '/preview/body-measurements'; }}
                       className="w-full text-[10px] font-extrabold text-[#00C27A] uppercase tracking-wide py-1 text-center"
                     >
-                      Configurar perfil
+                      Registrar medidas
                     </button>
                   </div>
                 ) : (
@@ -1149,33 +1177,29 @@ export default function HomePremiumV2() {
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura ?? mockHomeData.evolution.cintura.current} cm</span>
-                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto ?? mockHomeData.evolution.busto.current} cm</span>
-                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.busto.change} cm</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa ?? mockHomeData.evolution.coxa.current} cm</span>
-                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Panturrilha</span>
-                      <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} cm</span>
-                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.panturrilha} cm</span>
                       </div>
                     </div>
 
@@ -1502,7 +1526,7 @@ export default function HomePremiumV2() {
                 {/* SECTION: PROTOCOLO EM ANDAMENTO */}
                 <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
 
-                {!hasValidProfile ? (
+                {!hasRealActiveProtocol ? (
                   <>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
@@ -1514,12 +1538,12 @@ export default function HomePremiumV2() {
                       <div className="flex-1 space-y-0.5">
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-extrabold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
-                            Aguardando perfil
+                            Aguardando início
                           </span>
                           <span className="text-[10px] text-slate-400 font-extrabold font-mono">0% concluído</span>
                         </div>
                         <span className="text-xs font-extrabold text-slate-500 block mt-1">
-                          Protocolo aguardando perfil • Dia 0 de 7
+                          Protocolo aguardando início • Dia 0 de 7
                         </span>
                         <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
                           <div className="bg-[#00C27A] h-full" style={{ width: '0%' }} />
@@ -1600,7 +1624,7 @@ export default function HomePremiumV2() {
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
                   <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">
-                    {hasValidProfile ? mockHomeData.social : 'Complete seu perfil para entrar na jornada GLPY.'}
+                    {(hasValidProfile && hasRealActiveProtocol) ? mockHomeData.social : 'Complete seu perfil para entrar na jornada GLPY.'}
                   </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
