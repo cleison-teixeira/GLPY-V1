@@ -134,7 +134,7 @@ if (path === '/admin') {
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
           onSave={(amount) => {
             const today = new Date().toISOString().slice(0, 10);
-            localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today }));
+            localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today, updatedAt: new Date().toISOString() }));
             window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = '/preview/home-premium-v2';
           }}

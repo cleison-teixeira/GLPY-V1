@@ -341,6 +341,29 @@ export default function HomePremiumV2() {
     } catch { return 0; }
   });
 
+  // Re-sync waterAmount when localStorage changes (e.g., after saving in WaterScreen)
+  useEffect(() => {
+    const syncWater = () => {
+      try {
+        const raw = localStorage.getItem('glpy_agua_hoje');
+        if (!raw) { setWaterAmount(0); return; }
+        const parsed = JSON.parse(raw);
+        const today = new Date().toISOString().slice(0, 10);
+        if (parsed && typeof parsed === 'object' && parsed.date === today) {
+          setWaterAmount(parseFloat(String(parsed.amount)) || 0);
+        } else {
+          setWaterAmount(0);
+        }
+      } catch {}
+    };
+    window.addEventListener('local-storage-change', syncWater);
+    window.addEventListener('storage', syncWater);
+    return () => {
+      window.removeEventListener('local-storage-change', syncWater);
+      window.removeEventListener('storage', syncWater);
+    };
+  }, []);
+
   // Streak de consecutividade real calculada dinamicamente
   const streakDays = (() => {
     try {
@@ -473,6 +496,7 @@ export default function HomePremiumV2() {
   // Popups & modals
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
   const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
+  const [goalInput,  setGoalInput]  = useState<string>('');
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
@@ -629,7 +653,8 @@ export default function HomePremiumV2() {
     if (newWater <= 5.0) {
       setWaterAmount(newWater);
       const today = new Date().toISOString().slice(0, 10);
-      localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: newWater, date: today }));
+      localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: newWater, date: today, updatedAt: new Date().toISOString() }));
+      window.dispatchEvent(new Event('local-storage-change'));
       triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);
       if (newWater >= targetWaterL) {
         triggerConfetti();
@@ -639,9 +664,22 @@ export default function HomePremiumV2() {
   };
 
   const handleApplyWeight = () => {
-    const numeric = parseFloat(weightInput);
-    if (!isNaN(numeric) && numeric > 45 && numeric < 150) {
+    const numeric = parseFloat(weightInput.replace(',', '.'));
+    if (!isNaN(numeric) && numeric > 20 && numeric < 300) {
       saveWeightEntry({ weight: numeric });
+
+      const numericGoal = parseFloat(goalInput.replace(',', '.'));
+      if (!isNaN(numericGoal) && numericGoal > 20 && numericGoal < 300) {
+        try {
+          const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+          onb.pesoMeta   = numericGoal;
+          onb.peso_sonho = numericGoal;
+          onb.peso_meta  = numericGoal;
+          localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+          localStorage.setItem('glpy_peso_sonho', numericGoal.toFixed(1));
+        } catch {}
+      }
+
       window.dispatchEvent(new Event('local-storage-change'));
       setShowWeightModal(false);
       triggerConfetti();
@@ -693,6 +731,7 @@ export default function HomePremiumV2() {
     };
     if (id === 'peso') {
       setWeightInput(weightCurrent.toString());
+      setGoalInput(weightGoal > 0 && weightGoal !== 60.0 ? weightGoal.toString() : '');
       setShowWeightModal(true);
     } else if (QUICK_ROUTES[id]) {
       goTo(QUICK_ROUTES[id]);
@@ -1122,10 +1161,12 @@ export default function HomePremiumV2() {
                     className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#00C27A] uppercase tracking-wider truncate w-full">
-                      {activeProtocol.name}
+                      {hasRealActiveProtocol ? activeProtocol.name : 'PROTOCOLO'}
                     </span>
                     <span className="text-[11px] font-black text-[#0D2C20] font-mono mt-0.5">
-                      Dia {activeProtocol.currentDay}/{activeProtocol.totalDays}
+                      {hasRealActiveProtocol
+                        ? `Dia ${activeProtocol.currentDay}/${activeProtocol.totalDays}`
+                        : 'Dia 0/7'}
                     </span>
                   </div>
                 </div>
@@ -1185,21 +1226,21 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto || bodyMeasures.chest || '—'} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa || bodyMeasures.thigh || '—'} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Panturrilha</span>
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Quadril</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.panturrilha || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.quadril || bodyMeasures.hip || '—'} cm</span>
                       </div>
                     </div>
 
@@ -1619,7 +1660,11 @@ export default function HomePremiumV2() {
 
             {/* CARD SOCIAL TRAFFIC BANNER */}
               <div
-                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between transition select-none"
+                onClick={() => {
+                  if (!hasValidProfile) { window.location.href = '/'; }
+                  else { goTo('/preview/protocols'); }
+                }}
+                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between transition select-none cursor-pointer active:opacity-80"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
@@ -1843,10 +1888,11 @@ export default function HomePremiumV2() {
       {showWeightModal && (
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
-            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso Atual ⚖️</h3>
-            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: {weightStart} kg • Meta: {weightGoal} kg</p>
-            
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso ⚖️</h3>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Início: {weightStart} kg • Meta atual: {weightGoal} kg</p>
+
+            <p className="text-[10px] font-extrabold text-[#3D5A70] uppercase tracking-wide mb-1.5">Peso atual</p>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-3 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
               <input
                 type="text"
                 inputMode="decimal"
@@ -1861,18 +1907,33 @@ export default function HomePremiumV2() {
               <span className="text-lg font-bold text-[#3D5A70]">kg</span>
             </div>
 
+            <p className="text-[10px] font-extrabold text-[#3D5A70] uppercase tracking-wide mb-1.5">Meta de peso <span className="text-slate-400 normal-case font-medium">(opcional)</span></p>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={goalInput}
+                onChange={e => setGoalInput(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleApplyWeight()}
+                placeholder={weightGoal.toFixed(1)}
+                className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
+              />
+              <span className="text-lg font-bold text-[#3D5A70]">kg</span>
+            </div>
+
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setShowWeightModal(false)}
                 className="flex-1 py-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-[#0A1628] font-bold rounded-xl transition"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleApplyWeight}
                 className="flex-1 py-2.5 text-xs bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold rounded-xl transition shadow-sm shadow-[#00C27A]/20"
               >
-                Salvar Peso
+                Salvar
               </button>
             </div>
           </div>

@@ -40,11 +40,25 @@ interface WaterScreenProps {
 
 type WaterSaveState = 'idle' | 'saving' | 'saved';
 
+function readTodayWater(): number {
+  try {
+    const raw = localStorage.getItem('glpy_agua_hoje');
+    if (!raw) return 0;
+    const today = new Date().toISOString().slice(0, 10);
+    // formato canônico: { amount, date }
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.date === today) return parseFloat(String(parsed.amount)) || 0;
+      return 0; // dia diferente — zera
+    }
+    // legado: número puro como string
+    const v = parseFloat(String(parsed));
+    return isNaN(v) ? 0 : v;
+  } catch { return 0; }
+}
+
 export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
-  const [waterAmount, setWaterAmount] = useState(() => {
-    try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? 1.2 : v; }
-    catch { return 1.2; }
-  });
+  const [waterAmount, setWaterAmount] = useState(() => readTodayWater());
   const [saveState, setSaveState] = useState<WaterSaveState>('idle');
 
   const remaining       = Math.max(0, DAILY_GOAL - waterAmount);
@@ -53,7 +67,13 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
   const isComplete      = waterAmount >= DAILY_GOAL;
 
   function handleAdd(amount: number) {
-    setWaterAmount(prev => Math.min(prev + amount, 99));
+    setWaterAmount(prev => {
+      const next = parseFloat(Math.min(prev + amount, 99).toFixed(2));
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: next, date: today, updatedAt: new Date().toISOString() }));
+      window.dispatchEvent(new Event('local-storage-change'));
+      return next;
+    });
   }
 
   function handleSave() {

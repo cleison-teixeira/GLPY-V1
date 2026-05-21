@@ -47,14 +47,23 @@ function readAtividadeHoje() {
 }
 
 function readCurrentWeight(): number | null {
+  // Priority: most recent save from saveWeightEntry
+  for (const key of ['glpy_latest_weight', 'glpy_current_weight']) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
+        if (!isNaN(v) && v > 0) return v;
+      }
+    } catch {}
+  }
+  // Legacy string key
   try {
-    const raw = localStorage.getItem('glpy_current_weight');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
-      if (!isNaN(v) && v > 0) return v;
-    }
+    const v = parseFloat(localStorage.getItem('glpy_peso_atual') ?? '');
+    if (!isNaN(v) && v > 0) return v;
   } catch {}
+  // Onboarding fallback
   try {
     const onb = readOnboarding();
     const v = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));

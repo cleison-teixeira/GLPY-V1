@@ -31,21 +31,80 @@ interface CheckInScreenProps {
 type DayFeeling = 'Leve' | 'Normal' | 'Difícil';
 const FEELING_OPTIONS: DayFeeling[] = ['Leve', 'Normal', 'Difícil'];
 
-const RESUMO_ITEMS = [
-  { id: 'agua',      label: 'Água',         value: '1,2 L de 2,6 L', done: false, Icon: Droplets    },
-  { id: 'refeicao',  label: 'Refeições',    value: '2 de 3',          done: false, Icon: Utensils    },
-  { id: 'aplicacao', label: 'Aplicação',    value: 'Registrada',      done: true,  Icon: Syringe     },
-  { id: 'emocao',    label: 'Emoção',       value: 'Bem',             done: true,  Icon: Smile       },
-  { id: 'atividade', label: 'Atividade',    value: '30 min',          done: true,  Icon: Flame       },
-  { id: 'sintomas',  label: 'Sintomas',     value: 'Náusea leve',     done: true,  Icon: AlertCircle },
-  { id: 'foto',      label: 'Foto corporal',value: 'Pendente',        done: false, Icon: Camera      },
-] as const;
+function buildResumoItems(todayStr: string) {
+  const fmtL = (v: number) => v.toFixed(1).replace('.', ',');
+
+  const agua = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_agua_hoje');
+      if (!raw) return { value: 'Pendente', done: false };
+      const p = JSON.parse(raw);
+      if (p && typeof p === 'object' && p.date === todayStr) {
+        const amount = parseFloat(String(p.amount)) || 0;
+        return { value: `${fmtL(amount)} L de 2,6 L`, done: amount >= 2.6 };
+      }
+      return { value: 'Pendente', done: false };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
+  const refeicao = (() => {
+    try {
+      const list = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
+      if (!Array.isArray(list)) return { value: 'Pendente', done: false };
+      const count = list.filter((r: any) =>
+        r?.savedAt && new Date(r.savedAt).toISOString().slice(0, 10) === todayStr
+      ).length;
+      if (count === 0) return { value: 'Pendente', done: false };
+      return { value: `${count} de 3`, done: count >= 3 };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
+  const aplicacao = (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('glpy_injecao_ultima') || 'null');
+      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      return isToday ? { value: 'Registrada', done: true } : { value: 'Pendente', done: false };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
+  const emocao = (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || 'null');
+      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      if (!isToday) return { value: 'Pendente', done: false };
+      return { value: typeof p?.mood === 'string' ? p.mood : 'Registrada', done: true };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
+  const atividade = (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('glpy_atividade_hoje') || 'null');
+      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      if (!isToday) return { value: 'Pendente', done: false };
+      return { value: p?.duration ? `${p.duration} min` : 'Registrada', done: true };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
+  return [
+    { id: 'agua',      label: 'Água',          ...agua,      Icon: Droplets    },
+    { id: 'refeicao',  label: 'Refeições',     ...refeicao,  Icon: Utensils    },
+    { id: 'aplicacao', label: 'Aplicação',     ...aplicacao, Icon: Syringe     },
+    { id: 'emocao',    label: 'Emoção',        ...emocao,    Icon: Smile       },
+    { id: 'atividade', label: 'Atividade',     ...atividade, Icon: Flame       },
+    { id: 'sintomas',  label: 'Sintomas',      value: 'Pendente', done: false,  Icon: AlertCircle },
+    { id: 'foto',      label: 'Foto corporal', value: 'Pendente', done: false,  Icon: Camera      },
+  ];
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type CheckInSaveState = 'idle' | 'saving' | 'saved';
 
 export default function CheckInScreen({ onBack }: CheckInScreenProps) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const resumoItems = buildResumoItems(todayStr);
+  const doneCount = resumoItems.filter(i => i.done).length;
+
   const [selectedDayFeeling, setSelectedDayFeeling] = useState<DayFeeling>(() => {
     try {
       const raw = localStorage.getItem('glpy_checkin_hoje');
@@ -350,11 +409,11 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Progresso de hoje</span>
-              <span style={summaryValueStyle}>6 de 7 ações</span>
+              <span style={summaryValueStyle}>{doneCount} de 7 ações</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>XP do dia</span>
-              <span style={{ ...summaryValueStyle, color: lightColors.brand.greenDark }}>+80 XP</span>
+              <span style={{ ...summaryValueStyle, color: lightColors.brand.greenDark }}>+{10 + doneCount * 10} XP</span>
             </div>
           </div>
         </GLPYCard>
@@ -408,7 +467,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
             <span style={cardTitleStyle}>Resumo diário</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {RESUMO_ITEMS.map(({ id, label, value, done, Icon }, index) => (
+            {resumoItems.map(({ id, label, value, done, Icon }, index) => (
               <React.Fragment key={id}>
                 {index > 0 && <div style={resumoDividerStyle} />}
                 <div style={resumoItemRowStyle}>
