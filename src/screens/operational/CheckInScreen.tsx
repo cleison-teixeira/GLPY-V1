@@ -43,54 +43,69 @@ const RESUMO_ITEMS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type CheckInSaveState = 'idle' | 'saving' | 'saved';
+
 export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   const [selectedDayFeeling, setSelectedDayFeeling] = useState<DayFeeling>('Normal');
-  const [checkInCompleted,   setCheckInCompleted]   = useState(false);
+  const [checkInState, setCheckInState] = useState<CheckInSaveState>('idle');
+
+  const realStreak = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_checkin_historico');
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return 0;
+      const dates = parsed.map((item: any) => {
+        if (typeof item === 'string') return item;
+        if (item && item.date) return item.date;
+        return '';
+      }).filter(Boolean);
+      const unique = Array.from(new Set(dates)).sort((a: any, b: any) => b.localeCompare(a)) as string[];
+      const todayStr = new Date().toISOString().split('T')[0];
+      const yest = new Date(); yest.setDate(yest.getDate() - 1);
+      const yesterdayStr = yest.toISOString().split('T')[0];
+      const hasToday = unique.includes(todayStr);
+      const hasYesterday = unique.includes(yesterdayStr);
+      if (!hasToday && !hasYesterday) return 0;
+      let streak = 0;
+      let d = new Date(hasToday ? todayStr : yesterdayStr);
+      while (true) {
+        const s = d.toISOString().split('T')[0];
+        if (unique.includes(s)) { streak++; d.setDate(d.getDate() - 1); } else break;
+      }
+      return streak;
+    } catch { return 0; }
+  })();
 
   function handleCheckIn() {
-    setCheckInCompleted(true);
+    if (checkInState !== 'idle') return;
+    setCheckInState('saving');
     const today = new Date().toISOString().split('T')[0];
-    const newEntry = {
-      date:       today,
-      dayFeeling: selectedDayFeeling,
-      savedAt:    Date.now(),
-    };
+    const newEntry = { date: today, dayFeeling: selectedDayFeeling, savedAt: Date.now() };
     localStorage.setItem('glpy_checkin_hoje', JSON.stringify(newEntry));
-    
+
     let hist: any[] = [];
-    try {
-      hist = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]');
-    } catch {
-      hist = [];
-    }
+    try { hist = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]'); }
+    catch { hist = []; }
+    if (!Array.isArray(hist)) hist = [];
 
-    if (!Array.isArray(hist)) {
-      hist = [];
-    }
-
-    const existingIndex = hist.findIndex(item => {
-      if (typeof item === 'string') {
-        return item === today;
-      }
-      return item && item.date === today;
-    });
-
+    const existingIndex = hist.findIndex((item: any) =>
+      typeof item === 'string' ? item === today : item?.date === today
+    );
     if (existingIndex !== -1) {
-      if (typeof hist[existingIndex] === 'string') {
-        hist[existingIndex] = newEntry;
-      } else {
-        hist[existingIndex] = { ...hist[existingIndex], ...newEntry };
-      }
+      hist[existingIndex] = typeof hist[existingIndex] === 'string'
+        ? newEntry
+        : { ...hist[existingIndex], ...newEntry };
     } else {
       hist.push(newEntry);
     }
-
     localStorage.setItem('glpy_checkin_historico', JSON.stringify(hist));
-    
-    // Despacha o evento de alteração local para reatividade
     window.dispatchEvent(new Event('local-storage-change'));
 
-    setTimeout(() => onBack?.(), 1500);
+    setTimeout(() => {
+      setCheckInState('saved');
+      setTimeout(() => onBack?.(), 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -308,7 +323,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Sequência</span>
-              <span style={summaryValueStyle}>12 dias</span>
+              <span style={summaryValueStyle}>{realStreak > 0 ? `${realStreak} dias` : '—'}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Progresso de hoje</span>
@@ -414,7 +429,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
         </GLPYCard>
 
         {/* ── Feedback de conclusão ──────────────────────────────────────────── */}
-        {checkInCompleted && (
+        {checkInState === 'saved' && (
           <GLPYCard
             variant="light"
             style={{
@@ -456,10 +471,10 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
           variant="primary"
           size="lg"
           fullWidth
-          disabled={checkInCompleted}
+          disabled={checkInState !== 'idle'}
           onClick={handleCheckIn}
         >
-          {checkInCompleted ? 'Check-in concluído ✓' : 'Concluir check-in'}
+          {checkInState === 'saving' ? 'Salvando...' : checkInState === 'saved' ? 'Check-in salvo ✓' : 'Concluir check-in'}
         </GLPYButton>
 
       </div>

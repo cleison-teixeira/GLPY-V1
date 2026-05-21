@@ -38,11 +38,14 @@ interface WaterScreenProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type WaterSaveState = 'idle' | 'saving' | 'saved';
+
 export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
   const [waterAmount, setWaterAmount] = useState(() => {
     try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? 1.2 : v; }
     catch { return 1.2; }
   });
+  const [saveState, setSaveState] = useState<WaterSaveState>('idle');
 
   const remaining       = Math.max(0, DAILY_GOAL - waterAmount);
   const progressPercent = Math.min((waterAmount / DAILY_GOAL) * 100, 100);
@@ -54,8 +57,12 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
   }
 
   function handleSave() {
-    console.log('[GLPY] Water saved:', waterAmount, 'L');
-    onSave?.(waterAmount);
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => onSave?.(waterAmount), 900);
+    }, 500);
   }
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -317,9 +324,10 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
           variant="primary"
           size="lg"
           fullWidth
+          disabled={saveState !== 'idle'}
           onClick={handleSave}
         >
-          Salvar água
+          {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Água salva ✓' : 'Salvar água'}
         </GLPYButton>
 
       </div>

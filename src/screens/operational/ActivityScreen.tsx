@@ -65,6 +65,8 @@ function calculateCalories(duration: string, intensity: string): number {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type ActivitySaveState = 'idle' | 'saving' | 'saved';
+
 export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedActivity, setSelectedActivity] = useState(() => {
@@ -91,6 +93,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').note || ''; }
     catch { return ''; }
   });
+  const [saveState, setSaveState] = useState<ActivitySaveState>('idle');
 
   // Timestamps para evitar fechar modal ao propagar clique
   const activityOpenTimeRef = React.useRef(0);
@@ -128,7 +131,14 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     setShowCustomInput(false);
   }
 
+  function openIntensityModal() {
+    intensityOpenTimeRef.current = Date.now();
+    setIntensityModalOpen(true);
+  }
+
   function handleSave() {
+    if (saveState !== 'idle' || !isValid) return;
+    setSaveState('saving');
     const entry = {
       activity: selectedActivity,
       duration: selectedDuration,
@@ -138,11 +148,13 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       savedAt: Date.now(),
     };
     localStorage.setItem('glpy_atividade_hoje', JSON.stringify(entry));
-    if (onSave) {
-      onSave();
-    } else {
-      onBack?.();
-    }
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => {
+        if (onSave) onSave();
+        else onBack?.();
+      }, 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -525,10 +537,10 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
           variant="primary"
           size="lg"
           fullWidth
-          disabled={!isValid}
+          disabled={!isValid || saveState !== 'idle'}
           onClick={handleSave}
         >
-          Registrar atividade
+          {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Atividade salva ✓' : 'Registrar atividade'}
         </GLPYButton>
 
       </div>
@@ -541,7 +553,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Activity Modal ────────────────────────────────────────────────────── */}
       {activityModalOpen && (
         <>
-          <div style={backdropStyle} onClick={() => { if (Date.now() - activityOpenTimeRef.current < 150) return; setActivityModalOpen(false); }} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - activityOpenTimeRef.current < 400) return; setActivityModalOpen(false); }} />
           <div style={sheetStyle}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>
@@ -579,7 +591,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Duration Modal ────────────────────────────────────────────────────── */}
       {durationModalOpen && (
         <>
-          <div style={backdropStyle} onClick={() => { if (Date.now() - durationOpenTimeRef.current < 150) return; closeDurationModal(); }} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - durationOpenTimeRef.current < 400) return; closeDurationModal(); }} />
           <div style={sheetStyle}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>
@@ -657,7 +669,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Intensity Modal ───────────────────────────────────────────────────── */}
       {intensityModalOpen && (
         <>
-          <div style={backdropStyle} onClick={() => { if (Date.now() - intensityOpenTimeRef.current < 150) return; setIntensityModalOpen(false); }} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - intensityOpenTimeRef.current < 400) return; setIntensityModalOpen(false); }} />
           <div style={{ ...sheetStyle, maxHeight: 'auto' }}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>

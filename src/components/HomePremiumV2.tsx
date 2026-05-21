@@ -458,12 +458,13 @@ export default function HomePremiumV2() {
     return 80.0; // Fallback mock final
   })();
 
-  const lostKg = parseFloat((weightStart - weightCurrent).toFixed(1));
+  const weightGaining = weightCurrent >= weightStart;
+  const lostKg = parseFloat(Math.max(0, weightStart - weightCurrent).toFixed(1));
   const toGoKg = parseFloat(Math.max(0, weightCurrent - weightGoal).toFixed(1));
-  
+
   const totalRange = weightStart - weightGoal;
   let progressPercent = 0;
-  if (weightCurrent > weightStart) {
+  if (weightGaining) {
     progressPercent = 0;
   } else if (totalRange > 0) {
     progressPercent = Math.min(100, Math.max(0, Math.round(((weightStart - weightCurrent) / totalRange) * 100)));
@@ -807,7 +808,7 @@ export default function HomePremiumV2() {
                   
                   {/* Left stats */}
                   <div className="col-span-4 space-y-0.5">
-                    {weightCurrent > weightStart ? (
+                    {weightGaining ? (
                       <>
                         <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Ajuste em</p>
                         <div>

@@ -67,9 +67,16 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
     window.location.href = '/preview/side-effects';
   }
 
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
   function handleSave() {
-    console.log('[GLPY] Injection saved:', { medication, dose, frequency, site: selectedSite });
-    onSave?.({ medication, dose, frequency, site: selectedSite });
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ site: selectedSite, savedAt: Date.now() }));
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => onSave?.({ medication, dose, frequency, site: selectedSite }), 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -369,8 +376,8 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
         </GLPYCard>
 
         {/* ── CTA ──────────────────────────────────────────────────────────── */}
-        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSave}>
-          Registrar aplicação
+        <GLPYButton variant="primary" size="lg" fullWidth disabled={saveState !== 'idle'} onClick={handleSave}>
+          {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Aplicação salva ✓' : 'Registrar aplicação'}
         </GLPYButton>
 
       </div>

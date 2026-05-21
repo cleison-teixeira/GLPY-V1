@@ -65,13 +65,15 @@ export default function EmotionScreen({ onBack, onSave }: EmotionScreenProps) {
   });
   const [moodModalOpen, setMoodModalOpen] = useState(false);
 
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
   function handleSave() {
-    console.log('[GLPY] Emotion saved:', {
-      mood:   selectedMood,
-      energy: selectedEnergy,
-      note,
-    });
-    onSave?.({ mood: selectedMood, energy: selectedEnergy, note });
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => onSave?.({ mood: selectedMood, energy: selectedEnergy, note }), 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -299,9 +301,10 @@ export default function EmotionScreen({ onBack, onSave }: EmotionScreenProps) {
             variant="primary"
             size="lg"
             fullWidth
+            disabled={saveState !== 'idle'}
             onClick={handleSave}
           >
-            Salvar emoção
+            {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Emoção salva ✓' : 'Salvar emoção'}
           </GLPYButton>
 
         </div>
