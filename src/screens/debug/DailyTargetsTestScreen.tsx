@@ -35,6 +35,49 @@ interface Meal {
   fat: number;
 }
 
+// ── Helper: lê atividade real salva hoje de 3 fontes ──────────────────────────
+
+function readTodayActivityKcal(): { kcal: number; source: string } {
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    // Fonte 1: glpy_today_activity (canônica — array de ActivityEntry)
+    const todayRaw = localStorage.getItem('glpy_today_activity');
+    if (todayRaw) {
+      const entries: Array<{ kcalBurned?: number; date?: string }> = JSON.parse(todayRaw);
+      if (Array.isArray(entries) && entries.length > 0) {
+        const todayEntries = entries.filter(e => e.date === todayKey);
+        const total = todayEntries.reduce((s, e) => s + (e.kcalBurned ?? 0), 0);
+        if (total > 0) return { kcal: total, source: 'glpy_today_activity' };
+      }
+    }
+
+    // Fonte 2: glpy_atividade_hoje (legado — ActivityScreen pré-integração)
+    const legacyRaw = localStorage.getItem('glpy_atividade_hoje');
+    if (legacyRaw) {
+      const legacy: { calories?: number; savedAt?: number } = JSON.parse(legacyRaw);
+      if (legacy?.calories && typeof legacy.calories === 'number' && legacy.calories > 0) {
+        const savedDate = legacy.savedAt
+          ? new Date(legacy.savedAt).toISOString().slice(0, 10)
+          : todayKey;
+        if (savedDate === todayKey) return { kcal: legacy.calories, source: 'glpy_atividade_hoje' };
+      }
+    }
+
+    // Fonte 3: glpy_daily_tracking[today].activity
+    const trackingRaw = localStorage.getItem('glpy_daily_tracking');
+    if (trackingRaw) {
+      const tracking = JSON.parse(trackingRaw);
+      const acts: Array<{ kcalBurned?: number }> = tracking?.[todayKey]?.activity ?? [];
+      if (Array.isArray(acts) && acts.length > 0) {
+        const total = acts.reduce((s, e) => s + (e.kcalBurned ?? 0), 0);
+        if (total > 0) return { kcal: total, source: 'glpy_daily_tracking' };
+      }
+    }
+  } catch { /* silent */ }
+  return { kcal: 0, source: '' };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void }) {
@@ -48,7 +91,11 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   const [pace, setPace]           = useState<GLPYTargetsInput['weightLossPace']>('equilibrado');
   const [targetWeight, setTargetWeight] = useState('70.0');
   const [medication, setMedication]     = useState('0.5mg');
-  const [activityKcal, setActivityKcal] = useState('0');
+  const [activityKcal, setActivityKcal] = useState<string>(() => {
+    const { kcal } = readTodayActivityKcal();
+    return kcal > 0 ? String(kcal) : '0';
+  });
+  const [activitySource, setActivitySource] = useState<string>(() => readTodayActivityKcal().source);
 
   // ── Consumption inputs ────────────────────────────────────────────────────
   const [waterInput, setWaterInput] = useState('0.5');
@@ -92,6 +139,21 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
 
       if (loaded) setConsumptionSource('local_intelligence');
     } catch (_) { /* silent */ }
+  }, []);
+
+  // Reidratação reativa de atividade física salva hoje
+  useEffect(() => {
+    function syncActivity() {
+      const { kcal, source } = readTodayActivityKcal();
+      setActivityKcal(String(kcal > 0 ? kcal : 0));
+      setActivitySource(source);
+    }
+    window.addEventListener('local-storage-change', syncActivity);
+    window.addEventListener('storage', syncActivity);
+    return () => {
+      window.removeEventListener('local-storage-change', syncActivity);
+      window.removeEventListener('storage', syncActivity);
+    };
   }, []);
 
   // ── Derived targets ──────────────────────────────────────────────────────
@@ -267,7 +329,22 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
 
           <div style={formGroup}>
             <label style={labelStyle}>Atividade Física Hoje (kcal queimadas, 0–2000)</label>
-            <input type="number" min="0" max="2000" step="10" style={inputStyle} value={activityKcal} onChange={e => setActivityKcal(e.target.value)} placeholder="Ex: 360" />
+            <input
+              type="number" min="0" max="2000" step="10"
+              style={inputStyle}
+              value={activityKcal}
+              onChange={e => { setActivitySource(''); setActivityKcal(e.target.value); }}
+              placeholder="Ex: 360"
+            />
+            {activitySource ? (
+              <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, backgroundColor: '#D1FAE5', color: '#065F46', fontSize: 11, fontWeight: '700' }}>
+                Atividade detectada hoje: +{activityKcal} kcal — Fonte: {activitySource}
+              </div>
+            ) : (
+              <div style={{ marginTop: 4, fontSize: 11, color: lightColors.text.secondary }}>
+                {parseFloat(activityKcal) > 0 ? 'Valor inserido manualmente' : 'Nenhuma atividade salva hoje'}
+              </div>
+            )}
           </div>
         </GLPYCard>
 
