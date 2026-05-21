@@ -103,10 +103,40 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
 
   function handleSave() {
     if (saveState !== 'idle') return;
+
+    // Normalizar dose antes de qualquer coisa (cobre o caso em que o usuário
+    // digitou "5" sem dar blur — garante "5,00" no input e no onSave callback).
+    const parsedDose = parseFloat((dose || '').replace(',', '.').replace(/[^0-9.]/g, ''));
+    const doseNorm   = (!isNaN(parsedDose) && parsedDose > 0)
+      ? parsedDose.toFixed(2).replace('.', ',')
+      : dose;
+    if (doseNorm !== dose) setDose(doseNorm);
+
     setSaveState('saving');
+
+    // Salva diretamente no localStorage para garantir reatividade imediata na Home,
+    // independente do callback onSave do componente pai (App.tsx ou main.tsx).
+    localStorage.setItem('glpy_medicamento', selectedMedication);
+    localStorage.setItem('glpy_frequencia',  selectedFrequency);
+    if (selectedFrequency === 'Personalizada') {
+      localStorage.setItem('glpy_frequencia_personalizada_dias', customFrequencyDays);
+    }
+    if (!isNaN(parsedDose) && parsedDose > 0) {
+      localStorage.setItem('glpy_dose', String(parsedDose));
+    }
+    try {
+      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      onb.medicamento = selectedMedication;
+      onb.frequencia  = selectedFrequency;
+      if (!isNaN(parsedDose) && parsedDose > 0) onb.dose = parsedDose;
+      localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+    } catch {}
+    // Dispara evento reativo para que a Home re-leia os dados instantaneamente
+    window.dispatchEvent(new Event('local-storage-change'));
+
     setTimeout(() => {
       setSaveState('saved');
-      setTimeout(() => onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose }), 900);
+      setTimeout(() => onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose: doseNorm }), 900);
     }, 500);
   }
 
