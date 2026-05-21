@@ -46,7 +46,15 @@ const RESUMO_ITEMS = [
 type CheckInSaveState = 'idle' | 'saving' | 'saved';
 
 export default function CheckInScreen({ onBack }: CheckInScreenProps) {
-  const [selectedDayFeeling, setSelectedDayFeeling] = useState<DayFeeling>('Normal');
+  const [selectedDayFeeling, setSelectedDayFeeling] = useState<DayFeeling>(() => {
+    try {
+      const raw = localStorage.getItem('glpy_checkin_hoje');
+      const parsed = JSON.parse(raw || '{}');
+      const f = parsed?.dayFeeling;
+      if (f === 'Leve' || f === 'Normal' || f === 'Difícil') return f as DayFeeling;
+    } catch {}
+    return 'Normal';
+  });
   const [checkInState, setCheckInState] = useState<CheckInSaveState>('idle');
 
   const realStreak = (() => {
@@ -75,6 +83,16 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
       }
       return streak;
     } catch { return 0; }
+  })();
+
+  const alreadyDoneToday = (() => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const raw = localStorage.getItem('glpy_checkin_hoje');
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return parsed?.date === todayStr;
+    } catch { return false; }
   })();
 
   function handleCheckIn() {
@@ -313,12 +331,17 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
         <GLPYCard variant="light">
           <div style={cardTitleRowStyle}>
             <div style={cardIconWrap}>
-              <Star size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+              {alreadyDoneToday
+                ? <CheckCircle2 size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+                : <Star        size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+              }
             </div>
             <span style={cardTitleStyle}>Check-in de hoje</span>
           </div>
           <p style={cardSubtextStyle}>
-            Revise sua rotina e conclua mais um passo da sua jornada.
+            {alreadyDoneToday
+              ? 'Check-in de hoje concluído. Você pode atualizar seu humor abaixo.'
+              : 'Revise sua rotina e conclua mais um passo da sua jornada.'}
           </p>
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
@@ -335,6 +358,46 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
             </div>
           </div>
         </GLPYCard>
+
+        {/* ── Banner — já concluído hoje ────────────────────────────────────── */}
+        {alreadyDoneToday && (
+          <GLPYCard
+            variant="light"
+            style={{
+              padding:    padding.small,
+              background: `${lightColors.brand.green}14`,
+              border:     `1.5px solid ${lightColors.brand.green}44`,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <CheckCircle2
+                size={18}
+                color={lightColors.brand.greenDark}
+                strokeWidth={1.75}
+                style={{ flexShrink: 0, marginTop: 1 }}
+              />
+              <div>
+                <div style={{
+                  fontFamily:   fontFamily.primary,
+                  fontSize:     fontSize.small,
+                  fontWeight:   fontWeight.h3,
+                  color:        lightColors.brand.greenDark,
+                  marginBottom: 3,
+                }}>
+                  Check-in de hoje já concluído
+                </div>
+                <div style={{
+                  fontFamily: fontFamily.primary,
+                  fontSize:   fontSize.small,
+                  color:      lightColors.text.secondary,
+                  lineHeight: 1.5,
+                }}>
+                  Volte amanhã para continuar sua sequência. Você ainda pode atualizar como foi seu dia.
+                </div>
+              </div>
+            </div>
+          </GLPYCard>
+        )}
 
         {/* ── Card 2 — Resumo diário ─────────────────────────────────────────── */}
         <GLPYCard variant="light">
@@ -452,7 +515,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
               color:        lightColors.brand.greenDark,
               marginBottom: 4,
             }}>
-              +80 XP
+              {alreadyDoneToday ? 'Atualizado ✓' : '+80 XP'}
             </div>
             <p style={{
               fontFamily: fontFamily.primary,
@@ -461,7 +524,9 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
               lineHeight: 1.5,
               margin:     0,
             }}>
-              Check-in concluído. Mais um passo na sua evolução.
+              {alreadyDoneToday
+                ? 'Seu humor foi atualizado para hoje.'
+                : 'Check-in concluído. Mais um passo na sua evolução.'}
             </p>
           </GLPYCard>
         )}
@@ -474,7 +539,11 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
           disabled={checkInState !== 'idle'}
           onClick={handleCheckIn}
         >
-          {checkInState === 'saving' ? 'Salvando...' : checkInState === 'saved' ? 'Check-in salvo ✓' : 'Concluir check-in'}
+          {checkInState === 'saving'
+            ? 'Salvando...'
+            : checkInState === 'saved'
+              ? (alreadyDoneToday ? 'Check-in atualizado ✓' : 'Check-in salvo ✓')
+              : (alreadyDoneToday ? 'Atualizar check-in de hoje' : 'Concluir check-in')}
         </GLPYButton>
 
       </div>
