@@ -38,6 +38,15 @@ interface TreatmentSettingsScreenProps {
 
 import { GLPY_MEDICATION_OPTIONS } from '../../data/glpyMedicationOptions';
 
+// Remove sufixo " mg" se presente, converte separador e formata com 2 casas decimais.
+// Evita "2,5 mg mg" quando o valor salvo inclui a unidade.
+function normalizeDose(raw: string | null): string {
+  const clean = (raw ?? '').trim().replace(/\s*mg\s*/gi, '').trim();
+  const n = parseFloat(clean.replace(',', '.'));
+  if (isNaN(n) || n <= 0) return '';
+  return n.toFixed(2).replace('.', ',');
+}
+
 // ── Data ─────────────────────────────────────────────────────────────────────
 // MVP PLACEHOLDER — listas registráveis pelo usuário, sem recomendação clínica.
 
@@ -61,7 +70,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   const [selectedMedication,  setSelectedMedication]  = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro®');
   const [selectedFrequency,   setSelectedFrequency]   = useState(() => localStorage.getItem('glpy_frequencia')  || 'Semanal');
   const [customFrequencyDays, setCustomFrequencyDays] = useState('7');
-  const [dose,                setDose]                = useState(() => localStorage.getItem('glpy_dose')        || '2,5');
+  const [dose,                setDose]                = useState(() => normalizeDose(localStorage.getItem('glpy_dose')) || '2,50');
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
   const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');

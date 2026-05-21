@@ -194,12 +194,17 @@ if (path === '/admin') {
           onSave={(data) => {
             localStorage.setItem('glpy_medicamento', data.medication);
             localStorage.setItem('glpy_frequencia',  data.frequency);
-            if (data.dose) localStorage.setItem('glpy_dose', data.dose);
+            const parsedDose = parseFloat(
+              (data.dose || '').replace(',', '.').replace(/[^0-9.]/g, '')
+            );
+            if (!isNaN(parsedDose) && parsedDose > 0) {
+              localStorage.setItem('glpy_dose', String(parsedDose));
+            }
             try {
               const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
               onb.medicamento = data.medication;
               onb.frequencia  = data.frequency;
-              if (data.dose) onb.dose = data.dose;
+              if (!isNaN(parsedDose) && parsedDose > 0) onb.dose = parsedDose;
               localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
             } catch {}
             window.location.href = '/preview/home-premium-v2';

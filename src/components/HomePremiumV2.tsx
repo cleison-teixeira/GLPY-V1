@@ -323,7 +323,12 @@ export default function HomePremiumV2() {
 
   const userHeight = onboarding.altura;
   const userName = onboarding.nome;
-  const userDose = onboarding.dose || '—';
+  const userDose = (() => {
+    const raw = onboarding.dose;
+    if (!raw || raw === '—') return '—';
+    const n = parseFloat(String(raw).replace(',', '.').replace(/[^0-9.]/g, ''));
+    return (isNaN(n) || n <= 0) ? '—' : formatUnit(n, 'mg', 2);
+  })();
   const userMedicamento = onboarding.medicamento || mockHomeData.performance.glp1.name;
 
   // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
