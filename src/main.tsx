@@ -497,6 +497,26 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/install-app-functional') {
+  import('./screens/operational/InstallAppFunctionalScreen.tsx').then(({ default: InstallAppFunctionalScreen }) => {
+    root.render(
+      <StrictMode>
+        <InstallAppFunctionalScreen />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/install-app-modal') {
+  import('./screens/operational/InstallAppModalScreen.tsx').then(({ default: InstallAppModalScreen }) => {
+    root.render(
+      <StrictMode>
+        <InstallAppModalScreen
+          onInstall={() => { alert('Prompt de instalação — implementar em produção'); }}
+          onGuide={() => { window.location.href = '/preview/install-app-modal'; }}
+          onDismiss={() => { window.location.href = '/preview/home-premium-v2'; }}
+        />
+      </StrictMode>,
+    );
+  });
 } else {
   root.render(
     <StrictMode>
