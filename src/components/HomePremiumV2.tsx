@@ -1109,6 +1109,32 @@ export default function HomePremiumV2() {
                 onClick={() => goTo('/preview/body-measurements')}
                 className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
               >
+                {!hasValidProfile ? (
+                  <div className="space-y-3 py-1">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
+                      <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-full select-none">Pendente</span>
+                    </div>
+                    <p className="text-[11px] text-[#3D5A70] font-medium leading-relaxed">
+                      Complete seu perfil para iniciar seu histórico corporal.
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(['Cintura', 'Busto', 'Coxa', 'Panturrilha'] as const).map(l => (
+                        <div key={l} className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
+                          <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">{l}</span>
+                          <span className="text-[12px] font-extrabold text-slate-300 font-mono leading-none">— cm</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); window.location.href = '/'; }}
+                      className="w-full text-[10px] font-extrabold text-[#00C27A] uppercase tracking-wide py-1 text-center"
+                    >
+                      Configurar perfil
+                    </button>
+                  </div>
+                ) : (
+                <>
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
@@ -1195,6 +1221,8 @@ export default function HomePremiumV2() {
                   </div>
 
                 </div>
+                </>
+                )}
               </div>
 
               {/* SECTION: CENTRO DE PERFORMANCE */}
@@ -1473,55 +1501,94 @@ export default function HomePremiumV2() {
 
                 {/* SECTION: PROTOCOLO EM ANDAMENTO */}
                 <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
-                  <button
-                    onClick={() => goTo('/preview/protocols')}
-                    className="text-[#00C27A] text-[10px] font-bold tracking-tight uppercase hover:underline"
-                  >
-                    Ver todos
-                  </button>
-                </div>
 
-                <div
-                  onClick={() => goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocols')}
-                  className="flex items-center gap-3 cursor-pointer active:opacity-80 transition"
-                >
-                  <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shrink-0 shadow-sm">
-                    <Shield className="w-7 h-7 text-white stroke-[2.2]" />
-                  </div>
-                  <div className="flex-1 space-y-0.5">
+                {!hasValidProfile ? (
+                  <>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-extrabold bg-[#E2EBE7] text-emerald-800 px-2 py-0.5 rounded-full">
-                        {activeProtocol.name}
-                      </span>
-                      <span className="text-[10px] text-[#3D5A70] font-extrabold font-mono">
-                        {protocolPercent}% concluído
-                      </span>
+                      <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
                     </div>
-                    <span className="text-xs font-extrabold text-[#0A1628] block mt-1">
-                      {activeProtocol.name} • Dia {activeProtocol.currentDay} de {activeProtocol.totalDays}
-                    </span>
-                    <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
-                      <div className="bg-[#00C27A] h-full" style={{ width: `${protocolPercent}%` }} />
+                    <div className="flex items-center gap-3">
+                      <div className="w-[52px] h-[52px] rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <Shield className="w-7 h-7 text-slate-300 stroke-[2.2]" />
+                      </div>
+                      <div className="flex-1 space-y-0.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-extrabold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
+                            Aguardando perfil
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-extrabold font-mono">0% concluído</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-slate-500 block mt-1">
+                          Protocolo aguardando perfil • Dia 0 de 7
+                        </span>
+                        <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
+                          <div className="bg-[#00C27A] h-full" style={{ width: '0%' }} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                    <p className="text-[10px] text-[#3D5A70] font-medium">
+                      Complete o onboarding para iniciar o Dia 1 de 7.
+                    </p>
+                    <button
+                      onClick={() => { window.location.href = '/'; }}
+                      className="w-full bg-[#00C27A] text-white text-sm font-extrabold py-2.5 rounded-2xl active:opacity-80 transition"
+                    >
+                      Começar agora
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
+                      <button
+                        onClick={() => goTo('/preview/protocols')}
+                        className="text-[#00C27A] text-[10px] font-bold tracking-tight uppercase hover:underline"
+                      >
+                        Ver todos
+                      </button>
+                    </div>
 
-                {/* Promotional direct link */}
-                <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/5 rounded-2xl p-3 border border-emerald-100 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
-                    <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
-                  </div>
-                  <button
-                    onClick={() => goTo('/preview/protocols')}
-                    className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
-                  >
-                    <span>Entrar</span>
-                    <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-                  </button>
-                </div>
+                    <div
+                      onClick={() => goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocols')}
+                      className="flex items-center gap-3 cursor-pointer active:opacity-80 transition"
+                    >
+                      <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <Shield className="w-7 h-7 text-white stroke-[2.2]" />
+                      </div>
+                      <div className="flex-1 space-y-0.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-extrabold bg-[#E2EBE7] text-emerald-800 px-2 py-0.5 rounded-full">
+                            {activeProtocol.name}
+                          </span>
+                          <span className="text-[10px] text-[#3D5A70] font-extrabold font-mono">
+                            {protocolPercent}% concluído
+                          </span>
+                        </div>
+                        <span className="text-xs font-extrabold text-[#0A1628] block mt-1">
+                          {activeProtocol.name} • Dia {activeProtocol.currentDay} de {activeProtocol.totalDays}
+                        </span>
+                        <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
+                          <div className="bg-[#00C27A] h-full" style={{ width: `${protocolPercent}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Promotional direct link */}
+                    <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/5 rounded-2xl p-3 border border-emerald-100 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
+                        <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
+                      </div>
+                      <button
+                        onClick={() => goTo('/preview/protocols')}
+                        className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
+                      >
+                        <span>Entrar</span>
+                        <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+                      </button>
+                    </div>
+                  </>
+                )}
 
               </div>
             </div>
@@ -1532,7 +1599,9 @@ export default function HomePremiumV2() {
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
-                  <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">{mockHomeData.social}</span>
+                  <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">
+                    {hasValidProfile ? mockHomeData.social : 'Complete seu perfil para entrar na jornada GLPY.'}
+                  </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </div>
