@@ -82,7 +82,7 @@ const STEPS: Step[] = [
     title: "Qual o seu objetivo?",
     subtitle: "Isso define seu protocolo principal",
     type: "options",
-    options: ["Emagrecimento", "Manutenção do peso", "Saúde metabólica", "Controle do diabetes"],
+    options: ["Emagrecimento", "Evitar o efeito rebote", "Manutenção do peso", "Parar a caneta com segurança", "Saúde metabólica", "Controle do diabetes"],
   },
   {
     id: "altura",
