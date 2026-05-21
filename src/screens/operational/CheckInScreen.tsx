@@ -50,7 +50,11 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   function handleCheckIn() {
     setCheckInCompleted(true);
     const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem('glpy_checkin_hoje', today);
+    localStorage.setItem('glpy_checkin_hoje', JSON.stringify({
+      date:       today,
+      dayFeeling: selectedDayFeeling,
+      savedAt:    Date.now(),
+    }));
     const hist: string[] = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]');
     if (!hist.includes(today)) {
       hist.push(today);

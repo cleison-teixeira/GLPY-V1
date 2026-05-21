@@ -55,17 +55,21 @@ const FREQUENCY_OPTIONS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type TreatSaveState = 'idle' | 'saving' | 'saved';
+
 export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' }: TreatmentSettingsScreenProps) {
-  const [selectedMedication,  setSelectedMedication]  = useState('Mounjaro®');
-  const [selectedFrequency,   setSelectedFrequency]   = useState('Semanal');
+  const [selectedMedication,  setSelectedMedication]  = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro®');
+  const [selectedFrequency,   setSelectedFrequency]   = useState(() => localStorage.getItem('glpy_frequencia')  || 'Semanal');
   const [customFrequencyDays, setCustomFrequencyDays] = useState('7');
-  const [dose,                setDose]                = useState('2,5');
+  const [dose,                setDose]                = useState(() => localStorage.getItem('glpy_dose')        || '2,5');
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
+  const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');
 
   const normalizedDose = dose.trim().replace(',', '.');
   const doseNum        = parseFloat(normalizedDose);
   const isDoseValid    = dose.trim() !== '' && !isNaN(doseNum) && doseNum > 0;
+  const doseWarning    = isDoseValid && doseNum > 30;
 
   const frequencyDisplayValue =
     selectedFrequency === 'Personalizada'
@@ -84,13 +88,12 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   }
 
   function handleSave() {
-    console.log(`[GLPY] Treatment saved (${mode}):`, {
-      medication:         selectedMedication,
-      frequency:          selectedFrequency,
-      customFrequencyDays,
-      dose,
-    });
-    onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose });
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose }), 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -248,6 +251,17 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
               centerWithUnit
               placeholder="0"
             />
+            {doseWarning && (
+              <p style={{
+                fontFamily:  fontFamily.primary,
+                fontSize:    fontSize.small,
+                color:       '#C05000',
+                marginTop:   gap.small,
+                lineHeight:  1.45,
+              }}>
+                ⚠️ Confira a dose informada. Doses acima de 30 mg não são habituais — certifique-se de que está correto com seu profissional de saúde.
+              </p>
+            )}
           </GLPYCard>
 
           {/* ── Card 4 — Dica GLPY ───────────────────────────────────────────── */}
@@ -274,10 +288,13 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
             variant="primary"
             size="lg"
             fullWidth
-            disabled={!isDoseValid}
+            disabled={!isDoseValid || doseWarning || saveState !== 'idle'}
             onClick={handleSave}
           >
-            {mode === 'onboarding' ? 'Continuar' : 'Salvar tratamento'}
+            {saveState === 'saving' ? 'Salvando...'
+              : saveState === 'saved' ? 'Tratamento salvo ✓'
+              : mode === 'onboarding' ? 'Continuar'
+              : 'Salvar tratamento'}
           </GLPYButton>
 
         </div>

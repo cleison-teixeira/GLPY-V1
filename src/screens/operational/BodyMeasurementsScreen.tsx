@@ -41,6 +41,8 @@ function loadSavedMeasures(): Record<string, string> {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type SaveState = 'idle' | 'saving' | 'saved';
+
 export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasurementsScreenProps) {
   const [waist,   setWaist]   = useState(() => loadSavedMeasures().waist   || '84');
   const [hip,     setHip]     = useState(() => loadSavedMeasures().hip     || '104');
@@ -48,14 +50,17 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
   const [chest,   setChest]   = useState(() => loadSavedMeasures().chest   || '96');
   const [arm,     setArm]     = useState(() => loadSavedMeasures().arm     || '32');
   const [thigh,   setThigh]   = useState(() => loadSavedMeasures().thigh   || '58');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
 
   const canSave = [waist, hip, abdomen, chest, arm, thigh].every(isValidMeasurement);
 
   function handleSave() {
-    console.log('[GLPY] Body measurements saved:', {
-      waist, hip, abdomen, chest, arm, thigh,
-    });
-    onSave?.({ waist, hip, abdomen, chest, arm, thigh });
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    setTimeout(() => {
+      setSaveState('saved');
+      setTimeout(() => onSave?.({ waist, hip, abdomen, chest, arm, thigh }), 900);
+    }, 500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -280,10 +285,10 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
           variant="primary"
           size="lg"
           fullWidth
-          disabled={!canSave}
+          disabled={!canSave || saveState !== 'idle'}
           onClick={handleSave}
         >
-          Salvar medidas
+          {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Medidas salvas ✓' : 'Salvar medidas'}
         </GLPYButton>
 
       </div>

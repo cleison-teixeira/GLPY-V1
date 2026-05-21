@@ -28,6 +28,13 @@ interface MealOption {
   icon:  React.ReactNode;
 }
 
+interface MealEntry {
+  mealType:    MealType;
+  description: string;
+  photoAdded:  boolean;
+  savedAt:     number;
+}
+
 interface FoodLogScreenProps {
   onBack?: () => void;
   onSave?: (data: { mealType: MealType; description: string; photoAdded: boolean }) => void;
@@ -44,19 +51,31 @@ const MEAL_OPTIONS: MealOption[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type MealSaveState = 'idle' | 'saving' | 'saved';
+
 export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
   const [mealType,    setMealType]    = useState<MealType>('lunch');
   const [description, setDescription] = useState('');
   const [photoAdded,  setPhotoAdded]  = useState(false);
+  const [saveState,   setSaveState]   = useState<MealSaveState>('idle');
+  const [todayMeals,  setTodayMeals]  = useState<MealEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]'); }
+    catch { return []; }
+  });
 
   function handleAddPhoto() {
-    console.log('[GLPY] Adicionar foto — MealInsightEngine (futuro)');
     setPhotoAdded(true);
   }
 
   function handleSave() {
-    console.log('[GLPY] Meal saved:', { mealType, description, photoAdded });
-    onSave?.({ mealType, description, photoAdded });
+    if (saveState !== 'idle') return;
+    setSaveState('saving');
+    setTimeout(() => {
+      setSaveState('saved');
+      const newEntry: MealEntry = { mealType, description, photoAdded, savedAt: Date.now() };
+      setTodayMeals(prev => [...prev, newEntry]);
+      setTimeout(() => onSave?.({ mealType, description, photoAdded }), 900);
+    }, 500);
   }
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -147,6 +166,55 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
     lineHeight:   1.5,
     boxSizing:    'border-box',
     transition:   transition.default,
+  };
+
+  // meal history
+  const MEAL_LABEL: Record<MealType, string> = {
+    breakfast: 'Café da manhã',
+    lunch:     'Almoço',
+    dinner:    'Jantar',
+    snack:     'Lanche',
+  };
+
+  const historyRowStyle: React.CSSProperties = {
+    display:       'flex',
+    alignItems:    'center',
+    gap:           10,
+    paddingTop:    7,
+    paddingBottom: 7,
+  };
+
+  const historyDividerStyle: React.CSSProperties = {
+    height:     0.5,
+    background: lightColors.border.soft,
+  };
+
+  const historyLabelStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    fontWeight: fontWeight.h3,
+    color:      lightColors.text.navy,
+    flex:       1,
+  };
+
+  const historyDescStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   11,
+    color:      lightColors.text.secondary,
+    maxWidth:   160,
+    overflow:   'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
+  const historyEmptyStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   fontSize.small,
+    color:      lightColors.text.secondary,
+    textAlign:  'center',
+    paddingTop: 4,
+    paddingBottom: 4,
+    lineHeight: 1.5,
   };
 
   // dica card
@@ -273,14 +341,46 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
           </p>
         </GLPYCard>
 
+        {/* ── Refeições de hoje ────────────────────────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={cardTitleRowStyle}>
+            <div style={cardIconWrap}>
+              <Utensils size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={cardTitleStyle}>Refeições de hoje</span>
+          </div>
+          {todayMeals.length === 0 ? (
+            <p style={historyEmptyStyle}>Nenhuma refeição registrada hoje ainda.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {todayMeals.map((entry, index) => (
+                <React.Fragment key={entry.savedAt}>
+                  {index > 0 && <div style={historyDividerStyle} />}
+                  <div style={historyRowStyle}>
+                    <span style={historyLabelStyle}>{MEAL_LABEL[entry.mealType]}</span>
+                    {entry.description
+                      ? <span style={historyDescStyle}>{entry.description}</span>
+                      : null
+                    }
+                    {entry.photoAdded && (
+                      <Check size={14} color={lightColors.brand.greenDark} strokeWidth={2.5} />
+                    )}
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </GLPYCard>
+
         {/* ── CTA ──────────────────────────────────────────────────────────── */}
         <GLPYButton
           variant="primary"
           size="lg"
           fullWidth
+          disabled={saveState !== 'idle'}
           onClick={handleSave}
         >
-          Salvar refeição
+          {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Refeição salva ✓' : 'Salvar refeição'}
         </GLPYButton>
 
       </div>

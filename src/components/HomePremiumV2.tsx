@@ -261,7 +261,10 @@ export default function HomePremiumV2() {
   });
   const [isCheckInDone] = useState<boolean>(() => {
     const today = new Date().toISOString().split('T')[0];
-    return localStorage.getItem('glpy_checkin_hoje') === today;
+    const raw = localStorage.getItem('glpy_checkin_hoje');
+    if (!raw) return false;
+    if (raw === today) return true;
+    try { return JSON.parse(raw).date === today; } catch { return false; }
   });
   const [bodyMeasures] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
@@ -275,13 +278,21 @@ export default function HomePremiumV2() {
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
-  // Computed weights — weightStart permanece mockado; goal/height/name são reais
-  const lostKg = parseFloat((mockHomeData.user.weightStart - weightCurrent).toFixed(1));
+  // Computed weights — weightStart lido do dados reais do usuário
+  const weightStart = (() => {
+    try {
+      const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
+      const rsWeight = parseFloat(String(rs.initialWeight ?? ''));
+      if (!isNaN(rsWeight) && rsWeight > 0) return rsWeight;
+    } catch { /* ignore */ }
+    return onboarding.pesoInicial > 0 ? onboarding.pesoInicial : mockHomeData.user.weightStart;
+  })();
+  const lostKg = parseFloat(Math.max(0, weightStart - weightCurrent).toFixed(1));
   const toGoKg = parseFloat(Math.max(0, weightCurrent - weightGoal).toFixed(1));
-  const totalRange = mockHomeData.user.weightStart - weightGoal;
+  const totalRange = weightStart - weightGoal;
   const progressPercent = totalRange > 0
-    ? Math.min(100, Math.max(0, Math.round((lostKg / totalRange) * 100)))
-    : 0;
+    ? Math.min(100, Math.max(0, Math.round(((weightStart - weightCurrent) / totalRange) * 100)))
+    : weightCurrent <= weightGoal ? 100 : 0;
   const bmi = userHeight > 0
     ? parseFloat((weightCurrent / (userHeight * userHeight)).toFixed(1))
     : null;
@@ -663,7 +674,7 @@ export default function HomePremiumV2() {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-[#3D5A70] font-bold uppercase tracking-wider">
-                    <span>Início ({mockHomeData.user.weightStart} kg)</span>
+                    <span>Início ({weightStart} kg)</span>
                     <span>Meta ({weightGoal} kg)</span>
                   </div>
                 </div>
@@ -803,14 +814,14 @@ export default function HomePremiumV2() {
                 onClick={() => goTo('/preview/body-measurements')}
                 className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
               >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-0.5">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex flex-col gap-0.5 min-w-0">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none inline-block whitespace-nowrap">
+                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none" style={{ display: 'inline-block', whiteSpace: 'nowrap', width: 'fit-content' }}>
                       {mockHomeData.evolution.days} dias de foco
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5" />
+                  <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5 shrink-0" />
                 </div>
 
                 <div className="grid grid-cols-12 gap-2 items-stretch">

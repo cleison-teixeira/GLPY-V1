@@ -182,10 +182,12 @@ if (path === '/admin') {
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
           onSave={(data) => {
             localStorage.setItem('glpy_medicamento', data.medication);
+            localStorage.setItem('glpy_frequencia',  data.frequency);
             if (data.dose) localStorage.setItem('glpy_dose', data.dose);
             try {
               const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
               onb.medicamento = data.medication;
+              onb.frequencia  = data.frequency;
               if (data.dose) onb.dose = data.dose;
               localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
             } catch {}
@@ -199,7 +201,7 @@ if (path === '/admin') {
   import('./screens/operational/SideEffectsScreen.tsx').then(({ default: SideEffectsScreen }) => {
     root.render(
       <StrictMode>
-        <SideEffectsScreen onBack={() => { window.location.href = '/'; }} />
+        <SideEffectsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });

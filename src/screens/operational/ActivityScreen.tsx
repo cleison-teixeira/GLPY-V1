@@ -235,7 +235,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     position:   'fixed',
     inset:      0,
     background: 'rgba(0,0,0,0.30)',
-    zIndex:     99,
+    zIndex:     9998,
   };
 
   const sheetStyle: React.CSSProperties = {
@@ -249,10 +249,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     background:    lightColors.background.primary,
     borderRadius:  '24px 24px 0 0',
     boxShadow:     '0 -8px 32px rgba(0,0,0,0.12)',
-    zIndex:        100,
+    zIndex:        9999,
     display:       'flex',
     flexDirection: 'column',
     overflow:      'hidden',
+    paddingBottom: 'env(safe-area-inset-bottom)',
   };
 
   const sheetHandleStyle: React.CSSProperties = {
@@ -278,9 +279,10 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   };
 
   const listStyle: React.CSSProperties = {
-    flex:      1,
-    overflowY: 'auto',
-    padding:   '8px 12px 24px',
+    flex:                       1,
+    overflowY:                  'auto',
+    padding:                    '8px 12px 24px',
+    WebkitOverflowScrolling:    'touch',
   };
 
   function sheetRowStyle(selected: boolean): React.CSSProperties {
@@ -334,6 +336,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   };
 
   return (
+    <>
     <GLPYScreen variant="light">
       <GLPYHeader title="Atividade" onBack={onBack} />
 
@@ -507,6 +510,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
 
       </div>
 
+    </GLPYScreen>
+
+    {/* ── Modals rendered outside GLPYScreen to avoid fixed-positioning issues
+        with the screen-entry animation's transform stacking context ── */}
+
       {/* ── Activity Modal ────────────────────────────────────────────────────── */}
       {activityModalOpen && (
         <>
@@ -656,6 +664,6 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
         </>
       )}
 
-    </GLPYScreen>
+    </>
   );
 }

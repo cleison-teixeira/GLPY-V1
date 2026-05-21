@@ -56,12 +56,12 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
   const [dose]       = useState(() => localStorage.getItem('glpy_dose')        || '2,5 mg');
   const [frequency]  = useState('Semanal');
 
-  function handleEditConfig(field: string) {
-    console.log('[GLPY] Edit treatment config:', field, '— TreatmentSettingsScreen (futuro)');
+  function handleEditConfig(_field: string) {
+    window.location.href = '/preview/treatment-settings';
   }
 
   function handleSymptoms() {
-    console.log('[GLPY] Abrir SideEffectsScreen — futuro');
+    window.location.href = '/preview/side-effects';
   }
 
   function handleSave() {
