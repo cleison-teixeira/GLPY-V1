@@ -146,7 +146,16 @@ if (path === '/admin') {
       <StrictMode>
         <FoodLogScreen
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
-          onSave={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(data) => {
+            try {
+              const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
+              existing.push({ ...data, savedAt: Date.now() });
+              localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
+            } catch {
+              localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
+            }
+            window.location.href = '/preview/home-premium-v2';
+          }}
         />
       </StrictMode>,
     );
@@ -215,7 +224,13 @@ if (path === '/admin') {
         <BodyMeasurementsScreen
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
           onSave={(data) => {
-            localStorage.setItem('glpy_medidas_corporais', JSON.stringify({ ...data, savedAt: Date.now() }));
+            localStorage.setItem('glpy_medidas_corporais', JSON.stringify({
+              ...data,
+              cintura: data.waist,
+              busto:   data.chest,
+              coxa:    data.thigh,
+              savedAt: Date.now(),
+            }));
             window.location.href = '/preview/home-premium-v2';
           }}
         />

@@ -34,9 +34,8 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     setPhotoAdded(prev => !prev);
   }
 
-  // Futuramente este botão abrirá a VisualProgressShareScreen.
   function handleViewProgress() {
-    console.log('[GLPY] open_visual_progress_share_screen');
+    window.location.href = '/preview/visual-progress-share';
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────

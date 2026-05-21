@@ -47,10 +47,23 @@ interface EmotionScreenProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EmotionScreen({ onBack, onSave }: EmotionScreenProps) {
-  const [selectedMood,   setSelectedMood]   = useState<Mood>('Bem');
-  const [selectedEnergy, setSelectedEnergy] = useState<Energy>('Média');
-  const [note,           setNote]           = useState('');
-  const [moodModalOpen,  setMoodModalOpen]  = useState(false);
+  const [selectedMood, setSelectedMood] = useState<Mood>(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}');
+      return (MOOD_OPTIONS as readonly string[]).includes(d.mood) ? (d.mood as Mood) : 'Bem';
+    } catch { return 'Bem'; }
+  });
+  const [selectedEnergy, setSelectedEnergy] = useState<Energy>(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}');
+      return (['Baixa', 'Média', 'Alta'] as string[]).includes(d.energy) ? (d.energy as Energy) : 'Média';
+    } catch { return 'Média'; }
+  });
+  const [note, setNote] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}').note || ''; }
+    catch { return ''; }
+  });
+  const [moodModalOpen, setMoodModalOpen] = useState(false);
 
   function handleSave() {
     console.log('[GLPY] Emotion saved:', {

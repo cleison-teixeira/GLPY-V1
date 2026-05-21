@@ -46,10 +46,15 @@ const SITE_OPTIONS: SiteOption[] = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps) {
-  const [selectedSite, setSelectedSite] = useState<InjectionSite>('abdomen');
-  const [medication]                     = useState('Mounjaro');
-  const [dose]                           = useState('2,5 mg');
-  const [frequency]                      = useState('Semanal');
+  const [selectedSite, setSelectedSite] = useState<InjectionSite>(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('glpy_injecao_ultima') || '{}').site;
+      return (['abdomen', 'thigh', 'arm'] as InjectionSite[]).includes(s) ? s : 'abdomen';
+    } catch { return 'abdomen'; }
+  });
+  const [medication] = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro');
+  const [dose]       = useState(() => localStorage.getItem('glpy_dose')        || '2,5 mg');
+  const [frequency]  = useState('Semanal');
 
   function handleEditConfig(field: string) {
     console.log('[GLPY] Edit treatment config:', field, '— TreatmentSettingsScreen (futuro)');

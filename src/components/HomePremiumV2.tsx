@@ -251,8 +251,22 @@ export default function HomePremiumV2() {
   const targetWaterL    = nutritionTargets?.waterLiters    ?? mockHomeData.nutrients.water.target;
 
   // Interactive UI state proxies
-  const [waterAmount, setWaterAmount] = useState<number>(mockHomeData.nutrients.water.current);
-  const [streakDays] = useState<number>(0);
+  const [waterAmount, setWaterAmount] = useState<number>(() => {
+    try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? mockHomeData.nutrients.water.current : v; }
+    catch { return mockHomeData.nutrients.water.current; }
+  });
+  const [streakDays] = useState<number>(() => {
+    try { return (JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]') as string[]).length; }
+    catch { return 0; }
+  });
+  const [isCheckInDone] = useState<boolean>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return localStorage.getItem('glpy_checkin_hoje') === today;
+  });
+  const [bodyMeasures] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
+    catch { return {}; }
+  });
   const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
 
   // Popups & modals
@@ -536,9 +550,6 @@ export default function HomePremiumV2() {
                     className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition"
                   >
                     <Bell className="w-5 h-5 text-[#3D5A70]" />
-                    <span className="absolute top-1 right-1 w-[15px] h-[15px] bg-[#E8445A] rounded-full text-white text-[9px] font-bold flex items-center justify-center border border-white">
-                      6
-                    </span>
                   </button>
                   
                   <div 
@@ -562,9 +573,9 @@ export default function HomePremiumV2() {
                   <p className="text-[#3D5A70] text-xs font-semibold">Foco hoje, liberdade amanhã.</p>
                 </div>
 
-                <button 
+                <button
                   onClick={handleToggleCheckin}
-                  className="bg-white hover:bg-emerald-50 text-[#00C27A] py-2 px-3 rounded-2xl border border-[#E2EBE7] flex items-center gap-2 hover:border-[#00C27A] transition active:scale-95 shrink-0"
+                  className={`py-2 px-3 rounded-2xl border flex items-center gap-2 transition active:scale-95 shrink-0 ${isCheckInDone ? 'bg-emerald-50 border-[#00C27A] text-[#00C27A]' : 'bg-white hover:bg-emerald-50 border-[#E2EBE7] hover:border-[#00C27A] text-[#00C27A]'}`}
                 >
                   <div className="relative">
                     <Flame className="w-5 h-5 text-[#E8445A] fill-[#E8445A]" />
@@ -795,7 +806,7 @@ export default function HomePremiumV2() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-0.5">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none inline-block">
+                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none inline-block whitespace-nowrap">
                       {mockHomeData.evolution.days} dias de foco
                     </span>
                   </div>
@@ -810,7 +821,7 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura ?? mockHomeData.evolution.cintura.current} cm</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
                       </div>
                     </div>
@@ -818,7 +829,7 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto ?? mockHomeData.evolution.busto.current} cm</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.busto.change} cm</span>
                       </div>
                     </div>
@@ -826,7 +837,7 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa ?? mockHomeData.evolution.coxa.current} cm</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
                       </div>
                     </div>
@@ -834,7 +845,7 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Panturrilha</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} cm</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
                       </div>
                     </div>
@@ -1380,12 +1391,16 @@ export default function HomePremiumV2() {
             <span className="text-[9px] font-bold mt-1">Progresso</span>
           </button>
 
-          <button 
+          <button
             onClick={() => { setActiveTab("perfil"); }}
-            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+            className="flex flex-col items-center justify-center w-12 h-12 transition"
           >
-            <User className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[9px] font-bold mt-1">Perfil</span>
+            <img
+              src={mockHomeData.user.avatarUrl}
+              alt="Perfil"
+              className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}
+            />
+            <span className={`text-[9px] font-bold mt-1 ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400"}`}>Perfil</span>
           </button>
 
         </div>

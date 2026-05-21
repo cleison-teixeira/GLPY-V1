@@ -67,18 +67,30 @@ function calculateCalories(duration: string, intensity: string): number {
 
 export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) {
   // ── State ──────────────────────────────────────────────────────────────────
-  const [selectedActivity,   setSelectedActivity]   = useState('caminhada');
-  const [activityModalOpen,  setActivityModalOpen]  = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').activity || 'caminhada'; }
+    catch { return 'caminhada'; }
+  });
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
 
-  const [selectedDuration,   setSelectedDuration]   = useState('30');
+  const [selectedDuration, setSelectedDuration] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').duration || '30'; }
+    catch { return '30'; }
+  });
   const [durationModalOpen,  setDurationModalOpen]  = useState(false);
   const [showCustomInput,    setShowCustomInput]     = useState(false);
   const [customDuration,     setCustomDuration]      = useState('30');
 
-  const [selectedIntensity,  setSelectedIntensity]  = useState('Moderada');
+  const [selectedIntensity, setSelectedIntensity] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').intensity || 'Moderada'; }
+    catch { return 'Moderada'; }
+  });
   const [intensityModalOpen, setIntensityModalOpen] = useState(false);
 
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').note || ''; }
+    catch { return ''; }
+  });
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const selectedActivityLabel =

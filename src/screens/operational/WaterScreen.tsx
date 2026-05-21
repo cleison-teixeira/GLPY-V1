@@ -39,7 +39,10 @@ interface WaterScreenProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
-  const [waterAmount, setWaterAmount] = useState(1.2);
+  const [waterAmount, setWaterAmount] = useState(() => {
+    try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? 1.2 : v; }
+    catch { return 1.2; }
+  });
 
   const remaining       = Math.max(0, DAILY_GOAL - waterAmount);
   const progressPercent = Math.min((waterAmount / DAILY_GOAL) * 100, 100);

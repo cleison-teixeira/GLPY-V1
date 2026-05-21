@@ -34,15 +34,20 @@ function isValidMeasurement(value: string): boolean {
   return !isNaN(n) && n > 0;
 }
 
+function loadSavedMeasures(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
+  catch { return {}; }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasurementsScreenProps) {
-  const [waist,   setWaist]   = useState('84');
-  const [hip,     setHip]     = useState('104');
-  const [abdomen, setAbdomen] = useState('92');
-  const [chest,   setChest]   = useState('96');
-  const [arm,     setArm]     = useState('32');
-  const [thigh,   setThigh]   = useState('58');
+  const [waist,   setWaist]   = useState(() => loadSavedMeasures().waist   || '84');
+  const [hip,     setHip]     = useState(() => loadSavedMeasures().hip     || '104');
+  const [abdomen, setAbdomen] = useState(() => loadSavedMeasures().abdomen || '92');
+  const [chest,   setChest]   = useState(() => loadSavedMeasures().chest   || '96');
+  const [arm,     setArm]     = useState(() => loadSavedMeasures().arm     || '32');
+  const [thigh,   setThigh]   = useState(() => loadSavedMeasures().thigh   || '58');
 
   const canSave = [waist, hip, abdomen, chest, arm, thigh].every(isValidMeasurement);
 
@@ -171,16 +176,16 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
           </p>
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
-              <span style={summaryLabelStyle}>Último registro</span>
-              <span style={summaryValueStyle}>12/05/2026</span>
-            </div>
-            <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Cintura</span>
-              <span style={summaryValueStyle}>84 cm</span>
+              <span style={summaryValueStyle}>{waist} cm</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Quadril</span>
-              <span style={summaryValueStyle}>104 cm</span>
+              <span style={summaryValueStyle}>{hip} cm</span>
+            </div>
+            <div style={summaryRowStyle}>
+              <span style={summaryLabelStyle}>Coxa</span>
+              <span style={summaryValueStyle}>{thigh} cm</span>
             </div>
           </div>
         </GLPYCard>
