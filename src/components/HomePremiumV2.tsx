@@ -241,6 +241,8 @@ export default function HomePremiumV2() {
   const weightGoal = onboarding.pesoMeta;
   const userHeight = onboarding.altura;
   const userName = onboarding.nome;
+  const userDose = onboarding.dose || '—';
+  const userMedicamento = onboarding.medicamento || mockHomeData.performance.glp1.name;
 
   // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
   const targetProteinG  = nutritionTargets?.proteinGrams  ?? mockHomeData.nutrients.protein.target;
@@ -943,14 +945,14 @@ export default function HomePremiumV2() {
                   
                   {/* Card 1: Medicação */}
                   <div 
-                    onClick={() => triggerToast(`💉 Medicação: Próxima dose ativa de ${mockHomeData.performance.glp1.currentDose}`)} 
+                    onClick={() => triggerToast(`💉 Medicação: Próxima dose ativa de ${userDose}`)} 
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] hover:border-[#00C27A] shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00C27A] flex items-center justify-center shrink-0 border border-emerald-100/30">
                         <Syringe className="w-4 h-4 text-[#00C27A] stroke-[2.2]" />
                       </div>
-                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{mockHomeData.performance.glp1.name}</span>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{userMedicamento}</span>
                     </div>
 
                     <div className="space-y-1">
@@ -961,7 +963,7 @@ export default function HomePremiumV2() {
                     <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
                       <div>
                         <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Dose</span>
-                        <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.glp1.currentDose}</span>
+                        <span className="font-black text-[#0a1628] font-mono">{userDose}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Efeitos</span>
