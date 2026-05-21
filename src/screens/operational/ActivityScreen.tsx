@@ -231,18 +231,21 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   // ── Compact selector row (shared) ─────────────────────────────────────────
 
   const selectorRowStyle: React.CSSProperties = {
-    height:         56,
-    borderRadius:   radius.input,
-    border:         `1.5px solid ${lightColors.border.soft}`,
-    background:     lightColors.background.primary,
-    boxShadow:      lightShadows.soft,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    padding:        '0 16px 0 20px',
-    cursor:         'pointer',
-    transition:     transition.default,
-    marginTop:      4,
+    height:                  56,
+    borderRadius:            radius.input,
+    border:                  `1.5px solid ${lightColors.border.soft}`,
+    background:              lightColors.background.primary,
+    boxShadow:               lightShadows.soft,
+    display:                 'flex',
+    alignItems:              'center',
+    justifyContent:          'space-between',
+    padding:                 '0 16px 0 20px',
+    cursor:                  'pointer',
+    transition:              transition.default,
+    marginTop:               4,
+    touchAction:             'manipulation',
+    WebkitTapHighlightColor: 'transparent',
+    userSelect:              'none',
   };
 
   const selectorValueStyle: React.CSSProperties = {
@@ -255,10 +258,14 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   // ── Bottom sheet (shared) ─────────────────────────────────────────────────
 
   const backdropStyle: React.CSSProperties = {
-    position:   'fixed',
-    inset:      0,
-    background: 'rgba(0,0,0,0.30)',
-    zIndex:     9998,
+    position:    'fixed',
+    top:         0,
+    right:       0,
+    bottom:      0,
+    left:        0,
+    background:  'rgba(0,0,0,0.30)',
+    zIndex:      9998,
+    touchAction: 'none',
   };
 
   const sheetStyle: React.CSSProperties = {
@@ -268,7 +275,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     transform:     'translateX(-50%)',
     width:         '100%',
     maxWidth:      430,
-    maxHeight:     '78vh',
+    maxHeight:     '82vh',
     background:    lightColors.background.primary,
     borderRadius:  '24px 24px 0 0',
     boxShadow:     '0 -8px 32px rgba(0,0,0,0.12)',
@@ -310,18 +317,21 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
 
   function sheetRowStyle(selected: boolean): React.CSSProperties {
     return {
-      display:      'flex',
-      alignItems:   'center',
-      gap:          12,
-      padding:      '13px 12px',
-      borderRadius: 14,
-      border:       selected
+      display:                 'flex',
+      alignItems:              'center',
+      gap:                     12,
+      padding:                 '13px 12px',
+      borderRadius:            14,
+      border:                  selected
         ? `1px solid ${lightColors.brand.green}44`
         : '1px solid transparent',
-      background:   selected ? `${lightColors.brand.green}10` : 'transparent',
-      cursor:       'pointer',
-      transition:   transition.default,
-      marginBottom: 2,
+      background:              selected ? `${lightColors.brand.green}10` : 'transparent',
+      cursor:                  'pointer',
+      transition:              transition.default,
+      marginBottom:            2,
+      touchAction:             'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+      userSelect:              'none',
     };
   }
 
@@ -670,7 +680,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {intensityModalOpen && (
         <>
           <div style={backdropStyle} onClick={() => { if (Date.now() - intensityOpenTimeRef.current < 400) return; setIntensityModalOpen(false); }} />
-          <div style={{ ...sheetStyle, maxHeight: 'auto' }}>
+          <div style={sheetStyle}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>
               <span style={sheetTitleStyle}>Selecionar intensidade</span>
