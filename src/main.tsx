@@ -262,6 +262,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/home-premium-v2') {
+  import('./components/HomePremiumV2.tsx').then(({ default: HomePremiumV2 }) => {
+    root.render(
+      <StrictMode>
+        <HomePremiumV2 />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/daily-targets-test') {
   import('./screens/debug/DailyTargetsTestScreen.tsx').then(({ default: DailyTargetsTestScreen }) => {
     root.render(

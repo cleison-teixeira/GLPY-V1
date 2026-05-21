@@ -10,7 +10,7 @@ import {
   ChevronRight, Compass, ListChecks, TrendingDown, Syringe, Camera,
   Droplets, Utensils, Smile, Flame, Scale, CheckSquare, PlusCircle,
   HelpCircle, Ruler, Settings, AlertCircle, PlayCircle, Eye, Share2, Image,
-  Calendar, Award, Layers, Bot
+  Calendar, Award, Layers, Bot, Home
 } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard } from '../components/ui';
@@ -39,6 +39,7 @@ const PREVIEW_GROUPS: PreviewGroup[] = [
     title: 'Entrega Principal',
     Icon: Award,
     items: [
+      { name: 'Home Premium V2', path: '/preview/home-premium-v2', description: 'Nova Home premium visual isolada', Icon: Home },
       { name: 'Protocolos', path: '/preview/protocols', description: 'Biblioteca de protocolos GLPY', Icon: ListChecks },
       { name: 'Protocolo Anti-Rebote', path: '/preview/protocol-anti-rebote', description: 'Protocolo principal da oferta', Icon: Scale },
       { name: 'Receitas', path: '/preview/recipes', description: 'Receitas para a jornada GLP-1', Icon: Utensils },

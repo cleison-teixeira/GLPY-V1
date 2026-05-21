@@ -1,0 +1,1325 @@
+import React, { useState, useEffect } from "react";
+import {
+  Bell,
+  Flame,
+  Check,
+  Flag,
+  Ruler,
+  ChevronRight,
+  Syringe,
+  Dumbbell,
+  Pill,
+  Droplet,
+  GlassWater,
+  Smile,
+  Scale,
+  Camera,
+  Compass,
+  LineChart,
+  User,
+  Shield,
+  Sparkles,
+  Plus,
+  Utensils
+} from "lucide-react";
+
+// Mock data estruturado de forma limpa e isolada no topo
+export const mockHomeData = {
+  user: {
+    name: "Silvana",
+    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120&h=120",
+    streakCoins: 12,
+    weightCurrent: 72.6,
+    weightGoal: 60.0,
+    weightStart: 80.0,
+    weightLost: 7.4,
+    height: 1.65,
+    lastUpdate: "12/05/2024"
+  },
+  evolution: {
+    cintura: { current: 91, change: -5, unit: "cm" },
+    busto: { current: 91, change: -1, unit: "cm" },
+    coxa: { current: 53, change: -4, unit: "cm" },
+    panturrilha: { current: 41, change: -1, unit: "cm" },
+    days: 22
+  },
+  performance: {
+    glp1: { name: "GLP-1 / Medicação", nextDose: "Amanhã", currentDose: "1,0 mg", sideEffect: "Leves" },
+    activity: { name: "Atividade Física", stepsToday: 7842, stepsGoal: 10000, trainingThisWeek: 3, trainingGoal: 5, consistencyDays: 6 },
+    suplements: { name: "Suplementação", activeCount: 4, takenToday: 3, nextTime: "Magnésio" }
+  },
+  nutrients: {
+    proteins: { current: 1432, target: 1800, unit: "kcal", percent: 80 },
+    carbs: { current: 260, target: 300, unit: "g", percent: 87 },
+    lipids: { current: 69, target: 80, unit: "g", percent: 86 },
+    water: { current: 1.8, target: 2.5, unit: "L", percent: 72 }
+  },
+  actions: [
+    { id: "agua", label: "Água", icon: "GlassWater", color: "text-blue-500 bg-blue-50" },
+    { id: "refeicao", label: "Refeição", icon: "Utensils", color: "text-emerald-500 bg-emerald-50" },
+    { id: "emocao", label: "Emoção", icon: "Smile", color: "text-amber-500 bg-amber-50" },
+    { id: "peso", label: "Peso", icon: "Scale", color: "text-[#00C27A] bg-[#00C27A]/10" },
+    { id: "medida", label: "Medida", icon: "Ruler", color: "text-teal-500 bg-teal-50" },
+    { id: "aplicacao", label: "Aplicação", icon: "Syringe", color: "text-purple-500 bg-purple-50" },
+    { id: "foto", label: "Foto corporal", icon: "Camera", color: "text-pink-500 bg-pink-50" },
+    { id: "checkin", label: "Check-in", icon: "Check", color: "text-emerald-500 bg-emerald-50" }
+  ],
+  protocol: {
+    name: "Anti-Rebote",
+    module: "Módulo 1 de 4",
+    currentDay: 3,
+    totalDays: 7,
+    percentage: 42
+  },
+  social: "128.450 kg eliminados sem rebote 🔥"
+};
+
+interface ConfettiParticle {
+  id: number;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+  speedY: number;
+  speedX: number;
+  rotation: number;
+  rotationSpeed: number;
+}
+
+interface QuickToast {
+  id: number;
+  msg: string;
+}
+
+export default function HomePremiumV2() {
+  // Mobile Frame States
+  const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">("inicio");
+  
+  // Interactive UI state proxies linked over mockHomeData
+  const [weightCurrent, setWeightCurrent] = useState<number>(mockHomeData.user.weightCurrent);
+  const [waterAmount, setWaterAmount] = useState<number>(mockHomeData.nutrients.water.current);
+  const [isCheckInDone, setIsCheckInDone] = useState<boolean>(false);
+  const [streakDays, setStreakDays] = useState<number>(mockHomeData.user.streakCoins);
+  const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
+
+  // Popups & modals
+  const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
+  const [weightInput, setWeightInput] = useState<string>(mockHomeData.user.weightCurrent.toString());
+  const [showHubModal, setShowHubModal] = useState<boolean>(false);
+  const [showPlusDrawer, setShowPlusDrawer] = useState<boolean>(false);
+  const [toasts, setToasts] = useState<QuickToast[]>([]);
+  const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
+
+  // Computed weights
+  const lostKg = parseFloat((mockHomeData.user.weightStart - weightCurrent).toFixed(1));
+  const toGoKg = parseFloat((weightCurrent - mockHomeData.user.weightGoal).toFixed(1));
+  const progressPercent = Math.round((lostKg / (mockHomeData.user.weightStart - mockHomeData.user.weightGoal)) * 100);
+
+  // Live Toast dispatcher
+  const triggerToast = (msg: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, msg }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  // Instant Confetti explosion particle simulation
+  const triggerConfetti = () => {
+    const colors = ["#00C27A", "#3B82F6", "#F5A623", "#E8445A", "#A855F7", "#10B981"];
+    const newConfettis: ConfettiParticle[] = [];
+    for (let i = 0; i < 45; i++) {
+      newConfettis.push({
+        id: Math.random() + Date.now(),
+        x: 50,
+        y: 80,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 8 + 5,
+        speedY: -(Math.random() * 10 + 8),
+        speedX: (Math.random() * 10 - 5),
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() * 8 - 4)
+      });
+    }
+    setConfettis((prev) => [...prev, ...newConfettis]);
+  };
+
+  useEffect(() => {
+    if (confettis.length > 0) {
+      const interval = setInterval(() => {
+        setConfettis((prev) =>
+          prev
+            .map((c) => ({
+              ...c,
+              x: c.x + c.speedX * 0.4,
+              y: c.y + c.speedY * 0.4 + 1.2,
+              speedY: c.speedY + 0.4,
+              rotation: c.rotation + c.rotationSpeed
+            }))
+            .filter((c) => c.y < 110 && c.x > -15 && c.x < 115)
+        );
+      }, 30);
+      return () => clearInterval(interval);
+    }
+  }, [confettis]);
+
+  // Click handler helpers
+  const handleAddWater = () => {
+    const newWater = parseFloat((waterAmount + 0.25).toFixed(2));
+    if (newWater <= 5.0) {
+      setWaterAmount(newWater);
+      triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);
+      if (newWater >= mockHomeData.nutrients.water.target) {
+        triggerConfetti();
+        triggerToast("🎉 Excelente, Silvana! Meta de hidratação atingida!");
+      }
+    }
+  };
+
+  const handleApplyWeight = () => {
+    const numeric = parseFloat(weightInput);
+    if (!isNaN(numeric) && numeric > 45 && numeric < 150) {
+      setWeightCurrent(numeric);
+      setShowWeightModal(false);
+      triggerConfetti();
+      triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue focada.`);
+    } else {
+      triggerToast("Digite um peso válido coerente!");
+    }
+  };
+
+  const handleToggleCheckin = () => {
+    const nextVal = !isCheckInDone;
+    setIsCheckInDone(nextVal);
+    if (nextVal) {
+      setStreakDays(prev => prev + 1);
+      triggerConfetti();
+      triggerToast("🔥 Check-In Concluído! Sequência protegida de 13 dias!");
+    } else {
+      setStreakDays(prev => Math.max(12, prev - 1));
+      triggerToast("Status de check-in cancelado.");
+    }
+  };
+
+  const handleSuplementTake = () => {
+    if (suplementsCount < mockHomeData.performance.suplements.activeCount) {
+      setSuplementsCount(prev => prev + 1);
+      triggerToast(`💊 Suplementação registrada! (${suplementsCount + 1}/${mockHomeData.performance.suplements.activeCount})`);
+    } else {
+      setSuplementsCount(0);
+      triggerToast("Suplementos redefinidos para o dia.");
+    }
+  };
+
+  // Helper mapping icon identification strings to lucide elements
+  const renderActionIcon = (iconName: string) => {
+    switch (iconName) {
+      case "GlassWater": return <GlassWater className="w-5 h-5 text-blue-500" />;
+      case "Utensils": return <Utensils className="w-5 h-5 text-[#00C27A]" />;
+      case "Smile": return <Smile className="w-5 h-5 text-amber-500" />;
+      case "Scale": return <Scale className="w-5 h-5 text-[#00C27A]" />;
+      case "Ruler": return <Ruler className="w-5 h-5 text-teal-500" />;
+      case "Syringe": return <Syringe className="w-5 h-5 text-purple-500" />;
+      case "Camera": return <Camera className="w-5 h-5 text-pink-500" />;
+      case "Check": return <Check className="w-5 h-5 text-emerald-500" />;
+      default: return <Sparkles className="w-5 h-5 text-emerald-500" />;
+    }
+  };
+
+  // Safe callback trigger matching simulated keys
+  const handleQuickAction = (id: string) => {
+    switch (id) {
+      case "agua":
+        handleAddWater();
+        break;
+      case "peso":
+        setWeightInput(weightCurrent.toString());
+        setShowWeightModal(true);
+        break;
+      case "checkin":
+        handleToggleCheckin();
+        break;
+      case "refeicao":
+        triggerToast("📸 Ótima escolha! Foto do prato analisada por IA com sucesso.");
+        break;
+      case "emocao":
+        triggerToast("🧠 Humor anotado! Seu estresse está baixo, facilitando o jejum celular.");
+        break;
+      case "medida":
+        triggerToast("📏 Novas medidas corporais salvas. Você reduziu quadril!");
+        break;
+      case "aplicacao":
+        triggerToast("💉 Aplicação semanal de GLP-1 registrada! Próxima data programada.");
+        break;
+      case "foto":
+        triggerToast("📸 Foto corporal adicionada em sua timeline privada antes/depois.");
+        break;
+      default:
+        triggerToast("Ação rápida executada!");
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-[#f3f7f5] flex items-center justify-center p-0 sm:p-4 text-[#0A1628] antialiased">
+      {/* Dynamic inline styles for premium clinic custom scanner simulation */}
+      <style>{`
+        @keyframes scannerBar {
+          0% { top: 0%; }
+          50% { top: 100%; }
+          100% { top: 0%; }
+        }
+        .animate-scanner-bar {
+          animation: scannerBar 4.5s ease-in-out infinite;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .custom-shadow {
+          box-shadow: 0 4px 20px -2px rgba(10, 22, 40, 0.05), 0 2px 8px -1px rgba(10, 22, 40, 0.03);
+        }
+      `}</style>
+      
+      {/* MOBILE CONTAINER - PREMIUM CHASSIS */}
+      <div 
+        className="relative w-full max-w-[430px] bg-[#FAFCFB] shadow-2xl overflow-hidden flex flex-col min-h-screen sm:min-h-0 sm:h-[900px] sm:rounded-[36px] sm:border-[8px] sm:border-slate-900"
+      >
+        
+        {/* LIGHTWEIGHT IMMERSIVE CONFETTI CANVAS INTERCEPTOR */}
+        <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none z-50 overflow-hidden">
+          {confettis.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                position: "absolute",
+                left: `${c.x}%`,
+                top: `${c.y}%`,
+                width: `${c.size}px`,
+                height: `${c.size}px`,
+                backgroundColor: c.color,
+                transform: `rotate(${c.rotation}deg)`,
+                borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+                opacity: 0.9,
+                transition: "top 0.03s linear, left 0.03s linear"
+              }}
+            />
+          ))}
+        </div>
+
+        {/* TOAST SYSTEM FEEDSTACK */}
+        <div className="absolute top-14 left-4 right-4 z-50 pointer-events-none flex flex-col gap-2">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="bg-slate-900/95 backdrop-blur-xs text-white text-xs py-3 px-4 rounded-xl shadow-xl border border-white/10 flex items-center gap-3 pointer-events-auto"
+            >
+              <div className="w-5 h-5 bg-[#00C27A] rounded-full flex items-center justify-center shrink-0">
+                <Check className="w-3 h-3 text-white stroke-[2.5]" />
+              </div>
+              <p className="flex-1 font-medium">{t.msg}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* METRICS & STATUS NOTCH BAR */}
+        <div className="bg-[#FAFCFB] text-[#0A1628] h-[44px] px-6 shrink-0 flex justify-between items-center z-40 select-none relative">
+          <span className="text-xs font-bold font-mono text-[#0A1628]">9:41</span>
+          
+          <div className="flex items-center gap-2 text-[#0A1628]">
+            <svg className="w-[17px] h-[11px]" viewBox="0 0 17 11" fill="currentColor">
+              <rect x="0" y="8" width="2" height="3" rx="0.5" />
+              <rect x="4" y="6" width="2" height="5" rx="0.5" />
+              <rect x="8" y="4" width="2" height="7" rx="0.5" />
+              <rect x="12" y="2" width="2" height="9" rx="0.5" />
+              <rect x="16" y="0" width="2" height="11" rx="0.5" />
+            </svg>
+            <div className="flex items-center gap-0.5">
+              <div className="w-[20px] h-[10px] rounded-[3px] border border-current p-[1px] flex">
+                <div className="bg-[#00C27A] flex-1 rounded-[1.5px]" />
+              </div>
+              <div className="w-[1.5px] h-[4px] bg-current rounded-r-[1px]" />
+            </div>
+          </div>
+        </div>
+
+        {/* SCROLLABLE APP MAIN V2 BODY FEED */}
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#FAFCFB] pb-24">
+          
+          {/* TAB: INICIO */}
+          {activeTab === "inicio" && (
+            <div className="px-5 pt-2 space-y-6">
+              
+              {/* TOP HEADER */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-sm">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xl font-black tracking-tight text-[#0A1628]">GLPY</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => triggerToast("🔔 Silvana, seu plano de transição anti-rebote entra em nova fase em 2 dias.")}
+                    className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition active:scale-95 cursor-pointer"
+                  >
+                    <Bell className="w-5 h-5 text-[#3D5A70]" />
+                    <span className="absolute top-1 right-1 w-[15px] h-[15px] bg-[#E8445A] rounded-full text-white text-[9px] font-bold flex items-center justify-center border border-white">
+                      6
+                    </span>
+                  </button>
+                  
+                  <div 
+                    onClick={() => setActiveTab("perfil")} 
+                    className="relative cursor-pointer transition active:scale-95 hover:opacity-90"
+                  >
+                    <img 
+                      src={mockHomeData.user.avatarUrl}
+                      alt={mockHomeData.user.name}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                    />
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00C27A] rounded-full border-2 border-white" />
+                  </div>
+                </div>
+              </div>
+
+              {/* HEADING ACCENTS AND STREAK COUNTER */}
+              <div className="flex justify-between items-start gap-2">
+                <div className="space-y-0.5">
+                  <h2 className="text-xl font-extrabold text-[#0A1628] tracking-tight">Olá, Silvana! 👋</h2>
+                  <p className="text-[#3D5A70] text-xs font-semibold">Foco hoje, liberdade amanhã.</p>
+                </div>
+
+                <button 
+                  onClick={handleToggleCheckin}
+                  className="bg-white hover:bg-emerald-50 text-[#00C27A] py-2 px-3 rounded-2xl border border-[#E2EBE7] flex items-center gap-2 hover:border-[#00C27A] transition active:scale-95 shrink-0"
+                >
+                  <div className="relative">
+                    <Flame className="w-5 h-5 text-[#E8445A] fill-[#E8445A]" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-extrabold text-[#0D2C20] block leading-none font-mono">🔥 {streakDays} dias</span>
+                    <span className="text-[9px] text-[#3D5A70] font-bold block mt-0.5">Sequência atual</span>
+                  </div>
+                  <ChevronRight className="w-3 h-3 text-[#3D5A70] ml-1" />
+                </button>
+              </div>
+
+              {/* TRANSFORM PROGRESS WEIGHT PROGRESSIVE WIDGET */}
+              <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-extrabold text-[#0A1628] leading-tight flex items-center gap-1">
+                    Sua transformação está acontecendo! <span className="text-[#00C27A]">✨</span>
+                  </h3>
+                  <span className="text-[9px] font-bold text-[#00C27A] bg-emerald-50 px-2.5 py-0.5 rounded-full select-none">
+                    Ativa
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  
+                  {/* Left stats */}
+                  <div className="col-span-4 space-y-0.5">
+                    <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Você já perdeu</p>
+                    <div>
+                      <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{lostKg}</span>
+                      <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
+                    </div>
+                    <p className="text-[10px] text-[#3D5A70] font-bold block">desde {mockHomeData.user.lastUpdate}</p>
+                  </div>
+
+                  {/* SVG progress circle widget */}
+                  <div className="col-span-4 flex justify-center">
+                    <div className="relative w-18 h-18">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          className="text-slate-100"
+                          strokeWidth="3.5"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className="text-[#00C27A]"
+                          strokeDasharray={`${progressPercent}, 100`}
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col justify-center items-center">
+                        <span className="text-sm font-black text-[#0A1628] font-mono leading-none">{progressPercent}%</span>
+                        <span className="text-[7px] text-[#3D5A70] font-bold tracking-[0.2px] uppercase mt-0.5 text-center leading-none">objetivo</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right remaining value box */}
+                  <div className="col-span-4 text-right space-y-0.5">
+                    <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Faltam</p>
+                    <div>
+                      <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{toGoKg}</span>
+                      <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
+                    </div>
+                    <p className="text-[10px] text-[#3D5A70] font-bold block">para sua meta</p>
+                  </div>
+                </div>
+
+                {/* Central slider progress bar */}
+                <div className="space-y-1">
+                  <div className="relative w-full h-[6px] bg-[#E2EBE7] rounded-full overflow-visible">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-[#00C27A] rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                    <div 
+                      className="absolute w-4 h-4 bg-white border-[3px] border-[#00C27A] rounded-full top-1/2 -translate-y-1/2 -ml-2 shadow-sm transition-all duration-500 ease-out"
+                      style={{ left: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-[#3D5A70] font-bold uppercase tracking-wider">
+                    <span>Início ({mockHomeData.user.weightStart} kg)</span>
+                    <span>Meta ({mockHomeData.user.weightGoal} kg)</span>
+                  </div>
+                </div>
+
+                {/* Properties list split */}
+                <div className="grid grid-cols-12 gap-3 pt-1">
+                  
+                  {/* Left properties block list */}
+                  <div className="col-span-7 space-y-2">
+                    <div 
+                      onClick={() => { setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
+                      className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#00C27A] hover:bg-emerald-50/20 transition cursor-pointer"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-[#00C27A] flex items-center justify-center shrink-0">
+                        <Scale className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Peso Atual</span>
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{weightCurrent} kg</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                        <Flag className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Meta</span>
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.user.weightGoal} kg</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-6 h-6 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
+                        <Ruler className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] font-bold block uppercase leading-none">Altura</span>
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.user.height} m</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right teaser visual representation */}
+                  <div className="col-span-5 bg-gradient-to-br from-[#FAFCFB] to-[#F2FAF6] border border-[#D5E6DF] rounded-[18px] p-2 flex flex-col justify-between items-center text-center relative overflow-hidden group select-none">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-[#0A1628] block leading-none">Visão Saudável</span>
+                      <span className="text-[8px] font-bold text-[#00C27A] bg-[#00C27A]/10 px-1.5 py-0.5 rounded-full inline-block mt-1 uppercase tracking-wider font-mono">
+                        GLPY.IA
+                      </span>
+                    </div>
+
+                    <div className="relative w-full h-[76px] my-1 flex justify-center items-center">
+                      <div className="absolute inset-0 bg-[#00C27A]/5 rounded-full blur-md" />
+                      
+                      {/* Premium abstract path */}
+                      <svg viewBox="0 0 100 80" className="w-16 h-16 drop-shadow-[0_2px_8px_rgba(0,194,122,0.15)] select-none">
+                        <path 
+                          d="M10,65 Q30,60 45,35 T90,15" 
+                          fill="none" 
+                          stroke="#00C27A" 
+                          strokeWidth="2.5" 
+                          strokeLinecap="round" 
+                        />
+                        <path 
+                          d="M10,65 Q30,60 45,35 T90,15" 
+                          fill="none" 
+                          stroke="#3B82F6" 
+                          strokeWidth="1" 
+                          strokeLinecap="round" 
+                          strokeDasharray="3 3"
+                          className="opacity-50"
+                        />
+                        <circle cx="45" cy="35" r="3.5" fill="#00C27A" className="animate-pulse" />
+                        <circle cx="90" cy="15" r="5" fill="none" stroke="#F5A623" strokeWidth="1" className="animate-pulse" />
+                        <circle cx="90" cy="15" r="3" fill="#F5A623" />
+                      </svg>
+                    </div>
+
+                    <span className="text-[9px] font-bold text-[#3D5A70] bg-[#E2EBE7]/50 block w-full py-1 rounded-[10px]">
+                      Progresso Seguro
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
+              <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
+                    <span className="text-[10px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full font-mono select-none">
+                      -{mockHomeData.evolution.days} dias de foco
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#3D5A70]" />
+                </div>
+
+                <div className="grid grid-cols-12 gap-3 items-center">
+                  
+                  {/* Left values column */}
+                  <div className="col-span-8 grid grid-cols-2 gap-2">
+                    
+                    <div 
+                      onClick={() => triggerToast("📏 Cintura reduziu significativamente! Continue monitorando semanalmente.")} 
+                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    >
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Cintura</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
+                          {mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}
+                        </span>
+                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
+                          {mockHomeData.evolution.cintura.change}cm
+                        </span>
+                      </div>
+                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
+                        <path d="M0,2 L35,5 Q55,7 75,13 L100,16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="100" cy="16" r="2.5" fill="currentColor" />
+                      </svg>
+                    </div>
+
+                    <div 
+                      onClick={() => triggerToast("📏 Busto: -1cm medido.")} 
+                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    >
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Busto</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
+                          {mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}
+                        </span>
+                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
+                          {mockHomeData.evolution.busto.change}cm
+                        </span>
+                      </div>
+                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
+                        <path d="M0,3 L40,4 L70,8 L100,11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="100" cy="11" r="2.5" fill="currentColor" />
+                      </svg>
+                    </div>
+
+                    <div 
+                      onClick={() => triggerToast("📏 Coxa reduziu 4cm! Excelente queima de gordura e atividade muscular.")} 
+                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    >
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Coxa</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
+                          {mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}
+                        </span>
+                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
+                          {mockHomeData.evolution.coxa.change}cm
+                        </span>
+                      </div>
+                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
+                        <path d="M0,2 L30,4 Q60,8 80,14 L100,17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="100" cy="17" r="2.5" fill="currentColor" />
+                      </svg>
+                    </div>
+
+                    <div 
+                      onClick={() => triggerToast("📏 Panturrilha: -1cm medido.")} 
+                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    >
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Panturrilha</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
+                          {mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}
+                        </span>
+                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
+                          {mockHomeData.evolution.panturrilha.change}cm
+                        </span>
+                      </div>
+                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
+                        <path d="M0,3 L35,5 L70,8 L100,10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="100" cy="10" r="2.5" fill="currentColor" />
+                      </svg>
+                    </div>
+
+                  </div>
+
+                  {/* Right visual indicator model with scanner overlay */}
+                  <div className="col-span-4 flex justify-center items-center bg-transparent rounded-2xl relative overflow-hidden h-[155px] border border-emerald-100/40 shadow-inner group">
+                    <img 
+                      src="https://images.unsplash.com/photo-1518622358385-8ea7d0794bf6?auto=format&fit=crop&q=80&w=250&h=400"
+                      alt="Silhueta saudável"
+                      className="absolute inset-0 w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-all duration-300 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0A1628]/60 opacity-65" />
+                    
+                    {/* Glowing Markers */}
+                    {/* Busto marker */}
+                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("📏 Busto de Silvana: 91 cm (-1cm).")}>
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white"></span>
+                      </span>
+                    </div>
+
+                    {/* Cintura marker */}
+                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("🔥 Cintura de Silvana: 91 cm (-5cm, progresso excelente!).")}>
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00C27A] border border-white"></span>
+                      </span>
+                    </div>
+
+                    {/* Coxa marker */}
+                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast("💪 Coxa de Silvana: 53 cm (-4cm).")}>
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
+                      </span>
+                    </div>
+
+                    {/* Clinical scanner bar animation */}
+                    <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00C27A]/85 to-transparent shadow-[0_0_8px_#00C27A] animate-scanner-bar" />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SECTION: CENTRO DE PERFORMANCE */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Centro de Performance</h3>
+                  <div className="flex items-center gap-1 text-[10px] text-[#3D5A70] font-bold">
+                    <span>Deslize para ver mais</span>
+                    <ChevronRight className="w-3 h-3 text-[#3D5A70]" />
+                  </div>
+                </div>
+
+                {/* Horizontal scrolling performance cards */}
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 pt-0.5 select-none">
+                  
+                  {/* Card 1: Medicação */}
+                  <div 
+                    onClick={() => triggerToast(`💉 Medicação: Próxima dose ativa de ${mockHomeData.performance.glp1.currentDose}`)} 
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] hover:border-[#00C27A] shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00C27A] flex items-center justify-center shrink-0 border border-emerald-100/30">
+                        <Syringe className="w-4 h-4 text-[#00C27A] stroke-[2.2]" />
+                      </div>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{mockHomeData.performance.glp1.name}</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Próxima aplicação</span>
+                      <span className="text-sm font-black text-[#0A1628] block">{mockHomeData.performance.glp1.nextDose}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Dose</span>
+                        <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.glp1.currentDose}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Efeitos</span>
+                        <span className="font-extrabold text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md text-[9px] block">
+                          😊 {mockHomeData.performance.glp1.sideEffect}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Atividade Física */}
+                  <div 
+                    onClick={() => triggerToast(`💪 Atividade Física: Continue progredindo nos passos!`)} 
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-blue-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-blue-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 border border-blue-100/30">
+                        <Dumbbell className="w-4 h-4 text-blue-500 stroke-[2.2]" />
+                      </div>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{mockHomeData.performance.activity.name}</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Passos hoje</span>
+                      <span className="text-sm font-black text-[#0A1628] block font-mono">
+                        {mockHomeData.performance.activity.stepsToday} <span className="text-[10px] text-slate-400 font-bold">/ {mockHomeData.performance.activity.stepsGoal}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Treino</span>
+                        <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.activity.trainingThisWeek}/{mockHomeData.performance.activity.trainingGoal}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Foco</span>
+                        <span className="font-extrabold text-[#F5A623] bg-orange-50 px-1.5 py-0.5 rounded-md text-[9px] block">
+                          🔥 {mockHomeData.performance.activity.consistencyDays}d
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Suplementação */}
+                  <div 
+                    onClick={handleSuplementTake} 
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-purple-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-purple-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100/30">
+                        <Pill className="w-4 h-4 text-purple-600 stroke-[2.2]" />
+                      </div>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{mockHomeData.performance.suplements.name}</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Protocolo ativo</span>
+                      <span className="text-sm font-black text-[#0A1628] block">{mockHomeData.performance.suplements.activeCount} suplementos</span>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Doses</span>
+                        <span className="font-black text-[#0a1628] font-mono">
+                          {suplementsCount} / {mockHomeData.performance.suplements.activeCount}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Próximo</span>
+                        <span className="font-extrabold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-md text-[9px] block font-mono">
+                          {mockHomeData.performance.suplements.nextTime}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* CARD: METAS DIÁRIAS DE NUTRIÇÃO */}
+              <div className="bg-white rounded-[24px] p-3.5 custom-shadow border border-[#E2EBE7]/70 space-y-2.5">
+                <span className="text-sm font-extrabold text-[#0A1628] tracking-tight block">Metas diárias de nutrição</span>
+                
+                <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
+                  
+                  {/* Proteins */}
+                  <div className="space-y-1">
+                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
+                      <span className="font-extrabold text-[#0A1628]">1432</span>
+                      <span className="text-[7px] text-slate-400 font-semibold">/1800</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-bold block truncate">Prot (kcal)</span>
+                    <div className="h-[4px] bg-red-100 rounded-full overflow-hidden">
+                      <div className="bg-[#E8445A] h-full" style={{ width: "80%" }} />
+                    </div>
+                  </div>
+
+                  {/* Carbs */}
+                  <div className="space-y-1">
+                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
+                      <span className="font-extrabold text-[#0A1628]">260</span>
+                      <span className="text-[7px] text-slate-400 font-semibold">/300</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-bold block truncate">Carbs (g)</span>
+                    <div className="h-[4px] bg-emerald-100 rounded-full overflow-hidden">
+                      <div className="bg-[#00C27A] h-full" style={{ width: "87%" }} />
+                    </div>
+                  </div>
+
+                  {/* Lipids */}
+                  <div className="space-y-1">
+                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
+                      <span className="font-extrabold text-[#0A1628]">69</span>
+                      <span className="text-[7px] text-slate-400 font-semibold">/80</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-bold block truncate">Gord (g)</span>
+                    <div className="h-[4px] bg-amber-100 rounded-full overflow-hidden">
+                      <div className="bg-[#F5A623] h-full" style={{ width: "86%" }} />
+                    </div>
+                  </div>
+
+                  {/* Water */}
+                  <div className="space-y-1 cursor-pointer" onClick={handleAddWater}>
+                    <div className="flex items-baseline justify-center gap-0.5 font-mono">
+                      <span className="font-extrabold text-blue-600">{waterAmount}</span>
+                      <span className="text-[7px] text-slate-400 font-semibold">/2.5</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-bold block truncate">Água (L)</span>
+                    <div className="h-[4px] bg-blue-100 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${Math.min((waterAmount / 2.5) * 100, 100)}%` }} />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SECTION: AÇÕES RÁPIDAS ROLLER */}
+              <div className="space-y-2">
+                <span className="text-sm font-extrabold text-[#0A1628] tracking-tight block">Ações rápidas</span>
+                
+                <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1 select-none">
+                  {mockHomeData.actions.map((act) => (
+                    <button 
+                      key={act.id} 
+                      onClick={() => handleQuickAction(act.id)}
+                      className="min-w-[62px] w-[62px] hover:scale-105 active:scale-95 transition flex flex-col items-center justify-center space-y-1 shrink-0 cursor-pointer"
+                    >
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${act.color} shadow-sm border border-slate-50`}>
+                        {renderActionIcon(act.icon)}
+                      </div>
+                      <span className="text-[10px] text-[#3D5A70] font-bold text-center block truncate w-full">{act.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SECTION: PROTOCOLO EM ANDAMENTO */}
+              <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
+                  <button 
+                    onClick={() => setShowHubModal(true)} 
+                    className="text-[#00C27A] text-[10px] font-bold tracking-tight uppercase hover:underline"
+                  >
+                    Ver todos
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <Shield className="w-7 h-7 text-white stroke-[2.2]" />
+                  </div>
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-extrabold bg-[#E2EBE7] text-emerald-800 px-2 py-0.5 rounded-full">
+                        {mockHomeData.protocol.name}
+                      </span>
+                      <span className="text-[10px] text-[#3D5A70] font-extrabold font-mono">
+                        {mockHomeData.protocol.percentage}% concluído
+                      </span>
+                    </div>
+                    <span className="text-xs font-extrabold text-[#0A1628] block mt-1">
+                      {mockHomeData.protocol.module} • Dia {mockHomeData.protocol.currentDay} de {mockHomeData.protocol.totalDays}
+                    </span>
+                    <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
+                      <div className="bg-[#00C27A] h-full" style={{ width: "42%" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Promotional direct link */}
+                <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/5 rounded-2xl p-3 border border-emerald-100 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
+                    <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowHubModal(true)}
+                    className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <span>Entrar</span>
+                    <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+                  </button>
+                </div>
+
+              </div>
+
+              {/* CARD SOCIAL TRAFFIC BANNER */}
+              <div 
+                onClick={() => { triggerConfetti(); triggerToast("🔥 GLPY Anti-Rebote ativo!"); }}
+                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between hover:bg-emerald-50/50 cursor-pointer transition select-none"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-[#00C27A]">🌍</span>
+                  <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">{mockHomeData.social}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: PROTOCOLOS */}
+          {activeTab === "protocolos" && (
+            <div className="px-5 pt-3 space-y-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-black text-[#0A1628]">Hub de Protocolos GLPY</h2>
+                <span className="text-[9px] bg-[#00C27A] text-white px-2 py-0.5 rounded-full font-bold">PREMIUM</span>
+              </div>
+
+              <div className="bg-gradient-to-br from-[#0A1628] to-[#122A4E] rounded-3xl p-5 text-white space-y-3 shadow-lg">
+                <span className="text-[8px] font-bold tracking-widest bg-emerald-500/20 text-[#00C27A] px-2.5 py-1 rounded-full uppercase">Protocolos Ativos Vivos</span>
+                <h3 className="text-base font-extrabold">Seu metabolismo no piloto automático</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">Desenvolvido com o acompanhamento médico da Silvana, ajustado para evitar a perda muscular e queda de cabelo durante o uso das Canetas.</p>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-extrabold text-[#0A1628] uppercase tracking-wider block">Disponíveis em seu plano:</h3>
+                
+                <div className="bg-white border border-slate-100 rounded-2xl p-3 flex gap-3 items-center hover:border-[#00C27A] transition cursor-pointer">
+                  <span className="text-2xl">🔥</span>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-[#0A1628]">Sobrevivendo às Canetas</h4>
+                    <p className="text-[10px] text-[#3D5A70]">Pare de sofrer nos primeiros dias de aplicação</p>
+                    <div className="h-[4px] bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full bg-[#00C27A]" style={{ width: "100%" }} />
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full">Pronto</span>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl p-3 flex gap-3 items-center hover:border-[#00C27A] transition cursor-pointer">
+                  <span className="text-2xl">⚠️</span>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-[#0A1628]">Controle de Efeitos Colaterais</h4>
+                    <p className="text-[10px] text-[#3D5A70]">Evitando náuseas, cansaço e constipação intestinal diariamente</p>
+                    <div className="h-[4px] bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full bg-[#00C27A]" style={{ width: "100%" }} />
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full">Pronto</span>
+                </div>
+
+                <div className="bg-emerald-50/40 border border-[#00C27A]/30 rounded-2xl p-3 flex gap-3 items-center hover:bg-emerald-50 transition cursor-pointer">
+                  <span className="text-2xl">⚖️</span>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-bold text-emerald-950">Guia Prático Anti-Rebote</h4>
+                    <p className="text-[10px] text-emerald-800">Seu protocolo operacional ativo de manutenção muscular</p>
+                    <div className="h-[4px] bg-emerald-100 rounded-full mt-1.5 overflow-hidden">
+                      <div className="h-full bg-[#00C27A]" style={{ width: "42%" }} />
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-bold bg-[#00C27A] text-white px-2.5 py-0.5 rounded-full">Ativo</span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: PROGRESSO */}
+          {activeTab === "progresso" && (
+            <div className="px-5 pt-3 space-y-4">
+              <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-black text-[#0A1628]">Evolução Corporal & Gráficos</h2>
+                <button onClick={() => { setWeightCurrent(72.6); triggerToast("Histórico de peso resetado!"); }} className="text-xs font-bold text-[#00C27A] hover:underline">
+                  Resetar Evolução
+                </button>
+              </div>
+
+              <div className="bg-white rounded-3xl p-4 border border-slate-100 custom-shadow space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-[8px] text-[#3D5A70] font-bold uppercase tracking-wider block">Total eliminado até agora</span>
+                    <span className="text-xl font-black text-[#0A1628] font-mono">{lostKg} kg</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#00C27A] bg-emerald-50 px-2 py-0.5 rounded-full">No Caminho Certo</span>
+                </div>
+
+                {/* Plot design */}
+                <div className="h-44 bg-slate-50/50 rounded-2xl p-3 relative flex items-end border border-slate-150">
+                  <div className="absolute top-2 left-3 text-[8px] text-slate-400 font-bold tracking-widest uppercase">Evolução do Peso Semanal (kg)</div>
+                  
+                  <svg className="absolute inset-0 w-full h-full p-6 text-[#00C27A]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path d="M0,20 L25,35 L50,60 L75,70 L100,85" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
+                    <circle cx="100" cy="85" r="5" fill="#E8445A" stroke="white" strokeWidth="2" className="animate-ping" />
+                    <circle cx="100" cy="85" r="3" fill="#E8445A" stroke="white" strokeWidth="1.5" />
+                  </svg>
+
+                  <div className="w-full flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono z-10 px-2">
+                    <span>80kg (Início)</span>
+                    <span>77.5kg</span>
+                    <span>75kg</span>
+                    <span>{weightCurrent}kg (Hoje)</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-center text-xs">
+                  <div className="p-3 bg-slate-50/80 rounded-2xl">
+                    <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Peso de Partida</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">80.0 kg</span>
+                  </div>
+                  <div className="p-3 bg-slate-50/80 rounded-2xl">
+                    <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Meta Definida</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">60.0 kg</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: PERFIL */}
+          {activeTab === "perfil" && (
+            <div className="px-5 pt-3 space-y-4">
+              <div className="text-center space-y-2 py-4">
+                <div className="relative inline-block mx-auto">
+                  <img 
+                    src={mockHomeData.user.avatarUrl}
+                    alt={mockHomeData.user.name}
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md mx-auto"
+                  />
+                  <span className="absolute bottom-1 right-1 w-4 h-4 bg-[#00C27A] rounded-full border-2 border-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0A1628]">{mockHomeData.user.name} Premium V2</h3>
+                  <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">Membro Premium Fundador</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-xs space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block p-1">Suas Informações</span>
+                
+                <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
+                  <span className="text-xs text-[#3D5A70] font-medium">Nome Completo</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.name}</span>
+                </div>
+
+                <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
+                  <span className="text-xs text-[#3D5A70] font-medium">Medicação Atual</span>
+                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">Ozempic 1,0mg</span>
+                </div>
+
+                <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
+                  <span className="text-xs text-[#3D5A70] font-medium">Altura</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.height} m</span>
+                </div>
+
+                <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
+                  <span className="text-xs text-[#3D5A70] font-medium">Peso Inicial</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.weightStart} kg</span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-[#FAFCFB] rounded-2xl border border-dashed border-[#E2EBE7] text-center">
+                <span className="text-xs font-bold block mb-1 text-slate-700">Contrato de Segurança Garantido</span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">Suas informações e fotos de evolução corporal são 100% privadas e acessivas apenas em seu ambiente local de aplicativo.</p>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* BOTTOM FIXED premium navigation */}
+        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-[#E2EBE7] h-[72px] px-6 py-2 flex justify-between items-center z-40">
+          
+          <button 
+            onClick={() => { setActiveTab("inicio"); }}
+            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "inicio" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          >
+            <Compass className="w-5 h-5 stroke-[2.2]" />
+            <span className="text-[9px] font-bold mt-1">Início</span>
+          </button>
+
+          <button 
+            onClick={() => { setActiveTab("protocolos"); }}
+            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "protocolos" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          >
+            <Shield className="w-5 h-5 stroke-[2.2]" />
+            <span className="text-[9px] font-bold mt-1">Protocolos</span>
+          </button>
+
+          {/* Big center action tab */}
+          <button 
+            onClick={() => { setShowPlusDrawer(true); }}
+            className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-lg lg:scale-105 active:scale-95 transition -translate-y-2 cursor-pointer"
+          >
+            <Plus className="w-6 h-6 text-white stroke-[2.8]" />
+          </button>
+
+          <button 
+            onClick={() => { setActiveTab("progresso"); }}
+            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "progresso" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          >
+            <LineChart className="w-5 h-5 stroke-[2.2]" />
+            <span className="text-[9px] font-bold mt-1">Progresso</span>
+          </button>
+
+          <button 
+            onClick={() => { setActiveTab("perfil"); }}
+            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          >
+            <User className="w-5 h-5 stroke-[2.2]" />
+            <span className="text-[9px] font-bold mt-1">Perfil</span>
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* WEIGHT COMPILER ADJUSTMENT MODAL */}
+      {showWeightModal && (
+        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
+            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso Atual ⚖️</h3>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: 80 kg • Meta: 60 kg</p>
+            
+            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-5 flex items-center justify-between">
+              <button 
+                onClick={() => setWeightInput((parseFloat(weightInput) - 0.2).toFixed(1))}
+                className="w-10 h-10 bg-white hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-800 transition text-sm shadow-sm"
+              >
+                -
+              </button>
+              <div className="text-center font-mono">
+                <span className="text-2xl font-extrabold text-[#0A1628]">{weightInput}</span>
+                <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
+              </div>
+              <button 
+                onClick={() => setWeightInput((parseFloat(weightInput) + 0.2).toFixed(1))}
+                className="w-10 h-10 bg-white hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-800 transition text-sm shadow-sm"
+              >
+                +
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowWeightModal(false)}
+                className="flex-1 py-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-[#0A1628] font-bold rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleApplyWeight}
+                className="flex-1 py-2.5 text-xs bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold rounded-xl transition shadow-sm shadow-[#00C27A]/20"
+              >
+                Salvar Peso
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROTOCOLS POPUP LIST */}
+      {showHubModal && (
+        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[#FAFCFB] rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7] flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <span className="text-xs font-black text-[#0A1628] uppercase tracking-wider">GLPY HUB DE PROTOCOLOS</span>
+              <button 
+                onClick={() => setShowHubModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto py-4 space-y-4 no-scrollbar">
+              <div className="bg-gradient-to-tr from-[#00C27A] to-[#00A38B] rounded-2xl p-4 text-white shadow-md">
+                <span className="text-[8px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full inline-block mb-1">Membro Integrado</span>
+                <h4 className="text-sm font-extrabold">Seu Guia Anti-Rebote Ativo</h4>
+                <p className="text-[10px] text-white/95 mt-1">Conectado diretamente à sua rotina física de nutrição para neutralizar a recaptação do apetite emocional.</p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Estágios Disponíveis:</span>
+                
+                <div 
+                  onClick={() => { setShowHubModal(false); triggerToast("💇 Protocolo Anti-Queda de cabelo carregado no Hub."); }} 
+                  className="p-2.5 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition cursor-pointer flex justify-between items-center text-xs"
+                >
+                  <span className="font-bold text-slate-800">💇 1. Anti-Queda Capilar</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+
+                <div 
+                  onClick={() => { setShowHubModal(false); triggerToast("⚡ Protocolo Controle de Fadiga e Energia restabelecido."); }}
+                  className="p-2.5 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition cursor-pointer flex justify-between items-center text-xs"
+                >
+                  <span className="font-bold text-slate-800">⚡ 2. Fadiga Energética Ozempic</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+
+                <div 
+                  onClick={() => { setShowHubModal(false); triggerToast("⚖️ Manual Anti-Rebote já está ativo na sua Home."); }}
+                  className="p-2.5 bg-emerald-50/50 rounded-xl border border-[#00C27A]/30 hover:bg-emerald-50 transition cursor-pointer flex justify-between items-center text-xs"
+                >
+                  <span className="font-bold text-emerald-800">⚖️ 3. Transição de Ganho Nutricional</span>
+                  <span className="text-[8px] font-bold bg-[#00C27A] text-white px-2 py-0.5 rounded-full uppercase">Em andamento</span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => { setShowHubModal(false); triggerToast("📱 Redirecionando para apoio nutricional."); }} 
+              className="mt-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs text-center transition"
+            >
+              Falar com o Nutri Zap 📱
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK DRAWER LAUNCH */}
+      {showPlusDrawer && (
+        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+              <span className="text-xs font-black text-[#0A1628] uppercase tracking-wider">Ações de registro rápido</span>
+              <button onClick={() => setShowPlusDrawer(false)} className="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button 
+                onClick={() => { handleAddWater(); setShowPlusDrawer(false); }}
+                className="p-3 bg-blue-50/50 hover:bg-blue-50/80 rounded-xl border border-blue-100/50 flex flex-col items-center gap-1.5 transition text-xs"
+              >
+                <GlassWater className="w-5 h-5 text-blue-500" />
+                <span className="font-bold text-blue-800">Beber Água</span>
+              </button>
+
+              <button 
+                onClick={() => { setShowPlusDrawer(false); setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
+                className="p-3 bg-emerald-50/50 hover:bg-emerald-50/80 rounded-xl border border-emerald-100/50 flex flex-col items-center gap-1.5 transition text-xs"
+              >
+                <Scale className="w-5 h-5 text-[#00C27A]" />
+                <span className="font-bold text-emerald-800">Registrar Peso</span>
+              </button>
+
+              <button 
+                onClick={() => { handleToggleCheckin(); setShowPlusDrawer(false); }}
+                className="p-3 bg-orange-50/50 hover:bg-orange-50/85 rounded-xl border border-orange-100/50 flex flex-col items-center gap-1.5 transition text-xs col-span-2"
+              >
+                <Flame className="w-5 h-5 text-[#E8445A]" />
+                <span className="font-bold text-orange-800">Garantir Check-In Diário</span>
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setShowPlusDrawer(false)}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-[#0a1628] rounded-xl text-xs font-bold transition"
+            >
+              Fechar Panel
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
