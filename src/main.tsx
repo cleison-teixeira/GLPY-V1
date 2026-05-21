@@ -237,15 +237,25 @@ if (path === '/admin') {
         <BodyMeasurementsScreen
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
           onSave={(data) => {
+            const toNum = (s: string) => {
+              const n = parseFloat(s.replace(',', '.'));
+              return (isNaN(n) || n <= 0) ? undefined : n;
+            };
             localStorage.setItem('glpy_medidas_corporais', JSON.stringify({
-              ...data,
-              cintura:      data.waist,
-              quadril:      data.hip,
-              busto:        data.chest,
-              braco:        data.arm,
-              coxa:         data.thigh,
-              panturrilha:  data.calf,
-              savedAt:      Date.now(),
+              waist:       toNum(data.waist),
+              hip:         toNum(data.hip),
+              abdomen:     toNum(data.abdomen),
+              chest:       toNum(data.chest),
+              arm:         toNum(data.arm),
+              thigh:       toNum(data.thigh),
+              calf:        toNum(data.calf),
+              cintura:     toNum(data.waist),
+              quadril:     toNum(data.hip),
+              busto:       toNum(data.chest),
+              braco:       toNum(data.arm),
+              coxa:        toNum(data.thigh),
+              panturrilha: toNum(data.calf),
+              savedAt:     Date.now(),
             }));
             window.location.href = '/preview/home-premium-v2';
           }}

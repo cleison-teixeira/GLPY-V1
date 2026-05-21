@@ -40,9 +40,15 @@ function fmtMeasure(value: string): string {
   return `${formatDecimalBR(parseBRNumber(value))} cm`;
 }
 
-function loadSavedMeasures(): Record<string, string> {
+function loadSavedMeasures(): Record<string, unknown> {
   try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
   catch { return {}; }
+}
+
+// Converte número ou string com ponto para string com vírgula para exibição no input.
+function norm(v: unknown): string {
+  if (v === undefined || v === null || v === '') return '';
+  return String(v).replace('.', ',');
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -51,13 +57,13 @@ type SaveState = 'idle' | 'saving' | 'saved';
 
 export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasurementsScreenProps) {
   const saved = loadSavedMeasures();
-  const [waist,       setWaist]       = useState(() => saved.waist       || saved.cintura      || '');
-  const [hip,         setHip]         = useState(() => saved.hip         || saved.quadril      || '');
-  const [abdomen,     setAbdomen]     = useState(() => saved.abdomen     || '');
-  const [chest,       setChest]       = useState(() => saved.chest       || saved.busto        || '');
-  const [arm,         setArm]         = useState(() => saved.arm         || saved.braco        || '');
-  const [thigh,       setThigh]       = useState(() => saved.thigh       || saved.coxa         || '');
-  const [calf,        setCalf]        = useState(() => saved.calf        || saved.panturrilha  || '');
+  const [waist,   setWaist]   = useState(() => norm(saved.waist   || saved.cintura     || ''));
+  const [hip,     setHip]     = useState(() => norm(saved.hip     || saved.quadril     || ''));
+  const [abdomen, setAbdomen] = useState(() => norm(saved.abdomen || ''));
+  const [chest,   setChest]   = useState(() => norm(saved.chest   || saved.busto       || ''));
+  const [arm,     setArm]     = useState(() => norm(saved.arm     || saved.braco       || ''));
+  const [thigh,   setThigh]   = useState(() => norm(saved.thigh   || saved.coxa        || ''));
+  const [calf,    setCalf]    = useState(() => norm(saved.calf    || saved.panturrilha || ''));
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
   const canSave = [waist, hip, abdomen, chest, arm, thigh, calf].some(isValidMeasurement);

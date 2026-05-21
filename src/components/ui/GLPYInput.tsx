@@ -41,6 +41,12 @@ export default function GLPYInput({
 }: GLPYInputProps) {
   const [focused, setFocused] = React.useState(false);
 
+  // Converte type="number" para type="text" + inputMode="decimal" para remover
+  // o spinner nativo do browser no desktop mantendo o teclado decimal no mobile.
+  const renderType = type === 'number' ? 'text' : type;
+  const renderInputMode: React.HTMLAttributes<HTMLInputElement>['inputMode'] =
+    type === 'number' ? 'decimal' : undefined;
+
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -112,8 +118,8 @@ export default function GLPYInput({
         {label && <span style={labelStyle}>{label}</span>}
         <div style={centeredWrapperStyle}>
           <input
-            type={type}
-            inputMode={type === 'number' ? 'decimal' : 'text'}
+            type={renderType}
+            inputMode={renderInputMode}
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
@@ -179,8 +185,8 @@ export default function GLPYInput({
       {label && <span style={labelStyle}>{label}</span>}
       <div style={inputWrapperStyle}>
         <input
-          type={type}
-          inputMode={type === 'number' ? 'decimal' : 'text'}
+          type={renderType}
+          inputMode={renderInputMode}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
