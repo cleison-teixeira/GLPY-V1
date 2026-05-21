@@ -64,6 +64,7 @@ export default function InstallAppFunctionalScreen() {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         source="preview-functional"
+        ignoreSuppression={true}
       />
     </div>
   );

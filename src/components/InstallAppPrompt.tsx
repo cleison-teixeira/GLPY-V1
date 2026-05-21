@@ -17,6 +17,7 @@ export interface InstallAppPromptProps {
   isOpen: boolean;
   onClose: () => void;
   source?: string;
+  ignoreSuppression?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -30,7 +31,6 @@ function detectPlatform(): Platform {
   }
   const ua = navigator.userAgent;
   if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
-  // iPad OS 13+ reports as Mac in userAgent; check maxTouchPoints as fallback
   if (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
   if (/android/i.test(ua)) return 'android';
   return 'desktop';
@@ -75,7 +75,7 @@ function PlatformBlock({
 }) {
   return (
     <div
-      className={`rounded-2xl p-4 space-y-3 transition-all ${
+      className={`rounded-2xl p-4 space-y-3 transition-all duration-300 ${
         highlighted
           ? 'bg-[#00C27A]/8 border border-[#00C27A]/30 ring-1 ring-[#00C27A]/20'
           : 'bg-[#F4F8F6]'
@@ -102,9 +102,11 @@ function PlatformBlock({
 export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptProps) {
   const [platform] = useState<Platform>(() => detectPlatform());
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [desktopFeedback, setDesktopFeedback] = useState(false);
-  const [iosHighlighted, setIosHighlighted] = useState(false);
+  const [highlightedBlock, setHighlightedBlock] = useState<Platform | null>(null);
   const capturedRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const iphoneRef  = useRef<HTMLDivElement>(null);
+  const androidRef = useRef<HTMLDivElement>(null);
+  const desktopRef = useRef<HTMLDivElement>(null);
 
   // Capture beforeinstallprompt (Android/Chrome)
   useEffect(() => {
@@ -149,15 +151,17 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
     }
 
     if (platform === 'ios') {
-      setIosHighlighted(true);
+      handleShowSteps();
       saveStatus('instructed');
-      return;
     }
+  }
 
-    if (platform === 'desktop') {
-      setDesktopFeedback(true);
-      saveStatus('desktop_viewed');
-    }
+  function handleShowSteps() {
+    const target = platform === 'ios' ? iphoneRef : platform === 'android' ? androidRef : desktopRef;
+    setHighlightedBlock(platform);
+    target.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Remove highlight after 2.5s
+    setTimeout(() => setHighlightedBlock(null), 2500);
   }
 
   function handleDismiss() {
@@ -165,18 +169,6 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
     localStorage.setItem('glpy_install_prompt_dismissed_at', String(Date.now()));
     onClose();
   }
-
-  function handleGuide() {
-    // Secondary: scroll/highlight both blocks — for now just ensure modal stays open
-    setIosHighlighted(false); // reset highlight so user sees full guide
-  }
-
-  // ── Primary button label ───────────────────────────────────────────────────
-
-  const primaryLabel =
-    platform === 'android' ? 'Instalar GLPY' :
-    platform === 'ios'     ? 'Ver como adicionar no iPhone' :
-                             'Enviar instruções para o celular';
 
   // ── Standalone state ───────────────────────────────────────────────────────
 
@@ -251,66 +243,73 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
                 </div>
               </div>
 
-              {/* Benefit badge */}
-              <div className="flex items-center gap-2.5 bg-[#00C27A]/8 border border-[#00C27A]/20 rounded-xl px-4 py-3">
-                <CheckCircle2 className="w-4 h-4 text-[#00C27A] shrink-0" />
-                <p className="text-xs font-medium text-[#0A1628] leading-snug">
-                  O GLPY ficará como um app na tela inicial do seu celular.
-                </p>
-              </div>
+              {/* Benefit badge — hidden on desktop */}
+              {platform !== 'desktop' && (
+                <div className="flex items-center gap-2.5 bg-[#00C27A]/8 border border-[#00C27A]/20 rounded-xl px-4 py-3">
+                  <CheckCircle2 className="w-4 h-4 text-[#00C27A] shrink-0" />
+                  <p className="text-xs font-medium text-[#0A1628] leading-snug">
+                    O GLPY ficará como um app na tela inicial do seu celular.
+                  </p>
+                </div>
+              )}
 
-              {/* Desktop feedback message */}
-              <AnimatePresence>
-                {desktopFeedback && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="bg-[#FFF8E7] border border-[#F5C842]/30 rounded-xl px-4 py-3"
-                  >
-                    <p className="text-xs font-medium text-[#7A5C00] leading-snug">
-                      Abra o GLPY no navegador do seu celular para adicionar à tela inicial.
+              {/* Desktop info block — replaces primary button */}
+              {platform === 'desktop' && (
+                <div className="bg-[#F4F8F6] border border-[#D1D9E0] rounded-2xl px-4 py-4 flex items-start gap-3">
+                  <Monitor className="w-5 h-5 text-[#6B7A8D] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-[#0A1628] mb-1">Abra o GLPY no celular</p>
+                    <p className="text-xs text-[#6B7A8D] leading-relaxed">
+                      Para adicionar o GLPY à tela inicial, acesse{' '}
+                      <span className="font-semibold text-[#0A1628]">glpy.com.br</span>{' '}
+                      pelo navegador do seu iPhone ou Android.
                     </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </div>
+              )}
 
               {/* iPhone block */}
-              <PlatformBlock
-                title="NO IPHONE"
-                icon={<Smartphone className="w-4 h-4" />}
-                highlighted={platform === 'ios' && iosHighlighted}
-                steps={[
-                  { icon: <Share className="w-3.5 h-3.5" />, text: 'Toque no ícone de compartilhar no Safari' },
-                  { icon: <Plus className="w-3.5 h-3.5" />,  text: 'Selecione "Adicionar à Tela de Início"' },
-                  { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme tocando em "Adicionar"' },
-                ]}
-              />
-
-              {/* Android block */}
-              <PlatformBlock
-                title="NO ANDROID"
-                icon={<Home className="w-4 h-4" />}
-                highlighted={platform === 'android'}
-                steps={[
-                  { icon: <Plus className="w-3.5 h-3.5" />, text: 'Toque em "Instalar app" quando aparecer a opção no navegador' },
-                  { icon: <Home className="w-3.5 h-3.5" />, text: 'Ou escolha "Adicionar à tela inicial"' },
-                  { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme a instalação' },
-                ]}
-              />
-
-              {/* Desktop block — only shown on desktop */}
-              {platform === 'desktop' && (
+              <div ref={iphoneRef}>
                 <PlatformBlock
-                  title="NO DESKTOP"
-                  icon={<Monitor className="w-4 h-4" />}
-                  highlighted={true}
+                  title="NO IPHONE"
+                  icon={<Smartphone className="w-4 h-4" />}
+                  highlighted={highlightedBlock === 'ios'}
                   steps={[
-                    { icon: <Smartphone className="w-3.5 h-3.5" />, text: 'Abra o GLPY no navegador do seu celular' },
-                    { icon: <Plus className="w-3.5 h-3.5" />,        text: 'Siga as instruções do bloco iPhone ou Android acima' },
-                    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'O GLPY aparecerá na tela inicial do celular' },
+                    { icon: <Share className="w-3.5 h-3.5" />, text: 'Toque no ícone de compartilhar no Safari' },
+                    { icon: <Plus className="w-3.5 h-3.5" />,  text: 'Selecione "Adicionar à Tela de Início"' },
+                    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme tocando em "Adicionar"' },
                   ]}
                 />
+              </div>
+
+              {/* Android block */}
+              <div ref={androidRef}>
+                <PlatformBlock
+                  title="NO ANDROID"
+                  icon={<Home className="w-4 h-4" />}
+                  highlighted={highlightedBlock === 'android'}
+                  steps={[
+                    { icon: <Plus className="w-3.5 h-3.5" />, text: 'Toque em "Instalar app" quando aparecer a opção no navegador' },
+                    { icon: <Home className="w-3.5 h-3.5" />, text: 'Ou escolha "Adicionar à tela inicial"' },
+                    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme a instalação' },
+                  ]}
+                />
+              </div>
+
+              {/* Desktop block */}
+              {platform === 'desktop' && (
+                <div ref={desktopRef}>
+                  <PlatformBlock
+                    title="NO DESKTOP"
+                    icon={<Monitor className="w-4 h-4" />}
+                    highlighted={highlightedBlock === 'desktop'}
+                    steps={[
+                      { icon: <Smartphone className="w-3.5 h-3.5" />, text: 'Abra o GLPY no navegador do seu celular' },
+                      { icon: <Plus className="w-3.5 h-3.5" />,        text: 'Siga as instruções do bloco iPhone ou Android acima' },
+                      { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'O GLPY aparecerá na tela inicial do celular' },
+                    ]}
+                  />
+                </div>
               )}
 
               {/* Logo wordmark subtle */}
@@ -320,18 +319,26 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
 
               {/* Buttons */}
               <div className="space-y-3 pt-1">
+
+                {/* Primary — only on iOS and Android */}
+                {platform !== 'desktop' && (
+                  <button
+                    onClick={handlePrimaryAction}
+                    className="w-full bg-[#00C27A] text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-[#00C27A]/25 hover:bg-[#00C27A]/90 active:scale-[0.98] transition-all"
+                  >
+                    {platform === 'android' ? 'Instalar GLPY' : 'Ver como adicionar no iPhone'}
+                  </button>
+                )}
+
+                {/* Secondary — always shown */}
                 <button
-                  onClick={handlePrimaryAction}
-                  className="w-full bg-[#00C27A] text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-[#00C27A]/25 hover:bg-[#00C27A]/90 active:scale-[0.98] transition-all"
-                >
-                  {primaryLabel}
-                </button>
-                <button
-                  onClick={handleGuide}
+                  onClick={handleShowSteps}
                   className="w-full bg-[#F4F6F8] text-[#0A1628] font-semibold py-3.5 rounded-2xl text-sm hover:bg-[#E8EDF2] active:scale-[0.98] transition-all"
                 >
                   Ver passo a passo
                 </button>
+
+                {/* Tertiary — always shown */}
                 <button
                   onClick={handleDismiss}
                   className="w-full text-[#9AABB8] text-sm font-medium py-2 hover:text-[#6B7A8D] transition-colors"
