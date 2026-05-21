@@ -789,33 +789,33 @@ export default function HomePremiumV2() {
                     
                     <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Cintura</span>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
+                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Busto</span>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.busto.change} cm</span>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
+                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.busto.change} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Coxa</span>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
+                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Panturrilha</span>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
+                      <div className="flex items-baseline justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
+                        <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
                       </div>
                     </div>
 
