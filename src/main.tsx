@@ -133,7 +133,9 @@ if (path === '/admin') {
         <WaterScreen
           onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
           onSave={(amount) => {
-            localStorage.setItem('glpy_agua_hoje', String(amount));
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today }));
+            window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = '/preview/home-premium-v2';
           }}
         />

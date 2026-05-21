@@ -216,7 +216,7 @@ function NutritionGoalCard({
       </div>
 
       <div className="min-w-0 text-left flex-1">
-        <span className="text-[10px] text-[#3D5A70] font-black uppercase tracking-wider block leading-tight">{label}</span>
+        <span className="text-[9px] text-[#3D5A70] font-black uppercase tracking-wide block leading-tight">{label}</span>
         <div className="flex items-baseline mt-0.5 leading-none">
           <span className="text-sm font-black text-[#0A1628] tracking-tight">{current}</span>
           <span className="text-[10px] text-slate-400 font-extrabold">/{target}{unit}</span>
@@ -289,8 +289,16 @@ export default function HomePremiumV2() {
 
   // Interactive UI state proxies
   const [waterAmount, setWaterAmount] = useState<number>(() => {
-    try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? mockHomeData.nutrients.water.current : v; }
-    catch { return mockHomeData.nutrients.water.current; }
+    try {
+      const raw = localStorage.getItem('glpy_agua_hoje');
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      const today = new Date().toISOString().slice(0, 10);
+      if (parsed && typeof parsed === 'object' && parsed.date === today) {
+        return parseFloat(String(parsed.amount)) || 0;
+      }
+      return 0;
+    } catch { return 0; }
   });
 
   // Streak de consecutividade real calculada dinamicamente
@@ -580,6 +588,8 @@ export default function HomePremiumV2() {
     const newWater = parseFloat((waterAmount + 0.25).toFixed(2));
     if (newWater <= 5.0) {
       setWaterAmount(newWater);
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: newWater, date: today }));
       triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);
       if (newWater >= targetWaterL) {
         triggerConfetti();
@@ -993,7 +1003,7 @@ export default function HomePremiumV2() {
                   <div
                     className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
                   >
-                    <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Proteína</span>
+                    <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Proteínas</span>
                     <span className="text-[11px] font-black text-[#00C27A] font-mono mt-0.5 truncate w-full">
                       faltam 85g
                     </span>
@@ -1199,23 +1209,15 @@ export default function HomePremiumV2() {
                     ) : (
                       <>
                         <div className="space-y-1">
-                          <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Passos hoje</span>
-                          <span className="text-sm font-black text-[#0A1628] block font-mono">
-                            {mockHomeData.performance.activity.stepsToday} <span className="text-[10px] text-slate-400 font-bold">/ {mockHomeData.performance.activity.stepsGoal}</span>
-                          </span>
+                          <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Nenhuma atividade hoje</span>
+                          <span className="text-sm font-black text-slate-300 block font-mono">—</span>
                         </div>
 
-                        <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
-                          <div>
-                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Treino</span>
-                            <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.activity.trainingThisWeek}/{mockHomeData.performance.activity.trainingGoal}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Foco</span>
-                            <span className="font-extrabold text-[#F5A623] bg-orange-50 px-1.5 py-0.5 rounded-md text-[9px] block">
-                              🔥 {mockHomeData.performance.activity.consistencyDays}d
-                            </span>
-                          </div>
+                        <div
+                          className="flex items-center justify-center bg-blue-50/60 p-2 rounded-xl border border-blue-100/30 text-[10px] cursor-pointer active:opacity-70"
+                          onClick={() => goTo('/preview/activity')}
+                        >
+                          <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wide">+ Registrar movimento</span>
                         </div>
                       </>
                     )}
@@ -1329,9 +1331,9 @@ export default function HomePremiumV2() {
                 
                 <div className="grid grid-cols-2 gap-2.5">
                   
-                  {/* Proteína */}
+                  {/* Proteínas */}
                   <NutritionGoalCard
-                    label="Proteína"
+                    label="Proteínas"
                     current={nutritionConsumed.consumedProtein}
                     target={targetProteinG}
                     unit={mockHomeData.nutrients.protein.unit}
@@ -1340,7 +1342,7 @@ export default function HomePremiumV2() {
 
                   {/* Carboidratos */}
                   <NutritionGoalCard
-                    label="Carbs"
+                    label="Carboidratos"
                     current={nutritionConsumed.consumedCarbs}
                     target={targetCarbsG}
                     unit={mockHomeData.nutrients.carbs.unit}
