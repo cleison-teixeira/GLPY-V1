@@ -26,7 +26,7 @@ const QUICK_ADD = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(l: number): string {
-  return l.toFixed(1).replace('.', ',');
+  return l.toFixed(2).replace('.', ',');
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────

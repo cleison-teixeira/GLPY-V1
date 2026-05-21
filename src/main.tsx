@@ -126,6 +126,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/body-profile') {
+  import('./screens/operational/BodyProfileScreen.tsx').then(({ default: BodyProfileScreen }) => {
+    root.render(
+      <StrictMode>
+        <BodyProfileScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/water') {
   import('./screens/operational/WaterScreen.tsx').then(({ default: WaterScreen }) => {
     root.render(

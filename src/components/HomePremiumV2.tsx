@@ -112,6 +112,10 @@ interface QuickToast {
   msg: string;
 }
 
+function formatLiters(value: number): string {
+  return value.toFixed(2).replace('.', ',');
+}
+
 interface NutritionGoalCardProps {
   label: string;
   current: number;
@@ -119,6 +123,7 @@ interface NutritionGoalCardProps {
   unit: string;
   color: "red" | "green" | "amber" | "blue";
   onClick?: () => void;
+  displayValue?: string;
 }
 
 function NutritionGoalCard({
@@ -127,7 +132,8 @@ function NutritionGoalCard({
   target,
   unit,
   color,
-  onClick
+  onClick,
+  displayValue,
 }: NutritionGoalCardProps) {
   const colorMap = {
     red: {
@@ -218,7 +224,7 @@ function NutritionGoalCard({
       <div className="min-w-0 text-left flex-1">
         <span className="text-[9px] text-[#3D5A70] font-black uppercase tracking-wide block leading-tight">{label}</span>
         <div className="flex items-baseline mt-0.5 leading-none">
-          <span className="text-sm font-black text-[#0A1628] tracking-tight">{current}</span>
+          <span className="text-sm font-black text-[#0A1628] tracking-tight">{displayValue ?? current}</span>
           <span className="text-[10px] text-slate-400 font-extrabold">/{target}{unit}</span>
         </div>
       </div>
@@ -496,7 +502,8 @@ export default function HomePremiumV2() {
   // Popups & modals
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
   const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
-  const [goalInput,  setGoalInput]  = useState<string>('');
+  const [showGoalModal,  setShowGoalModal]  = useState<boolean>(false);
+  const [goalInput,      setGoalInput]      = useState<string>('');
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
@@ -667,25 +674,31 @@ export default function HomePremiumV2() {
     const numeric = parseFloat(weightInput.replace(',', '.'));
     if (!isNaN(numeric) && numeric > 20 && numeric < 300) {
       saveWeightEntry({ weight: numeric });
-
-      const numericGoal = parseFloat(goalInput.replace(',', '.'));
-      if (!isNaN(numericGoal) && numericGoal > 20 && numericGoal < 300) {
-        try {
-          const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-          onb.pesoMeta   = numericGoal;
-          onb.peso_sonho = numericGoal;
-          onb.peso_meta  = numericGoal;
-          localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
-          localStorage.setItem('glpy_peso_sonho', numericGoal.toFixed(1));
-        } catch {}
-      }
-
       window.dispatchEvent(new Event('local-storage-change'));
       setShowWeightModal(false);
       triggerConfetti();
       triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue no foco.`);
     } else {
       triggerToast("Digite um peso válido coerente!");
+    }
+  };
+
+  const handleApplyGoal = () => {
+    const numericGoal = parseFloat(goalInput.replace(',', '.'));
+    if (!isNaN(numericGoal) && numericGoal > 20 && numericGoal < 300) {
+      try {
+        const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+        onb.pesoMeta   = numericGoal;
+        onb.peso_sonho = numericGoal;
+        onb.peso_meta  = numericGoal;
+        localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+        localStorage.setItem('glpy_peso_sonho', numericGoal.toFixed(1));
+      } catch {}
+      window.dispatchEvent(new Event('local-storage-change'));
+      setShowGoalModal(false);
+      triggerToast(`🎯 Meta atualizada para ${numericGoal} kg!`);
+    } else {
+      triggerToast("Digite uma meta de peso válida.");
     }
   };
 
@@ -731,7 +744,6 @@ export default function HomePremiumV2() {
     };
     if (id === 'peso') {
       setWeightInput(weightCurrent.toString());
-      setGoalInput(weightGoal > 0 && weightGoal !== 60.0 ? weightGoal.toString() : '');
       setShowWeightModal(true);
     } else if (QUICK_ROUTES[id]) {
       goTo(QUICK_ROUTES[id]);
@@ -1024,9 +1036,10 @@ export default function HomePremiumV2() {
                     </div>
                   </div>
 
-                  {/* Meta */}
+                  {/* Meta — clicável → abre modal de meta */}
                   <div
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition"
+                    onClick={() => { setGoalInput(weightGoal.toString()); setShowGoalModal(true); }}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition cursor-pointer active:opacity-70 hover:border-blue-200"
                   >
                     <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
                       <Flag className="w-4 h-4 stroke-[2.5]" />
@@ -1037,9 +1050,10 @@ export default function HomePremiumV2() {
                     </div>
                   </div>
 
-                  {/* Altura */}
+                  {/* Altura — clicável → abre perfil corporal */}
                   <div
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition"
+                    onClick={() => goTo('/preview/body-profile')}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition cursor-pointer active:opacity-70 hover:border-orange-200"
                   >
                     <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
                       <Ruler className="w-4 h-4 stroke-[2.5]" />
@@ -1152,7 +1166,7 @@ export default function HomePremiumV2() {
                   >
                     <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Água</span>
                     <span className="text-[11px] font-black text-blue-500 font-mono mt-0.5 truncate w-full">
-                      faltam {waterRemaining.toFixed(1)}L
+                      faltam {formatLiters(waterRemaining)}L
                     </span>
                   </div>
 
@@ -1535,6 +1549,7 @@ export default function HomePremiumV2() {
                     unit={mockHomeData.nutrients.water.unit}
                     color="blue"
                     onClick={handleAddWater}
+                    displayValue={formatLiters(waterAmount)}
                   />
 
                 </div>
@@ -1824,6 +1839,19 @@ export default function HomePremiumV2() {
                 </div>
               </div>
 
+              <button
+                onClick={() => goTo('/preview/body-profile')}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E2EBE7] shadow-xs hover:shadow-sm hover:border-[#00C27A]/30 transition active:opacity-70"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#00C27A]/10 flex items-center justify-center">
+                    <Ruler className="w-4 h-4 text-[#00C27A] stroke-[2.5]" />
+                  </div>
+                  <span className="text-xs font-bold text-[#0A1628]">Editar perfil corporal</span>
+                </div>
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </button>
+
               <div className="p-4 bg-[#FAFCFB] rounded-2xl border border-dashed border-[#E2EBE7] text-center">
                 <span className="text-xs font-bold block mb-1 text-slate-700">Contrato de Segurança Garantido</span>
                 <p className="text-[10px] text-slate-400 leading-relaxed">Suas informações e fotos de evolução corporal são 100% privadas e acessivas apenas em seu ambiente local de aplicativo.</p>
@@ -1884,15 +1912,14 @@ export default function HomePremiumV2() {
 
       </div>
 
-      {/* WEIGHT COMPILER ADJUSTMENT MODAL */}
+      {/* PESO ATUAL MODAL */}
       {showWeightModal && (
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
-            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso ⚖️</h3>
+            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar peso ⚖️</h3>
             <p className="text-[11px] text-[#3D5A70] text-center mb-4">Início: {weightStart} kg • Meta atual: {weightGoal} kg</p>
 
-            <p className="text-[10px] font-extrabold text-[#3D5A70] uppercase tracking-wide mb-1.5">Peso atual</p>
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-3 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
               <input
                 type="text"
                 inputMode="decimal"
@@ -1902,21 +1929,6 @@ export default function HomePremiumV2() {
                 onKeyDown={e => e.key === 'Enter' && handleApplyWeight()}
                 placeholder="0"
                 autoFocus
-                className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
-              />
-              <span className="text-lg font-bold text-[#3D5A70]">kg</span>
-            </div>
-
-            <p className="text-[10px] font-extrabold text-[#3D5A70] uppercase tracking-wide mb-1.5">Meta de peso <span className="text-slate-400 normal-case font-medium">(opcional)</span></p>
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={goalInput}
-                onChange={e => setGoalInput(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onKeyDown={e => e.key === 'Enter' && handleApplyWeight()}
-                placeholder={weightGoal.toFixed(1)}
                 className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
               />
               <span className="text-lg font-bold text-[#3D5A70]">kg</span>
@@ -1934,6 +1946,46 @@ export default function HomePremiumV2() {
                 className="flex-1 py-2.5 text-xs bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold rounded-xl transition shadow-sm shadow-[#00C27A]/20"
               >
                 Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* META DE PESO MODAL */}
+      {showGoalModal && (
+        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
+            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Atualizar meta 🎯</h3>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Defina o peso que você deseja alcançar com segurança.</p>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={goalInput}
+                onChange={e => setGoalInput(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleApplyGoal()}
+                placeholder={weightGoal.toFixed(1)}
+                autoFocus
+                className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
+              />
+              <span className="text-lg font-bold text-[#3D5A70]">kg</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowGoalModal(false)}
+                className="flex-1 py-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-[#0A1628] font-bold rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleApplyGoal}
+                className="flex-1 py-2.5 text-xs bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold rounded-xl transition shadow-sm shadow-[#00C27A]/20"
+              >
+                Salvar meta
               </button>
             </div>
           </div>

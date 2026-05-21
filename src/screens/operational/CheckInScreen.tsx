@@ -32,7 +32,7 @@ type DayFeeling = 'Leve' | 'Normal' | 'Difícil';
 const FEELING_OPTIONS: DayFeeling[] = ['Leve', 'Normal', 'Difícil'];
 
 function buildResumoItems(todayStr: string) {
-  const fmtL = (v: number) => v.toFixed(1).replace('.', ',');
+  const fmtL = (v: number) => v.toFixed(2).replace('.', ',');
 
   const agua = (() => {
     try {
@@ -41,7 +41,7 @@ function buildResumoItems(todayStr: string) {
       const p = JSON.parse(raw);
       if (p && typeof p === 'object' && p.date === todayStr) {
         const amount = parseFloat(String(p.amount)) || 0;
-        return { value: `${fmtL(amount)} L de 2,6 L`, done: amount >= 2.6 };
+        return { value: `${fmtL(amount)} L de ${fmtL(2.6)} L`, done: amount >= 2.6 };
       }
       return { value: 'Pendente', done: false };
     } catch { return { value: 'Pendente', done: false }; }
