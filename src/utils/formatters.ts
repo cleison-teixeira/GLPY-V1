@@ -42,6 +42,10 @@ export function formatLiters(value: number): string {
   return formatUnit(value, 'L', 2);
 }
 
+export function formatGrams(value: number): string {
+  return formatUnit(Math.round(value), 'g', 0);
+}
+
 export function formatMl(value: number): string {
   return `${Math.round(value)} ml`;
 }

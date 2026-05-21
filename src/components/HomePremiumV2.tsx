@@ -34,7 +34,7 @@ import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
-import { formatDecimalBR, formatLiters, formatMeters, formatUnit, parseBRNumber } from '../utils/formatters';
+import { formatDecimalBR, formatGrams, formatLiters, formatMeters, formatUnit, parseBRNumber } from '../utils/formatters';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -222,9 +222,20 @@ function NutritionGoalCard({
 
       <div className="min-w-0 text-left flex-1">
         <span className="text-[9px] text-[#3D5A70] font-black uppercase tracking-wide block leading-tight">{label}</span>
-        <div className="flex items-baseline mt-0.5 leading-none">
-          <span className="text-sm font-black text-[#0A1628] tracking-tight">{displayValue ?? current}</span>
-          <span className="text-[10px] text-slate-400 font-extrabold">/{target}{unit}</span>
+        <div className="flex items-baseline mt-0.5 leading-none gap-[2px]">
+          {unit === 'L' ? (
+            // Água: "1,00 L / 3,15 L"
+            <span className="text-sm font-black text-[#0A1628] tracking-tight">
+              {displayValue ?? formatLiters(current)}
+              <span className="text-[10px] text-slate-400 font-extrabold"> / {formatLiters(target)}</span>
+            </span>
+          ) : (
+            // Macros (g): "50 g / 135 g"
+            <span className="text-sm font-black text-[#0A1628] tracking-tight">
+              {displayValue ?? formatGrams(current)}
+              <span className="text-[10px] text-slate-400 font-extrabold"> / {formatGrams(target)}</span>
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -330,7 +341,19 @@ export default function HomePremiumV2() {
     return (isNaN(n) || n <= 0) ? '—' : formatUnit(n, 'mg', 2);
   })();
   const userMedicamento  = onboarding.medicamento || mockHomeData.performance.glp1.name;
-  const userFrequencia   = onboarding.frequencia || 'Configure';
+  // Cascata de frequência: lê diretamente do localStorage para garantir atualização mesmo sem evento reativo
+  const userFrequencia = (() => {
+    try {
+      const direct = localStorage.getItem('glpy_frequencia')?.trim();
+      if (direct) return direct;
+      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      if (onb.frequencia?.trim()) return String(onb.frequencia).trim();
+      const tratamento = JSON.parse(localStorage.getItem('glpy_tratamento') || '{}');
+      if (tratamento.frequencia?.trim()) return String(tratamento.frequencia).trim();
+      if (tratamento.frequency?.trim()) return String(tratamento.frequency).trim();
+    } catch {}
+    return onboarding.frequencia?.trim() || 'Configure';
+  })();
 
   // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
   const targetProteinG  = nutritionTargets?.proteinGrams  ?? mockHomeData.nutrients.protein.target;
