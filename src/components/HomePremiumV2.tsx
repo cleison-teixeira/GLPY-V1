@@ -461,12 +461,12 @@ export default function HomePremiumV2() {
           ))}
         </div>
 
-        {/* TOAST SYSTEM FEEDSTACK */}
-        <div className="absolute top-14 left-4 right-4 z-50 pointer-events-none flex flex-col gap-2">
+        {/* TOAST SYSTEM FEEDSTACK — fixed ao viewport, visível em qualquer posição do scroll */}
+        <div className="fixed bottom-[104px] left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm z-[9999] pointer-events-none flex flex-col-reverse gap-2">
           {toasts.map((t) => (
             <div
               key={t.id}
-              className="bg-slate-900/95 backdrop-blur-xs text-white text-xs py-3 px-4 rounded-xl shadow-xl border border-white/10 flex items-center gap-3 pointer-events-auto"
+              className="bg-slate-900/95 backdrop-blur-sm text-white text-xs py-3 px-4 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 pointer-events-auto animate-[fadeSlideUp_0.25s_ease-out]"
             >
               <div className="w-5 h-5 bg-[#00C27A] rounded-full flex items-center justify-center shrink-0">
                 <Check className="w-3 h-3 text-white stroke-[2.5]" />
@@ -796,7 +796,6 @@ export default function HomePremiumV2() {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.cintura.change} cm</span>
-                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
                     </div>
 
@@ -809,7 +808,6 @@ export default function HomePremiumV2() {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.busto.change} cm</span>
-                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
                     </div>
 
@@ -822,7 +820,6 @@ export default function HomePremiumV2() {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.coxa.change} cm</span>
-                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
                     </div>
 
@@ -835,7 +832,6 @@ export default function HomePremiumV2() {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.panturrilha.change} cm</span>
-                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
                     </div>
 

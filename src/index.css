@@ -45,3 +45,8 @@ html.dark .border-border { border-color: #1E3348 !important; }
 .animate-fire {
   animation: fire-pulse 2s ease-in-out infinite;
 }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
