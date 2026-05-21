@@ -36,27 +36,12 @@ interface TreatmentSettingsScreenProps {
   }) => void;
 }
 
+import { GLPY_MEDICATION_OPTIONS } from '../../data/glpyMedicationOptions';
+
 // ── Data ─────────────────────────────────────────────────────────────────────
 // MVP PLACEHOLDER — listas registráveis pelo usuário, sem recomendação clínica.
 
-const MEDICATION_OPTIONS = [
-  'Zepbound®',
-  'Mounjaro®',
-  'Ozempic®',
-  'Retatrutida®',
-  'Wegovy®',
-  'Trulicity®',
-  'Saxenda®',
-  'Victoza®',
-  'Olire®',
-  'Rybelsus®',
-  'TG (Tirzepatida Genérica)',
-  'LipoLass®',
-  'Semaglutida Composta',
-  'Tirzepatida Composta',
-  'Outro',
-  'Ainda não decidi',
-] as const;
+const MEDICATION_OPTIONS = GLPY_MEDICATION_OPTIONS;
 
 const FREQUENCY_OPTIONS = [
   'Diária',

@@ -24,7 +24,13 @@ import {
   Activity
 } from "lucide-react";
 
-import glpyLogoSymbol from '@/assets/logos/logo-symbol-dark.png';
+import glpyLogoSymbol from '@/assets/logos/logo-light.png';
+import { useCurrentWeight } from '../hooks/useCurrentWeight';
+import { useUserOnboarding } from '../hooks/useUserOnboarding';
+import { useNutritionTargets } from '../hooks/useNutritionTargets';
+import { useActiveProtocol } from '../hooks/useActiveProtocol';
+import { useDailyLimits } from '../hooks/useDailyLimits';
+import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -84,6 +90,8 @@ export const mockHomeData = {
   },
   social: "128.450 kg eliminados sem rebote 🔥"
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface ConfettiParticle {
   id: number;
@@ -220,8 +228,27 @@ export default function HomePremiumV2() {
   // Mobile Frame States
   const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">("inicio");
   
-  // Interactive UI state proxies linked over mockHomeData
-  const [weightCurrent, setWeightCurrent] = useState<number>(mockHomeData.user.weightCurrent);
+  // Fase 1F.2: dados reais via hooks centralizados
+  const currentWeightData = useCurrentWeight();
+  const onboarding = useUserOnboarding();
+  const nutritionTargets = useNutritionTargets();
+  const activeProtocol = useActiveProtocol();
+  const dailyLimits = useDailyLimits();
+  const protocolPercent = activeProtocol.totalDays > 0
+    ? Math.min(100, Math.round((activeProtocol.currentDay / activeProtocol.totalDays) * 100))
+    : 0;
+  const [weightCurrent, setWeightCurrent] = useState<number>(() => currentWeightData.weight);
+  const weightGoal = onboarding.pesoMeta;
+  const userHeight = onboarding.altura;
+  const userName = onboarding.nome;
+
+  // Metas-alvo nutricionais: reais se disponíveis, mock como fallback
+  const targetProteinG  = nutritionTargets?.proteinGrams  ?? mockHomeData.nutrients.protein.target;
+  const targetCarbsG    = nutritionTargets?.carbsGrams     ?? mockHomeData.nutrients.carbs.target;
+  const targetFatG      = nutritionTargets?.fatGrams       ?? mockHomeData.nutrients.fat.target;
+  const targetWaterL    = nutritionTargets?.waterLiters    ?? mockHomeData.nutrients.water.target;
+
+  // Interactive UI state proxies
   const [waterAmount, setWaterAmount] = useState<number>(mockHomeData.nutrients.water.current);
   const [isCheckInDone, setIsCheckInDone] = useState<boolean>(false);
   const [streakDays, setStreakDays] = useState<number>(mockHomeData.user.streakCoins);
@@ -229,17 +256,28 @@ export default function HomePremiumV2() {
 
   // Popups & modals
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
-  const [weightInput, setWeightInput] = useState<string>(mockHomeData.user.weightCurrent.toString());
+  const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
   const [showHubModal, setShowHubModal] = useState<boolean>(false);
   const [showPlusDrawer, setShowPlusDrawer] = useState<boolean>(false);
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
-  // Computed weights
+  // Computed weights — weightStart permanece mockado; goal/height/name são reais
   const lostKg = parseFloat((mockHomeData.user.weightStart - weightCurrent).toFixed(1));
-  const toGoKg = parseFloat((weightCurrent - mockHomeData.user.weightGoal).toFixed(1));
-  const progressPercent = Math.round((lostKg / (mockHomeData.user.weightStart - mockHomeData.user.weightGoal)) * 100);
-  const waterRemaining = Math.max(0, mockHomeData.nutrients.water.target - waterAmount);
+  const toGoKg = parseFloat(Math.max(0, weightCurrent - weightGoal).toFixed(1));
+  const totalRange = mockHomeData.user.weightStart - weightGoal;
+  const progressPercent = totalRange > 0
+    ? Math.min(100, Math.max(0, Math.round((lostKg / totalRange) * 100)))
+    : 0;
+  const bmi = userHeight > 0
+    ? parseFloat((weightCurrent / (userHeight * userHeight)).toFixed(1))
+    : null;
+  const bmiLabel = bmi === null ? "—"
+    : bmi < 18.5 ? "Abaixo do peso"
+    : bmi < 25 ? "Normal"
+    : bmi < 30 ? "Sobrepeso"
+    : "Obesidade";
+  const waterRemaining = Math.max(0, targetWaterL - waterAmount);
 
   // Live Toast dispatcher
   const triggerToast = (msg: string) => {
@@ -295,9 +333,9 @@ export default function HomePremiumV2() {
     if (newWater <= 5.0) {
       setWaterAmount(newWater);
       triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);
-      if (newWater >= mockHomeData.nutrients.water.target) {
+      if (newWater >= targetWaterL) {
         triggerConfetti();
-        triggerToast(`🎉 Excelente, ${mockHomeData.user.name}! Meta de hidratação atingida!`);
+        triggerToast(`🎉 Excelente, ${userName}! Meta de hidratação atingida!`);
       }
     }
   };
@@ -306,6 +344,7 @@ export default function HomePremiumV2() {
     const numeric = parseFloat(weightInput);
     if (!isNaN(numeric) && numeric > 45 && numeric < 150) {
       setWeightCurrent(numeric);
+      saveWeightEntry({ weight: numeric });
       setShowWeightModal(false);
       triggerConfetti();
       triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue no foco.`);
@@ -480,18 +519,17 @@ export default function HomePremiumV2() {
               
               {/* TOP HEADER */}
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <img 
                     src={glpyLogoSymbol} 
-                    alt="GLPY Symbol" 
-                    className="w-8 h-8 object-contain shrink-0" 
+                    alt="GLPY" 
+                    className="h-12 w-auto object-contain shrink-0" 
                   />
-                  <span className="text-xl font-black tracking-tight text-[#0A1628]">GLPY</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => triggerToast(`🔔 ${mockHomeData.user.name}, seu plano de transição anti-rebote entra em nova fase em 2 dias.`)}
+                    onClick={() => triggerToast(`🔔 ${userName}, seu plano de transição anti-rebote entra em nova fase em 2 dias.`)}
                     className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition active:scale-95 cursor-pointer"
                   >
                     <Bell className="w-5 h-5 text-[#3D5A70]" />
@@ -506,7 +544,7 @@ export default function HomePremiumV2() {
                   >
                     <img 
                       src={mockHomeData.user.avatarUrl}
-                      alt={mockHomeData.user.name}
+                      alt={userName}
                       className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                     />
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00C27A] rounded-full border-2 border-white" />
@@ -517,7 +555,7 @@ export default function HomePremiumV2() {
               {/* HEADING ACCENTS AND STREAK COUNTER */}
               <div className="flex justify-between items-start gap-2">
                 <div className="space-y-0.5">
-                  <h2 className="text-xl font-extrabold text-[#0A1628] tracking-tight">Olá, {mockHomeData.user.name}! 👋</h2>
+                  <h2 className="text-xl font-extrabold text-[#0A1628] tracking-tight">Olá, {userName}! 👋</h2>
                   <p className="text-[#3D5A70] text-xs font-semibold">Foco hoje, liberdade amanhã.</p>
                 </div>
 
@@ -612,7 +650,7 @@ export default function HomePremiumV2() {
                   </div>
                   <div className="flex justify-between text-[10px] text-[#3D5A70] font-bold uppercase tracking-wider">
                     <span>Início ({mockHomeData.user.weightStart} kg)</span>
-                    <span>Meta ({mockHomeData.user.weightGoal} kg)</span>
+                    <span>Meta ({weightGoal} kg)</span>
                   </div>
                 </div>
 
@@ -635,7 +673,7 @@ export default function HomePremiumV2() {
 
                   {/* Meta */}
                   <div 
-                    onClick={() => triggerToast(`🎯 Meta de peso: ${mockHomeData.user.weightGoal} kg. Foco no processo!`)}
+                    onClick={() => triggerToast(`🎯 Meta de peso: ${weightGoal} kg. Foco no processo!`)}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:bg-blue-50/10 transition cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
@@ -643,13 +681,13 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Meta</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{mockHomeData.user.weightGoal} kg</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{weightGoal} kg</span>
                     </div>
                   </div>
 
                   {/* Altura */}
                   <div 
-                    onClick={() => triggerToast(`📏 Sua altura cadastrada é de ${mockHomeData.user.height} m.`)}
+                    onClick={() => triggerToast(`📏 Sua altura cadastrada é de ${userHeight} m.`)}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-orange-300 hover:bg-orange-50/10 transition cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
@@ -657,13 +695,13 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Altura</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{mockHomeData.user.height} m</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{userHeight} m</span>
                     </div>
                   </div>
 
                   {/* IMC */}
                   <div 
-                    onClick={() => triggerToast("⚖️ IMC 26,7: Classificação de Sobrepeso. O protocolo GLPY protege seus tecidos metabolicamente ativos enquanto reduz gordura.")}
+                    onClick={() => triggerToast(`⚖️ IMC ${bmi ?? "—"}: ${bmiLabel}. O protocolo GLPY protege seus tecidos metabolicamente ativos enquanto reduz gordura.`)}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-purple-300 hover:bg-purple-50/10 transition cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -671,7 +709,7 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">IMC</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">26,7</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{bmi ?? "—"}</span>
                     </div>
                   </div>
 
@@ -739,15 +777,15 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Protocol Chip */}
-                  <div 
-                    onClick={() => triggerToast("🛡️ Protocolo Anti-Rebote: Dia 1 de 7. Esta fase reabilita seus receptores de saciedade e estabiliza o peso.")}
+                  <div
+                    onClick={() => triggerToast(`🛡️ Protocolo ${activeProtocol.name}: Dia ${activeProtocol.currentDay} de ${activeProtocol.totalDays}. Esta fase reabilita seus receptores de saciedade e estabiliza o peso.`)}
                     className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#00C27A]/20 transition active:scale-95"
                   >
                     <span className="text-[9px] font-extrabold text-[#00C27A] uppercase tracking-wider truncate w-full">
-                      {mockHomeData.protocol.name}
+                      {activeProtocol.name}
                     </span>
                     <span className="text-[11px] font-black text-[#0D2C20] font-mono mt-0.5">
-                      Dia {mockHomeData.protocol.currentDay}/{mockHomeData.protocol.totalDays}
+                      Dia {activeProtocol.currentDay}/{activeProtocol.totalDays}
                     </span>
                   </div>
                 </div>
@@ -860,7 +898,7 @@ export default function HomePremiumV2() {
                     
                     {/* Glowing Markers */}
                     {/* Busto marker */}
-                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`📏 Busto de ${mockHomeData.user.name}: 91 cm (-1cm).`)}>
+                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`📏 Busto de ${userName}: 91 cm (-1cm).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white"></span>
@@ -868,7 +906,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Cintura marker */}
-                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`🔥 Cintura de ${mockHomeData.user.name}: 91 cm (-5cm, progresso excelente!).`)}>
+                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`🔥 Cintura de ${userName}: 91 cm (-5cm, progresso excelente!).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00C27A] border border-white"></span>
@@ -876,7 +914,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Coxa marker */}
-                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`💪 Coxa de ${mockHomeData.user.name}: 53 cm (-4cm).`)}>
+                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`💪 Coxa de ${userName}: 53 cm (-4cm).`)}>
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
@@ -1000,6 +1038,72 @@ export default function HomePremiumV2() {
                     </div>
                   </div>
 
+                  {/* Card 4: Assistente IA */}
+                  <div
+                    onClick={() => triggerToast(`🤖 IA GLPY: ${dailyLimits.iaUsadas}/${dailyLimits.iaLimite} mensagens usadas este mês.`)}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-violet-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 border border-violet-100/30">
+                        <Sparkles className="w-4 h-4 text-violet-600 stroke-[2.2]" />
+                      </div>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">Assistente IA</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Mensagens no mês</span>
+                      <span className="text-sm font-black text-[#0A1628] block font-mono">
+                        {dailyLimits.iaUsadas} <span className="text-[10px] text-slate-400 font-bold">/ {dailyLimits.iaLimite}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Usadas</span>
+                        <span className="font-black text-[#0a1628] font-mono">{dailyLimits.iaUsadas}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Restam</span>
+                        <span className="font-extrabold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-md text-[9px] block font-mono">
+                          {Math.max(0, dailyLimits.iaLimite - dailyLimits.iaUsadas)} msgs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 5: Foto do Prato */}
+                  <div
+                    onClick={() => triggerToast(`📸 Foto do prato: ${dailyLimits.fotosUsadas}/${dailyLimits.fotosLimite} análises usadas hoje.`)}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-pink-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0 border border-pink-100/30">
+                        <Camera className="w-4 h-4 text-pink-500 stroke-[2.2]" />
+                      </div>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">Foto do Prato</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Análises hoje</span>
+                      <span className="text-sm font-black text-[#0A1628] block font-mono">
+                        {dailyLimits.fotosUsadas} <span className="text-[10px] text-slate-400 font-bold">/ {dailyLimits.fotosLimite}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                      <div>
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Usadas</span>
+                        <span className="font-black text-[#0a1628] font-mono">{dailyLimits.fotosUsadas}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Restam</span>
+                        <span className="font-extrabold text-pink-500 bg-pink-50 px-1.5 py-0.5 rounded-md text-[9px] block font-mono">
+                          {Math.max(0, dailyLimits.fotosLimite - dailyLimits.fotosUsadas)} fotos
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
@@ -1013,7 +1117,7 @@ export default function HomePremiumV2() {
                   <NutritionGoalCard
                     label="Proteína"
                     current={mockHomeData.nutrients.protein.current}
-                    target={mockHomeData.nutrients.protein.target}
+                    target={targetProteinG}
                     unit={mockHomeData.nutrients.protein.unit}
                     color="red"
                   />
@@ -1022,7 +1126,7 @@ export default function HomePremiumV2() {
                   <NutritionGoalCard
                     label="Carbs"
                     current={mockHomeData.nutrients.carbs.current}
-                    target={mockHomeData.nutrients.carbs.target}
+                    target={targetCarbsG}
                     unit={mockHomeData.nutrients.carbs.unit}
                     color="green"
                   />
@@ -1031,7 +1135,7 @@ export default function HomePremiumV2() {
                   <NutritionGoalCard
                     label="Gordura"
                     current={mockHomeData.nutrients.fat.current}
-                    target={mockHomeData.nutrients.fat.target}
+                    target={targetFatG}
                     unit={mockHomeData.nutrients.fat.unit}
                     color="amber"
                   />
@@ -1040,7 +1144,7 @@ export default function HomePremiumV2() {
                   <NutritionGoalCard
                     label="Água"
                     current={waterAmount}
-                    target={mockHomeData.nutrients.water.target}
+                    target={targetWaterL}
                     unit={mockHomeData.nutrients.water.unit}
                     color="blue"
                     onClick={handleAddWater}
@@ -1091,17 +1195,17 @@ export default function HomePremiumV2() {
                   <div className="flex-1 space-y-0.5">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-extrabold bg-[#E2EBE7] text-emerald-800 px-2 py-0.5 rounded-full">
-                        {mockHomeData.protocol.name}
+                        {activeProtocol.name}
                       </span>
                       <span className="text-[10px] text-[#3D5A70] font-extrabold font-mono">
-                        {mockHomeData.protocol.percentage}% concluído
+                        {protocolPercent}% concluído
                       </span>
                     </div>
                     <span className="text-xs font-extrabold text-[#0A1628] block mt-1">
-                      {mockHomeData.protocol.name} • Dia {mockHomeData.protocol.currentDay} de {mockHomeData.protocol.totalDays}
+                      {activeProtocol.name} • Dia {activeProtocol.currentDay} de {activeProtocol.totalDays}
                     </span>
                     <div className="h-[5px] bg-[#E2EBE7] rounded-full overflow-hidden mt-1 w-full">
-                      <div className="bg-[#00C27A] h-full" style={{ width: "42%" }} />
+                      <div className="bg-[#00C27A] h-full" style={{ width: `${protocolPercent}%` }} />
                     </div>
                   </div>
                 </div>
@@ -1150,7 +1254,7 @@ export default function HomePremiumV2() {
               <div className="bg-gradient-to-br from-[#0A1628] to-[#122A4E] rounded-3xl p-5 text-white space-y-3 shadow-lg">
                 <span className="text-[8px] font-bold tracking-widest bg-emerald-500/20 text-[#00C27A] px-2.5 py-1 rounded-full uppercase">Protocolos Ativos Vivos</span>
                 <h3 className="text-base font-extrabold">Seu metabolismo no piloto automático</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">Desenvolvido com o acompanhamento médico de {mockHomeData.user.name}, ajustado para evitar a perda muscular e queda de cabelo durante o uso das Canetas.</p>
+                <p className="text-xs text-slate-300 leading-relaxed">Desenvolvido com o acompanhamento médico de {userName}, ajustado para evitar a perda muscular e queda de cabelo durante o uso das Canetas.</p>
               </div>
 
               <div className="space-y-3">
@@ -1240,7 +1344,7 @@ export default function HomePremiumV2() {
                   </div>
                   <div className="p-3 bg-slate-50/80 rounded-2xl">
                     <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Meta Definida</span>
-                    <span className="font-extrabold text-[#0a1628] text-base font-mono">60.0 kg</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{weightGoal} kg</span>
                   </div>
                 </div>
               </div>
@@ -1255,13 +1359,13 @@ export default function HomePremiumV2() {
                 <div className="relative inline-block mx-auto">
                   <img 
                     src={mockHomeData.user.avatarUrl}
-                    alt={mockHomeData.user.name}
+                    alt={userName}
                     className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md mx-auto"
                   />
                   <span className="absolute bottom-1 right-1 w-4 h-4 bg-[#00C27A] rounded-full border-2 border-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#0A1628]">{mockHomeData.user.name} Premium V2</h3>
+                  <h3 className="text-base font-extrabold text-[#0A1628]">{userName} Premium V2</h3>
                   <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">Membro Premium Fundador</p>
                 </div>
               </div>
@@ -1271,7 +1375,7 @@ export default function HomePremiumV2() {
                 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Nome Completo</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.name}</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{userName}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
@@ -1281,7 +1385,7 @@ export default function HomePremiumV2() {
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Altura</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{mockHomeData.user.height} m</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{userHeight} m</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
@@ -1351,7 +1455,7 @@ export default function HomePremiumV2() {
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
             <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso Atual ⚖️</h3>
-            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: 80 kg • Meta: 60 kg</p>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: {mockHomeData.user.weightStart} kg • Meta: {weightGoal} kg</p>
             
             <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-5 flex items-center justify-between">
               <button 

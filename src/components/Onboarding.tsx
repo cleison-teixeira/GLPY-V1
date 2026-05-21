@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
+import { GLPY_MEDICATION_OPTIONS } from "../data/glpyMedicationOptions";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronRight, ChevronLeft, Minus, Plus } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { saveUserProfile } from "../services/firestore";
+import { saveWeightEntry } from "../core/glpyLocalIntelligence";
 
 export function isOnboardingDone(): boolean {
   return localStorage.getItem("glpy_onboarding") !== null;
@@ -12,7 +14,7 @@ export function getOnboardingData() {
   return data ? JSON.parse(data) : null;
 }
 
-type StepType = "options" | "number" | "text" | "phone" | "date";
+type StepType = "options" | "number" | "text" | "phone" | "date" | "dose";
 
 type Step = {
   id: string;
@@ -61,14 +63,13 @@ const STEPS: Step[] = [
     title: "Qual o seu medicamento?",
     subtitle: "Vamos personalizar seu protocolo",
     type: "options",
-    options: ["Ozempic", "Mounjaro", "Saxenda", "Wegovy", "Outro", "Parei recentemente"],
+    options: [...GLPY_MEDICATION_OPTIONS],
   },
   {
     id: "dose",
     title: "Qual a sua dose atual?",
     subtitle: "Usamos isso para ajustar suas recomendações",
-    type: "options",
-    options: ["0.25mg", "0.5mg", "1.0mg", "2.5mg", "5mg", "Outra"],
+    type: "dose",
   },
   {
     id: "tempo",
@@ -134,6 +135,32 @@ function calcularIdade(dataNasc: string): number {
   return idade;
 }
 
+export function normalizeDose(raw: string): string | null {
+  const cleaned = raw.trim().replace(/mg$/i, '').replace(',', '.').trim();
+  const val = parseFloat(cleaned);
+  if (isNaN(val) || val <= 0) return null;
+  return `${val} mg`;
+}
+
+function maskDate(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function dateDisplayToISO(display: string): string | null {
+  const digits = display.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+}
+
+function isoToDateDisplay(iso: string): string {
+  const parts = iso.split('-');
+  if (parts.length !== 3) return '';
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits.length ? `(${digits}` : "";
@@ -145,9 +172,9 @@ function maskPhone(value: string): string {
 export default function Onboarding({ onNext }: { onNext: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, string | number>>({});
-  const [numberValue, setNumberValue] = useState<number>(STEPS[0].default ?? 165);
+  const [numberText, setNumberText] = useState<string>("");
   const [textValue, setTextValue] = useState("");
-  const [dateValue, setDateValue] = useState("");
+  const [dateText, setDateText] = useState("");
   const [textError, setTextError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -161,12 +188,19 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
   };
 
   const handleNumber = () => {
-    const newData = { ...formData, [step.id]: numberValue };
-    setFormData(newData);
-    const nextStep = STEPS[currentStep + 1];
-    if (nextStep?.type === "number" && nextStep.default) {
-      setNumberValue(nextStep.default);
+    const val = parseFloat(numberText.replace(',', '.'));
+    if (isNaN(val)) { setTextError("Digite um valor válido."); return; }
+    if (step.min !== undefined && val < step.min) {
+      setTextError(`Mínimo: ${step.min} ${step.unit}`);
+      return;
     }
+    if (step.max !== undefined && val > step.max) {
+      setTextError(`Máximo: ${step.max} ${step.unit}`);
+      return;
+    }
+    setTextError("");
+    const newData = { ...formData, [step.id]: val };
+    setFormData(newData);
     advance(newData);
   };
 
@@ -191,22 +225,33 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
   };
 
   const handleDate = () => {
-    if (!dateValue) { setTextError("Selecione uma data."); return; }
-    const idade = calcularIdade(dateValue);
-    if (idade < 16 || idade > 100) { setTextError("Data inválida."); return; }
+    const isoDate = dateDisplayToISO(dateText);
+    if (!isoDate) { setTextError("Digite a data completa no formato dd/mm/aaaa."); return; }
+    const idade = calcularIdade(isoDate);
+    if (idade < 16 || idade > 100) { setTextError("Data inválida ou fora do intervalo permitido."); return; }
     setTextError("");
-    const newData = { ...formData, data_nascimento: dateValue, idade };
+    const newData = { ...formData, data_nascimento: isoDate, idade };
     setFormData(newData);
-    setDateValue("");
+    setDateText("");
+    advance(newData);
+  };
+
+  const handleDose = () => {
+    const normalized = normalizeDose(numberText);
+    if (!normalized) { setTextError("Digite sua dose atual para continuar."); return; }
+    setTextError("");
+    const newData = { ...formData, dose: normalized };
+    setFormData(newData);
     advance(newData);
   };
 
   const advance = (data: Record<string, string | number>) => {
     if (currentStep < STEPS.length - 1) {
       const next = STEPS[currentStep + 1];
-      if (next.type === "number") setNumberValue(next.default ?? 165);
+      if (next.type === "number" || next.type === "dose") setNumberText("");
       if (next.type === "text" || next.type === "phone") setTextValue("");
-      if (next.type === "date") setDateValue("");
+      if (next.type === "date") setDateText("");
+      setTextError("");
       setCurrentStep(currentStep + 1);
     } else {
       // Finaliza onboarding
@@ -217,6 +262,13 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
       if (data.peso_sonho) localStorage.setItem("glpy_peso_sonho", String(data.peso_sonho));
       if (data.altura) localStorage.setItem("glpy_altura", String(data.altura));
       if (data.medicamento) localStorage.setItem("glpy_medicamento", String(data.medicamento));
+      if (data.dose)        localStorage.setItem("glpy_dose",        String(data.dose));
+
+      // Popula glpy_latest_weight e histórico com o peso inicial do onboarding
+      const pesoInicial = typeof data.peso_atual === 'number' ? data.peso_atual : parseFloat(String(data.peso_atual));
+      if (!isNaN(pesoInicial) && pesoInicial > 0) {
+        saveWeightEntry({ weight: pesoInicial });
+      }
 
       // Sincroniza no Firestore (merge — não sobrescreve plano ou outros campos)
       const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
@@ -244,13 +296,18 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
       setTextError("");
       const prev = STEPS[currentStep - 1];
       if (prev.type === "number") {
-        setNumberValue(Number(formData[prev.id] ?? prev.default));
+        const stored = formData[prev.id];
+        setNumberText(stored !== undefined ? String(stored) : "");
+      }
+      if (prev.type === "dose") {
+        const stored = String(formData["dose"] ?? "");
+        setNumberText(stored.replace(/\s*mg$/i, '').trim());
       }
       if (prev.type === "text" || prev.type === "phone") {
         setTextValue(String(formData[prev.id] ?? ""));
       }
       if (prev.type === "date") {
-        setDateValue(String(formData["data_nascimento"] ?? ""));
+        setDateText(isoToDateDisplay(String(formData["data_nascimento"] ?? "")));
       }
     }
   };
@@ -365,19 +422,30 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
               </div>
             )}
 
-            {/* ── DATE input ── */}
+            {/* ── DATE input (dd/mm/aaaa digitável) ── */}
             {step.type === "date" && (
               <div className="space-y-4">
-                <input
-                  type="date"
-                  value={dateValue}
-                  onChange={e => { setDateValue(e.target.value); setTextError(""); }}
-                  max={new Date().toISOString().split("T")[0]}
-                  min="1920-01-01"
-                  className="w-full bg-white border-2 border-border rounded-2xl px-4 py-4 text-text-main text-base font-medium focus:outline-none focus:border-primary transition"
-                />
-                {dateValue && (() => {
-                  const idade = calcularIdade(dateValue);
+                <div className="bg-white border-2 border-border focus-within:border-primary rounded-2xl px-4 pt-3 pb-4 shadow-sm transition">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5">
+                    dd / mm / aaaa
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={dateText}
+                    onChange={e => { setDateText(maskDate(e.target.value)); setTextError(""); }}
+                    onKeyDown={e => e.key === "Enter" && handleDate()}
+                    placeholder="00/00/0000"
+                    maxLength={10}
+                    autoFocus
+                    className="w-full text-text-main text-3xl font-black tracking-widest bg-transparent outline-none placeholder:text-text-muted/30"
+                  />
+                </div>
+
+                {dateText.length === 10 && (() => {
+                  const isoDate = dateDisplayToISO(dateText);
+                  if (!isoDate) return null;
+                  const idade = calcularIdade(isoDate);
                   if (idade >= 16 && idade <= 100) {
                     return (
                       <motion.div
@@ -394,6 +462,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
                   }
                   return null;
                 })()}
+
                 {textError && <p className="text-red-500 text-xs px-1">{textError}</p>}
                 <motion.button
                   whileTap={{ scale: 0.98 }}
@@ -422,58 +491,96 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
               </div>
             )}
 
-            {/* ── NUMBER ── */}
+            {/* ── NUMBER (input digitável com teclado numérico) ── */}
             {step.type === "number" && (
-              <div className="flex flex-col items-center flex-grow justify-center">
-                <div className="flex items-center gap-6 mb-6">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setNumberValue(v => Math.max(step.min ?? 0, parseFloat((v - (step.step ?? 1)).toFixed(1))))}
-                    className="w-14 h-14 bg-white border border-border rounded-full flex items-center justify-center shadow-sm"
-                  >
-                    <Minus className="w-5 h-5 text-text-main" />
-                  </motion.button>
+              <div className="flex flex-col flex-grow justify-center gap-5">
 
-                  <div className="text-center">
-                    <motion.span
-                      key={numberValue}
-                      initial={{ scale: 1.1 }}
-                      animate={{ scale: 1 }}
-                      className="text-6xl font-black text-text-main"
-                    >
-                      {numberValue % 1 === 0 ? numberValue : numberValue.toFixed(1)}
-                    </motion.span>
-                    <p className="text-text-muted text-lg mt-1">{step.unit}</p>
+                {/* Input card */}
+                <div className="bg-white border-2 border-border focus-within:border-primary rounded-3xl px-6 py-8 flex flex-col items-center gap-1 shadow-sm transition">
+                  <div className="flex items-baseline gap-3">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={numberText}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.,]/g, '');
+                        setNumberText(raw);
+                        setTextError("");
+                      }}
+                      onKeyDown={e => e.key === "Enter" && handleNumber()}
+                      placeholder={String(step.default ?? '')}
+                      autoFocus
+                      className="text-6xl font-black text-text-main w-36 text-right bg-transparent outline-none placeholder:text-text-muted/25 leading-none"
+                    />
+                    <span className="text-3xl font-bold text-text-muted/50 shrink-0 pb-1">
+                      {step.unit}
+                    </span>
                   </div>
-
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setNumberValue(v => Math.min(step.max ?? 999, parseFloat((v + (step.step ?? 1)).toFixed(1))))}
-                    className="w-14 h-14 bg-white border border-border rounded-full flex items-center justify-center shadow-sm"
-                  >
-                    <Plus className="w-5 h-5 text-text-main" />
-                  </motion.button>
+                  <p className="text-xs text-text-muted/50 mt-2">
+                    Digite entre {step.min} e {step.max} {step.unit}
+                  </p>
                 </div>
 
-
-                {/* IMC preview */}
+                {/* IMC preview — aparece quando peso_atual tem valor válido */}
                 {step.id === "peso_atual" && formData.altura && (() => {
-                  const altura = Number(formData.altura) / 100;
-                  const imc = (numberValue / (altura * altura)).toFixed(1);
+                  const h = Number(formData.altura) / 100;
+                  const w = parseFloat(numberText.replace(',', '.'));
+                  if (isNaN(w) || w <= 0 || h <= 0) return null;
+                  const imc = (w / (h * h)).toFixed(1);
                   return (
-                    <div className="bg-[#F4F6F8] border border-border rounded-2xl p-3 text-center w-full mb-4">
-                      <p className="text-xs text-text-muted">Seu IMC atual</p>
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-primary/5 border border-primary/15 rounded-2xl p-3 text-center"
+                    >
+                      <p className="text-xs text-text-muted">Seu IMC estimado</p>
                       <p className="font-bold text-text-main text-lg">{imc}</p>
-                    </div>
+                    </motion.div>
                   );
                 })()}
+
+                {textError && <p className="text-red-500 text-sm px-1">{textError}</p>}
 
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={handleNumber}
-                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base mt-4"
+                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base"
                 >
-                  Confirmar {numberValue % 1 === 0 ? numberValue : numberValue.toFixed(1)}{step.unit} →
+                  Confirmar →
+                </motion.button>
+              </div>
+            )}
+
+            {/* ── DOSE input (digitável, canônico) ── */}
+            {step.type === "dose" && (
+              <div className="flex flex-col flex-grow justify-center gap-5">
+                <div className="bg-white border-2 border-border focus-within:border-primary rounded-3xl px-6 py-8 flex flex-col items-center gap-1 shadow-sm transition">
+                  <div className="flex items-baseline gap-3">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={numberText}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.,]/g, '');
+                        setNumberText(raw);
+                        setTextError("");
+                      }}
+                      onKeyDown={e => e.key === "Enter" && handleDose()}
+                      placeholder="0"
+                      autoFocus
+                      className="text-6xl font-black text-text-main w-36 text-right bg-transparent outline-none placeholder:text-text-muted/25 leading-none"
+                    />
+                    <span className="text-3xl font-bold text-text-muted/50 shrink-0 pb-1">mg</span>
+                  </div>
+                  <p className="text-xs text-text-muted/50 mt-2">Exemplo: 0.25 · 0.5 · 1 · 2.5 · 5</p>
+                </div>
+                {textError && <p className="text-red-500 text-sm px-1">{textError}</p>}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDose}
+                  className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base"
+                >
+                  Confirmar →
                 </motion.button>
               </div>
             )}
