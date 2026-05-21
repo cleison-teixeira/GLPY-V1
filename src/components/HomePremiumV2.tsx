@@ -223,19 +223,12 @@ function NutritionGoalCard({
       <div className="min-w-0 text-left flex-1">
         <span className="text-[9px] text-[#3D5A70] font-black uppercase tracking-wide block leading-tight">{label}</span>
         <div className="flex items-baseline mt-0.5 leading-none gap-[2px]">
-          {unit === 'L' ? (
-            // Água: "1,00 L / 3,15 L"
-            <span className="text-sm font-black text-[#0A1628] tracking-tight">
-              {displayValue ?? formatLiters(current)}
-              <span className="text-[10px] text-slate-400 font-extrabold"> / {formatLiters(target)}</span>
-            </span>
-          ) : (
-            // Macros (g): "50 g / 135 g"
-            <span className="text-sm font-black text-[#0A1628] tracking-tight">
-              {displayValue ?? formatGrams(current)}
-              <span className="text-[10px] text-slate-400 font-extrabold"> / {formatGrams(target)}</span>
-            </span>
-          )}
+          <span className="text-sm font-black text-[#0A1628] tracking-tight">
+            {unit === 'L' ? (displayValue ?? formatLiters(current)) : (displayValue ?? formatGrams(current))}
+          </span>
+          <span className="text-[10px] text-slate-400 font-extrabold">
+            {unit === 'L' ? ` / ${formatLiters(target)}` : ` / ${formatGrams(target)}`}
+          </span>
         </div>
       </div>
     </div>
