@@ -406,23 +406,8 @@ export default function HomePremiumV2() {
       case "checkin":
         handleToggleCheckin();
         break;
-      case "refeicao":
-        triggerToast("📸 Ótima escolha! Foto do prato analisada por IA com sucesso.");
-        break;
-      case "emocao":
-        triggerToast("🧠 Humor anotado! Seu estresse está baixo, facilitando o jejum celular.");
-        break;
-      case "medida":
-        triggerToast("📏 Novas medidas corporais salvas. Você reduziu quadril!");
-        break;
-      case "aplicacao":
-        triggerToast("💉 Aplicação semanal de GLP-1 registrada! Próxima data programada.");
-        break;
-      case "foto":
-        triggerToast("📸 Foto corporal adicionada em sua timeline privada antes/depois.");
-        break;
       default:
-        triggerToast("Ação rápida executada!");
+        break;
     }
   };
 
@@ -530,9 +515,8 @@ export default function HomePremiumV2() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => triggerToast(`🔔 ${userName}, seu plano de transição anti-rebote entra em nova fase em 2 dias.`)}
-                    className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition active:scale-95 cursor-pointer"
+                  <button
+                    className="group relative p-2.5 rounded-full bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition"
                   >
                     <Bell className="w-5 h-5 text-[#3D5A70]" />
                     <span className="absolute top-1 right-1 w-[15px] h-[15px] bg-[#E8445A] rounded-full text-white text-[9px] font-bold flex items-center justify-center border border-white">
@@ -674,9 +658,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Meta */}
-                  <div 
-                    onClick={() => triggerToast(`🎯 Meta de peso: ${weightGoal} kg. Foco no processo!`)}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-300 hover:bg-blue-50/10 transition cursor-pointer"
+                  <div
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition"
                   >
                     <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
                       <Flag className="w-4 h-4 stroke-[2.5]" />
@@ -688,9 +671,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Altura */}
-                  <div 
-                    onClick={() => triggerToast(`📏 Sua altura cadastrada é de ${userHeight} m.`)}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-orange-300 hover:bg-orange-50/10 transition cursor-pointer"
+                  <div
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition"
                   >
                     <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
                       <Ruler className="w-4 h-4 stroke-[2.5]" />
@@ -702,9 +684,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* IMC */}
-                  <div 
-                    onClick={() => triggerToast(`⚖️ IMC ${bmi ?? "—"}: ${bmiLabel}. O protocolo GLPY protege seus tecidos metabolicamente ativos enquanto reduz gordura.`)}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-purple-300 hover:bg-purple-50/10 transition cursor-pointer"
+                  <div
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition"
                   >
                     <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                       <Activity className="w-4 h-4 stroke-[2.5]" />
@@ -733,9 +714,8 @@ export default function HomePremiumV2() {
                 </div>
 
                 {/* Calories Highlight Card */}
-                <div 
-                  onClick={() => triggerToast("🔥 Alvo Metabólico: Margem térmica de 1.446 kcal calculada pela IA para manter seu gasto calórico otimizado.")}
-                  className="bg-gradient-to-r from-orange-500/5 to-rose-500/5 border border-orange-100/40 rounded-2xl p-3 flex justify-between items-center cursor-pointer hover:bg-orange-50/20 active:scale-[0.99] transition-all duration-200"
+                <div
+                  className="bg-gradient-to-r from-orange-500/5 to-rose-500/5 border border-orange-100/40 rounded-2xl p-3 flex justify-between items-center transition-all duration-200"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
@@ -757,9 +737,8 @@ export default function HomePremiumV2() {
                 {/* Three Sub-chips Grid */}
                 <div className="grid grid-cols-3 gap-2">
                   {/* Protein Chip */}
-                  <div 
-                    onClick={() => triggerToast("💪 Proteína Protege Músculos: Faltam 85g. Bater essa meta evita a perda de massa magra sob efeito da medicação.")}
-                    className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-emerald-50 transition active:scale-95"
+                  <div
+                    className="bg-emerald-50/60 border border-emerald-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Proteína</span>
                     <span className="text-[11px] font-black text-[#00C27A] font-mono mt-0.5 truncate w-full">
@@ -768,9 +747,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Water Chip */}
-                  <div 
-                    onClick={() => triggerToast(`💧 Hidratação Celular: Faltam ${waterRemaining.toFixed(1)}L. Beba água para acelerar a depuração e reduzir retenção.`)}
-                    className="bg-blue-50/60 border border-blue-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition active:scale-95"
+                  <div
+                    className="bg-blue-50/60 border border-blue-100/30 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#3D5A70] uppercase tracking-wider">Água</span>
                     <span className="text-[11px] font-black text-blue-500 font-mono mt-0.5 truncate w-full">
@@ -780,8 +758,7 @@ export default function HomePremiumV2() {
 
                   {/* Protocol Chip */}
                   <div
-                    onClick={() => triggerToast(`🛡️ Protocolo ${activeProtocol.name}: Dia ${activeProtocol.currentDay} de ${activeProtocol.totalDays}. Esta fase reabilita seus receptores de saciedade e estabiliza o peso.`)}
-                    className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#00C27A]/20 transition active:scale-95"
+                    className="bg-[#00C27A]/10 border border-[#00C27A]/25 rounded-xl p-2.5 flex flex-col items-center justify-center text-center transition"
                   >
                     <span className="text-[9px] font-extrabold text-[#00C27A] uppercase tracking-wider truncate w-full">
                       {activeProtocol.name}
@@ -810,80 +787,56 @@ export default function HomePremiumV2() {
                   {/* Left values column */}
                   <div className="col-span-8 grid grid-cols-2 gap-2">
                     
-                    <div 
-                      onClick={() => triggerToast("📏 Cintura reduziu significativamente! Continue monitorando semanalmente.")} 
-                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    <div
+                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
                     >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Cintura</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
-                          {mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
-                          {mockHomeData.evolution.cintura.change}cm
-                        </span>
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Cintura</span>
+                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
+                        {mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.cintura.change} cm</span>
+                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
-                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
-                        <path d="M0,2 L35,5 Q55,7 75,13 L100,16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                        <circle cx="100" cy="16" r="2.5" fill="currentColor" />
-                      </svg>
                     </div>
 
-                    <div 
-                      onClick={() => triggerToast("📏 Busto: -1cm medido.")} 
-                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    <div
+                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
                     >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Busto</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
-                          {mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
-                          {mockHomeData.evolution.busto.change}cm
-                        </span>
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Busto</span>
+                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
+                        {mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.busto.change} cm</span>
+                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
-                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
-                        <path d="M0,3 L40,4 L70,8 L100,11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                        <circle cx="100" cy="11" r="2.5" fill="currentColor" />
-                      </svg>
                     </div>
 
-                    <div 
-                      onClick={() => triggerToast("📏 Coxa reduziu 4cm! Excelente queima de gordura e atividade muscular.")} 
-                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    <div
+                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
                     >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Coxa</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
-                          {mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
-                          {mockHomeData.evolution.coxa.change}cm
-                        </span>
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Coxa</span>
+                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
+                        {mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.coxa.change} cm</span>
+                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
-                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
-                        <path d="M0,2 L30,4 Q60,8 80,14 L100,17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                        <circle cx="100" cy="17" r="2.5" fill="currentColor" />
-                      </svg>
                     </div>
 
-                    <div 
-                      onClick={() => triggerToast("📏 Panturrilha: -1cm medido.")} 
-                      className="p-2 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-100 space-y-1 transition cursor-pointer"
+                    <div
+                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
                     >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none">Panturrilha</span>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11px] font-extrabold text-[#0A1628] font-mono leading-none">
-                          {mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#00C27A] font-mono leading-none">
-                          {mockHomeData.evolution.panturrilha.change}cm
-                        </span>
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Panturrilha</span>
+                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
+                        {mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.panturrilha.change} cm</span>
+                        <span className="text-[8px] text-[#3D5A70] leading-none">desde o início</span>
                       </div>
-                      <svg className="w-full h-3.5 text-[#00C27A] mt-1" viewBox="0 0 100 20" fill="none">
-                        <path d="M0,3 L35,5 L70,8 L100,10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                        <circle cx="100" cy="10" r="2.5" fill="currentColor" />
-                      </svg>
                     </div>
 
                   </div>
@@ -900,7 +853,7 @@ export default function HomePremiumV2() {
                     
                     {/* Glowing Markers */}
                     {/* Busto marker */}
-                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`📏 Busto de ${userName}: 91 cm (-1cm).`)}>
+                    <div className="absolute top-[28%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white"></span>
@@ -908,7 +861,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Cintura marker */}
-                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`🔥 Cintura de ${userName}: 91 cm (-5cm, progresso excelente!).`)}>
+                    <div className="absolute top-[48%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00C27A] border border-white"></span>
@@ -916,7 +869,7 @@ export default function HomePremiumV2() {
                     </div>
 
                     {/* Coxa marker */}
-                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer z-10" onClick={() => triggerToast(`💪 Coxa de ${userName}: 53 cm (-4cm).`)}>
+                    <div className="absolute top-[68%] left-[46%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
                       <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
@@ -944,9 +897,8 @@ export default function HomePremiumV2() {
                 <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 pt-0.5 select-none">
                   
                   {/* Card 1: Medicação */}
-                  <div 
-                    onClick={() => triggerToast(`💉 Medicação: Próxima dose ativa de ${userDose}`)} 
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] hover:border-[#00C27A] shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  <div
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00C27A] flex items-center justify-center shrink-0 border border-emerald-100/30">
@@ -975,9 +927,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Card 2: Atividade Física */}
-                  <div 
-                    onClick={() => triggerToast(`💪 Atividade Física: Continue progredindo nos passos!`)} 
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-blue-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-blue-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                  <div
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-blue-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 border border-blue-100/30">
@@ -1042,8 +993,7 @@ export default function HomePremiumV2() {
 
                   {/* Card 4: Assistente IA */}
                   <div
-                    onClick={() => triggerToast(`🤖 IA GLPY: ${dailyLimits.iaUsadas}/${dailyLimits.iaLimite} mensagens usadas este mês.`)}
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-violet-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 border border-violet-100/30">
@@ -1075,8 +1025,7 @@ export default function HomePremiumV2() {
 
                   {/* Card 5: Foto do Prato */}
                   <div
-                    onClick={() => triggerToast(`📸 Foto do prato: ${dailyLimits.fotosUsadas}/${dailyLimits.fotosLimite} análises usadas hoje.`)}
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-pink-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0 border border-pink-100/30">
@@ -1231,9 +1180,8 @@ export default function HomePremiumV2() {
             </div>
 
             {/* CARD SOCIAL TRAFFIC BANNER */}
-              <div 
-                onClick={() => { triggerConfetti(); triggerToast("🔥 GLPY Anti-Rebote ativo!"); }}
-                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between hover:bg-emerald-50/50 cursor-pointer transition select-none"
+              <div
+                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between transition select-none"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
@@ -1307,9 +1255,6 @@ export default function HomePremiumV2() {
             <div className="px-5 pt-3 space-y-4">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="text-lg font-black text-[#0A1628]">Evolução Corporal & Gráficos</h2>
-                <button onClick={() => { setWeightCurrent(72.6); triggerToast("Histórico de peso resetado!"); }} className="text-xs font-bold text-[#00C27A] hover:underline">
-                  Resetar Evolução
-                </button>
               </div>
 
               <div className="bg-white rounded-3xl p-4 border border-slate-100 custom-shadow space-y-4">
@@ -1321,22 +1266,10 @@ export default function HomePremiumV2() {
                   <span className="text-[10px] font-bold text-[#00C27A] bg-emerald-50 px-2 py-0.5 rounded-full">No Caminho Certo</span>
                 </div>
 
-                {/* Plot design */}
-                <div className="h-44 bg-slate-50/50 rounded-2xl p-3 relative flex items-end border border-slate-150">
-                  <div className="absolute top-2 left-3 text-[8px] text-slate-400 font-bold tracking-widest uppercase">Evolução do Peso Semanal (kg)</div>
-                  
-                  <svg className="absolute inset-0 w-full h-full p-6 text-[#00C27A]" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <path d="M0,20 L25,35 L50,60 L75,70 L100,85" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
-                    <circle cx="100" cy="85" r="5" fill="#E8445A" stroke="white" strokeWidth="2" className="animate-ping" />
-                    <circle cx="100" cy="85" r="3" fill="#E8445A" stroke="white" strokeWidth="1.5" />
-                  </svg>
-
-                  <div className="w-full flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono z-10 px-2">
-                    <span>80kg (Início)</span>
-                    <span>77.5kg</span>
-                    <span>75kg</span>
-                    <span>{weightCurrent}kg (Hoje)</span>
-                  </div>
+                {/* Histórico de peso */}
+                <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100 flex flex-col items-center justify-center gap-2 text-center min-h-[80px]">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Histórico de peso</span>
+                  <p className="text-xs text-[#3D5A70] font-medium">Seu progresso será exibido aqui conforme você registrar novos pesos.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-center text-xs">
@@ -1459,23 +1392,19 @@ export default function HomePremiumV2() {
             <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar Peso Atual ⚖️</h3>
             <p className="text-[11px] text-[#3D5A70] text-center mb-4">Seu ponto inicial: {mockHomeData.user.weightStart} kg • Meta: {weightGoal} kg</p>
             
-            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 mb-5 flex items-center justify-between">
-              <button 
-                onClick={() => setWeightInput((parseFloat(weightInput) - 0.2).toFixed(1))}
-                className="w-10 h-10 bg-white hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-800 transition text-sm shadow-sm"
-              >
-                -
-              </button>
-              <div className="text-center font-mono">
-                <span className="text-2xl font-extrabold text-[#0A1628]">{weightInput}</span>
-                <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
-              </div>
-              <button 
-                onClick={() => setWeightInput((parseFloat(weightInput) + 0.2).toFixed(1))}
-                className="w-10 h-10 bg-white hover:bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-800 transition text-sm shadow-sm"
-              >
-                +
-              </button>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={weightInput}
+                onChange={e => setWeightInput(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleApplyWeight()}
+                placeholder="0"
+                autoFocus
+                className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
+              />
+              <span className="text-lg font-bold text-[#3D5A70]">kg</span>
             </div>
 
             <div className="flex gap-2">
@@ -1511,47 +1440,43 @@ export default function HomePremiumV2() {
             </div>
 
             <div className="overflow-y-auto py-4 space-y-4 no-scrollbar">
-              <div className="bg-gradient-to-tr from-[#00C27A] to-[#00A38B] rounded-2xl p-4 text-white shadow-md">
-                <span className="text-[8px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full inline-block mb-1">Membro Integrado</span>
-                <h4 className="text-sm font-extrabold">Seu Guia Anti-Rebote Ativo</h4>
-                <p className="text-[10px] text-white/95 mt-1">Conectado diretamente à sua rotina física de nutrição para neutralizar a recaptação do apetite emocional.</p>
+              <div className="bg-gradient-to-tr from-[#00C27A] to-[#00A38B] rounded-2xl p-4 text-white shadow-md space-y-1">
+                <span className="text-[8px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full inline-block">Protocolo ativo</span>
+                <h4 className="text-sm font-extrabold pt-1">{activeProtocol.name}</h4>
+                <p className="text-[11px] font-bold text-white/90">Dia {activeProtocol.currentDay} de {activeProtocol.totalDays}</p>
+                <div className="h-[4px] bg-white/20 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-white/70 rounded-full" style={{ width: `${protocolPercent}%` }} />
+                </div>
               </div>
+
+              <p className="text-[11px] text-[#3D5A70] leading-relaxed">
+                Continue sua jornada guiada com protocolos, metas e inteligência GLPY.
+              </p>
 
               <div className="space-y-2">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Estágios Disponíveis:</span>
-                
-                <div 
-                  onClick={() => { setShowHubModal(false); triggerToast("💇 Protocolo Anti-Queda de cabelo carregado no Hub."); }} 
-                  className="p-2.5 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition cursor-pointer flex justify-between items-center text-xs"
+                <button
+                  onClick={() => setShowHubModal(false)}
+                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
                 >
-                  <span className="font-bold text-slate-800">💇 1. Anti-Queda Capilar</span>
+                  <span>Continuar protocolo</span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-
-                <div 
-                  onClick={() => { setShowHubModal(false); triggerToast("⚡ Protocolo Controle de Fadiga e Energia restabelecido."); }}
-                  className="p-2.5 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition cursor-pointer flex justify-between items-center text-xs"
+                </button>
+                <button
+                  onClick={() => setShowHubModal(false)}
+                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
                 >
-                  <span className="font-bold text-slate-800">⚡ 2. Fadiga Energética Ozempic</span>
+                  <span>Ver todos os protocolos</span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-
-                <div 
-                  onClick={() => { setShowHubModal(false); triggerToast("⚖️ Manual Anti-Rebote já está ativo na sua Home."); }}
-                  className="p-2.5 bg-emerald-50/50 rounded-xl border border-[#00C27A]/30 hover:bg-emerald-50 transition cursor-pointer flex justify-between items-center text-xs"
+                </button>
+                <button
+                  onClick={() => setShowHubModal(false)}
+                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
                 >
-                  <span className="font-bold text-emerald-800">⚖️ 3. Transição de Ganho Nutricional</span>
-                  <span className="text-[8px] font-bold bg-[#00C27A] text-white px-2 py-0.5 rounded-full uppercase">Em andamento</span>
-                </div>
+                  <span>Falar com a IA GLPY</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </button>
               </div>
             </div>
-
-            <button 
-              onClick={() => { setShowHubModal(false); triggerToast("📱 Redirecionando para apoio nutricional."); }} 
-              className="mt-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs text-center transition"
-            >
-              Falar com o Nutri Zap 📱
-            </button>
           </div>
         </div>
       )}
