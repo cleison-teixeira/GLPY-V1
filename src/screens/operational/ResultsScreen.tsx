@@ -77,7 +77,7 @@ function readStreak(): number {
   return isNaN(v) ? 0 : v;
 }
 
-function fmt(v: number | null, decimals = 1): string {
+function fmt(v: number | null, decimals = 2): string {
   if (v === null) return '—';
   return v.toFixed(decimals).replace('.', ',');
 }

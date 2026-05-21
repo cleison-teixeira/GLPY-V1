@@ -9,6 +9,7 @@ import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/u
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
+import { formatLiters } from '../../utils/formatters';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // MVP PLACEHOLDER — meta diária fixa. No futuro será calculada dinamicamente
@@ -25,9 +26,7 @@ const QUICK_ADD = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(l: number): string {
-  return l.toFixed(2).replace('.', ',');
-}
+const fmt = formatLiters;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

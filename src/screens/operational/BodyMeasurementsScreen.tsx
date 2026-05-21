@@ -16,6 +16,7 @@ import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
+import { parseBRNumber, formatDecimalBR } from '../../utils/formatters';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -183,15 +184,15 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
           <div style={summaryBlockStyle}>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Cintura</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(waist) ? `${waist} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(waist) ? `${formatDecimalBR(parseBRNumber(waist))} cm` : '— cm'}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Quadril</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(hip) ? `${hip} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(hip) ? `${formatDecimalBR(parseBRNumber(hip))} cm` : '— cm'}</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Coxa</span>
-              <span style={summaryValueStyle}>{isValidMeasurement(thigh) ? `${thigh} cm` : '— cm'}</span>
+              <span style={summaryValueStyle}>{isValidMeasurement(thigh) ? `${formatDecimalBR(parseBRNumber(thigh))} cm` : '— cm'}</span>
             </div>
           </div>
         </GLPYCard>

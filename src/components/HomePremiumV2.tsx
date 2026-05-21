@@ -21,7 +21,8 @@ import {
   Sparkles,
   Plus,
   Utensils,
-  Activity
+  Activity,
+  ArrowUpDown
 } from "lucide-react";
 
 import glpyLogoSymbol from '@/assets/logos/logo-light.png';
@@ -33,6 +34,7 @@ import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
+import { formatDecimalBR, formatLiters, formatMeters, parseBRNumber } from '../utils/formatters';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -78,6 +80,7 @@ export const mockHomeData = {
     { id: "refeicao", label: "Refeição", icon: "Utensils", color: "text-emerald-500 bg-emerald-50" },
     { id: "emocao", label: "Emoção", icon: "Smile", color: "text-amber-500 bg-amber-50" },
     { id: "peso", label: "Peso", icon: "Scale", color: "text-[#00C27A] bg-[#00C27A]/10" },
+    { id: "altura", label: "Altura", icon: "ArrowUpDown", color: "text-orange-500 bg-orange-50" },
     { id: "medida", label: "Medida", icon: "Ruler", color: "text-teal-500 bg-teal-50" },
     { id: "aplicacao", label: "Aplicação", icon: "Syringe", color: "text-purple-500 bg-purple-50" },
     { id: "foto", label: "Foto corporal", icon: "Camera", color: "text-pink-500 bg-pink-50" },
@@ -110,10 +113,6 @@ interface ConfettiParticle {
 interface QuickToast {
   id: number;
   msg: string;
-}
-
-function formatLiters(value: number): string {
-  return value.toFixed(2).replace('.', ',');
 }
 
 interface NutritionGoalCardProps {
@@ -504,6 +503,8 @@ export default function HomePremiumV2() {
   const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
   const [showGoalModal,  setShowGoalModal]  = useState<boolean>(false);
   const [goalInput,      setGoalInput]      = useState<string>('');
+  const [showHeightModal, setShowHeightModal] = useState<boolean>(false);
+  const [heightInput, setHeightInput] = useState<string>('');
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
@@ -702,6 +703,25 @@ export default function HomePremiumV2() {
     }
   };
 
+  const handleApplyHeight = () => {
+    const s = heightInput.trim().replace(',', '.');
+    let numeric = parseFloat(s);
+    if (!isNaN(numeric) && numeric > 0) {
+      if (numeric > 3) numeric = parseFloat((numeric / 100).toFixed(2));
+      try {
+        const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+        onb.altura = numeric;
+        localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+        localStorage.setItem('glpy_altura', numeric.toFixed(2));
+      } catch {}
+      window.dispatchEvent(new Event('local-storage-change'));
+      setShowHeightModal(false);
+      triggerToast(`📏 Altura atualizada para ${numeric.toFixed(2).replace('.', ',')} m!`);
+    } else {
+      triggerToast("Digite uma altura válida (ex: 1,65 ou 165).");
+    }
+  };
+
   const handleToggleCheckin = () => {
     goTo('/preview/check-in');
   };
@@ -727,6 +747,7 @@ export default function HomePremiumV2() {
       case "Syringe": return <Syringe className="w-[18px] h-[18px] text-purple-500" />;
       case "Camera": return <Camera className="w-[18px] h-[18px] text-pink-500" />;
       case "Check": return <Check className="w-[18px] h-[18px] text-emerald-500" />;
+      case "ArrowUpDown": return <ArrowUpDown className="w-[18px] h-[18px] text-orange-500" />;
       default: return <Sparkles className="w-[18px] h-[18px] text-emerald-500" />;
     }
   };
@@ -743,8 +764,12 @@ export default function HomePremiumV2() {
       checkin:  '/preview/check-in',
     };
     if (id === 'peso') {
-      setWeightInput(weightCurrent.toString());
+      setWeightInput(formatDecimalBR(weightCurrent));
       setShowWeightModal(true);
+    } else if (id === 'altura') {
+      const h = userHeight > 0 ? userHeight.toFixed(2).replace('.', ',') : '';
+      setHeightInput(h);
+      setShowHeightModal(true);
     } else if (QUICK_ROUTES[id]) {
       goTo(QUICK_ROUTES[id]);
     }
@@ -954,7 +979,7 @@ export default function HomePremiumV2() {
                       <>
                         <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Você já perdeu</p>
                         <div>
-                          <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{lostKg}</span>
+                          <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{formatDecimalBR(lostKg)}</span>
                           <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
                         </div>
                       </>
@@ -994,7 +1019,7 @@ export default function HomePremiumV2() {
                   <div className="col-span-4 text-right space-y-0.5">
                     <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Faltam</p>
                     <div>
-                      <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{toGoKg}</span>
+                      <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{formatDecimalBR(toGoKg)}</span>
                       <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
                     </div>
                     <p className="text-[10px] text-[#3D5A70] font-bold block">para sua meta</p>
@@ -1014,8 +1039,8 @@ export default function HomePremiumV2() {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-[#3D5A70] font-bold uppercase tracking-wider">
-                    <span>Início ({weightStart} kg)</span>
-                    <span>Meta ({weightGoal} kg)</span>
+                    <span>Início ({formatDecimalBR(weightStart)} kg)</span>
+                    <span>Meta ({formatDecimalBR(weightGoal)} kg)</span>
                   </div>
                 </div>
 
@@ -1023,8 +1048,8 @@ export default function HomePremiumV2() {
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   
                   {/* Peso Atual */}
-                  <div 
-                    onClick={() => { setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
+                  <div
+                    onClick={() => { setWeightInput(formatDecimalBR(weightCurrent)); setShowWeightModal(true); }}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#00C27A] hover:bg-emerald-50/20 transition cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-emerald-100 text-[#00C27A] flex items-center justify-center shrink-0">
@@ -1032,13 +1057,13 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Peso Atual</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{weightCurrent} kg</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{formatDecimalBR(weightCurrent)} kg</span>
                     </div>
                   </div>
 
                   {/* Meta — clicável → abre modal de meta */}
                   <div
-                    onClick={() => { setGoalInput(weightGoal.toString()); setShowGoalModal(true); }}
+                    onClick={() => { setGoalInput(formatDecimalBR(weightGoal)); setShowGoalModal(true); }}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition cursor-pointer active:opacity-70 hover:border-blue-200"
                   >
                     <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
@@ -1046,13 +1071,13 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Meta</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{weightGoal} kg</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{formatDecimalBR(weightGoal)} kg</span>
                     </div>
                   </div>
 
-                  {/* Altura — clicável → abre perfil corporal */}
+                  {/* Altura — clicável → abre modal de altura */}
                   <div
-                    onClick={() => goTo('/preview/body-profile')}
+                    onClick={() => { const h = userHeight > 0 ? userHeight.toFixed(2).replace('.', ',') : ''; setHeightInput(h); setShowHeightModal(true); }}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 transition cursor-pointer active:opacity-70 hover:border-orange-200"
                   >
                     <div className="w-7 h-7 rounded-lg bg-orange-50 text-[#F5A623] flex items-center justify-center shrink-0">
@@ -1060,7 +1085,7 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">Altura</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{userHeight} m</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{userHeight > 0 ? formatMeters(userHeight) : '—'}</span>
                     </div>
                   </div>
 
@@ -1073,7 +1098,7 @@ export default function HomePremiumV2() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] text-[#3D5A70] font-extrabold block uppercase leading-none truncate">IMC</span>
-                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{bmi ?? "—"}</span>
+                      <span className="text-xs font-black text-[#0A1628] font-mono block mt-1">{bmi !== null ? formatDecimalBR(bmi) : '—'}</span>
                     </div>
                   </div>
 
@@ -1233,28 +1258,28 @@ export default function HomePremiumV2() {
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.cintura || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.cintura || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.busto || bodyMeasures.chest || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.busto || bodyMeasures.chest || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.coxa || bodyMeasures.thigh || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.coxa || bodyMeasures.thigh || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
                       </div>
                     </div>
 
                     <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Quadril</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{bodyMeasures.quadril || bodyMeasures.hip || '—'} cm</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.quadril || bodyMeasures.hip || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
                       </div>
                     </div>
 
@@ -1768,7 +1793,7 @@ export default function HomePremiumV2() {
                       {weightGaining ? 'Ajuste em andamento' : 'Total eliminado até agora'}
                     </span>
                     <span className="text-xl font-black text-[#0A1628] font-mono">
-                      {weightGaining ? '—' : `${lostKg} kg`}
+                      {weightGaining ? '—' : `${formatDecimalBR(lostKg)} kg`}
                     </span>
                   </div>
                   <span className="text-[10px] font-bold text-[#00C27A] bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -1785,11 +1810,11 @@ export default function HomePremiumV2() {
                 <div className="grid grid-cols-2 gap-3 text-center text-xs">
                   <div className="p-3 bg-slate-50/80 rounded-2xl">
                     <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Peso de Partida</span>
-                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{weightStart} kg</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{formatDecimalBR(weightStart)} kg</span>
                   </div>
                   <div className="p-3 bg-slate-50/80 rounded-2xl">
                     <span className="text-slate-400 font-bold block mb-0.5 text-[9px] uppercase tracking-wider">Meta Definida</span>
-                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{weightGoal} kg</span>
+                    <span className="font-extrabold text-[#0a1628] text-base font-mono">{formatDecimalBR(weightGoal)} kg</span>
                   </div>
                 </div>
               </div>
@@ -1830,12 +1855,12 @@ export default function HomePremiumV2() {
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Altura</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{userHeight} m</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{userHeight > 0 ? formatMeters(userHeight) : '—'}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Peso Inicial</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{weightStart} kg</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{formatDecimalBR(weightStart)} kg</span>
                 </div>
               </div>
 
@@ -1917,7 +1942,7 @@ export default function HomePremiumV2() {
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
             <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Registrar peso ⚖️</h3>
-            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Início: {weightStart} kg • Meta atual: {weightGoal} kg</p>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Início: {formatDecimalBR(weightStart)} kg • Meta atual: {formatDecimalBR(weightGoal)} kg</p>
 
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
               <input
@@ -1952,6 +1977,46 @@ export default function HomePremiumV2() {
         </div>
       )}
 
+      {/* ALTURA MODAL */}
+      {showHeightModal && (
+        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
+            <h3 className="text-sm font-black text-[#0A1628] text-center mb-1">Atualizar altura 📏</h3>
+            <p className="text-[11px] text-[#3D5A70] text-center mb-4">Em metros (ex: 1,65) ou centímetros (ex: 165).</p>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-5 flex items-baseline justify-center gap-2 focus-within:border-[#00C27A] focus-within:bg-white transition">
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={heightInput}
+                onChange={e => setHeightInput(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleApplyHeight()}
+                placeholder="1,65"
+                autoFocus
+                className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
+              />
+              <span className="text-lg font-bold text-[#3D5A70]">m</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowHeightModal(false)}
+                className="flex-1 py-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-[#0A1628] font-bold rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleApplyHeight}
+                className="flex-1 py-2.5 text-xs bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold rounded-xl transition shadow-sm shadow-[#00C27A]/20"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* META DE PESO MODAL */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -1967,7 +2032,7 @@ export default function HomePremiumV2() {
                 value={goalInput}
                 onChange={e => setGoalInput(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onKeyDown={e => e.key === 'Enter' && handleApplyGoal()}
-                placeholder={weightGoal.toFixed(1)}
+                placeholder={formatDecimalBR(weightGoal)}
                 autoFocus
                 className="text-4xl font-black text-[#0A1628] font-mono w-28 text-right bg-transparent outline-none placeholder:text-slate-300"
               />

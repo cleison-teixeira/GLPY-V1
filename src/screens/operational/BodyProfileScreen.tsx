@@ -28,7 +28,7 @@ function readOnboarding(): Record<string, unknown> {
   catch { return {}; }
 }
 
-function fmtNum(v: unknown, decimals = 1): string {
+function fmtNum(v: unknown, decimals = 2): string {
   const n = parseFloat(String(v ?? ''));
   return isNaN(n) ? '' : n.toFixed(decimals).replace('.', ',');
 }

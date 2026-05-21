@@ -19,6 +19,7 @@ import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { transition } from '../../theme/motion';
+import { formatLiters } from '../../utils/formatters';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ type DayFeeling = 'Leve' | 'Normal' | 'Difícil';
 const FEELING_OPTIONS: DayFeeling[] = ['Leve', 'Normal', 'Difícil'];
 
 function buildResumoItems(todayStr: string) {
-  const fmtL = (v: number) => v.toFixed(2).replace('.', ',');
+  const fmtL = formatLiters;
 
   const agua = (() => {
     try {
