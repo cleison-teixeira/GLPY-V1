@@ -92,6 +92,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     catch { return ''; }
   });
 
+  // Timestamps para evitar fechar modal ao propagar clique
+  const activityOpenTimeRef = React.useRef(0);
+  const durationOpenTimeRef = React.useRef(0);
+  const intensityOpenTimeRef = React.useRef(0);
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const selectedActivityLabel =
     ACTIVITY_OPTIONS.find(a => a.id === selectedActivity)?.label ?? '';
@@ -106,7 +111,13 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
     selectedIntensity !== '';
 
   // ── Handlers ───────────────────────────────────────────────────────────────
+  function openActivityModal() {
+    activityOpenTimeRef.current = Date.now();
+    setActivityModalOpen(true);
+  }
+
   function openDurationModal() {
+    durationOpenTimeRef.current = Date.now();
     setCustomDuration(selectedDuration);
     setShowCustomInput(!isPresetDuration);
     setDurationModalOpen(true);
@@ -377,7 +388,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
           <p style={cardSubtextStyle}>Escolha o movimento que você realizou hoje.</p>
           <div
             style={selectorRowStyle}
-            onClick={() => setActivityModalOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openActivityModal();
+            }}
             role="button"
             aria-label="Selecionar tipo de atividade"
           >
@@ -397,7 +412,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
           <p style={cardSubtextStyle}>Informe quanto tempo você se movimentou.</p>
           <div
             style={selectorRowStyle}
-            onClick={openDurationModal}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openDurationModal();
+            }}
             role="button"
             aria-label="Selecionar duração"
           >
@@ -417,7 +436,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
           <p style={cardSubtextStyle}>Como foi o esforço dessa atividade?</p>
           <div
             style={selectorRowStyle}
-            onClick={() => setIntensityModalOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openIntensityModal();
+            }}
             role="button"
             aria-label="Selecionar intensidade"
           >
@@ -518,7 +541,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Activity Modal ────────────────────────────────────────────────────── */}
       {activityModalOpen && (
         <>
-          <div style={backdropStyle} onClick={() => setActivityModalOpen(false)} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - activityOpenTimeRef.current < 150) return; setActivityModalOpen(false); }} />
           <div style={sheetStyle}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>
@@ -556,7 +579,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Duration Modal ────────────────────────────────────────────────────── */}
       {durationModalOpen && (
         <>
-          <div style={backdropStyle} onClick={closeDurationModal} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - durationOpenTimeRef.current < 150) return; closeDurationModal(); }} />
           <div style={sheetStyle}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>
@@ -634,7 +657,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       {/* ── Intensity Modal ───────────────────────────────────────────────────── */}
       {intensityModalOpen && (
         <>
-          <div style={backdropStyle} onClick={() => setIntensityModalOpen(false)} />
+          <div style={backdropStyle} onClick={() => { if (Date.now() - intensityOpenTimeRef.current < 150) return; setIntensityModalOpen(false); }} />
           <div style={{ ...sheetStyle, maxHeight: 'auto' }}>
             <div style={sheetHandleStyle} />
             <div style={sheetHeaderStyle}>

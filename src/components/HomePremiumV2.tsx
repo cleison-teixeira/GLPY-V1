@@ -31,6 +31,7 @@ import { useNutritionTargets } from '../hooks/useNutritionTargets';
 import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
+import { calculateNextInjection } from '../utils/treatmentUtils';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -228,6 +229,20 @@ export default function HomePremiumV2() {
   // Mobile Frame States
   const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">("inicio");
   
+  // Tick de renderização para garantir reatividade total a qualquer mudança de storage
+  const [renderTick, setRenderTick] = useState(0);
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRenderTick(t => t + 1);
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('local-storage-change', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('local-storage-change', handleUpdate);
+    };
+  }, []);
+
   // Fase 1F.2: dados reais via hooks centralizados
   const currentWeightData = useCurrentWeight();
   const onboarding = useUserOnboarding();
@@ -237,8 +252,28 @@ export default function HomePremiumV2() {
   const protocolPercent = activeProtocol.totalDays > 0
     ? Math.min(100, Math.round((activeProtocol.currentDay / activeProtocol.totalDays) * 100))
     : 0;
-  const [weightCurrent, setWeightCurrent] = useState<number>(() => currentWeightData.weight);
-  const weightGoal = onboarding.pesoMeta;
+
+  // Reactivity unchained: weightCurrent e weightGoal dinâmicos a partir de hooks e cascades
+  const weightCurrent = currentWeightData.weight;
+  
+  const weightGoal = (() => {
+    try {
+      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      const onbMeta = parseFloat(String(onb.pesoMeta ?? ''));
+      if (!isNaN(onbMeta) && onbMeta > 0) return onbMeta;
+      const onbSonho = parseFloat(String(onb.peso_sonho ?? ''));
+      if (!isNaN(onbSonho) && onbSonho > 0) return onbSonho;
+    } catch {}
+
+    const directMeta = onboarding.pesoMeta;
+    if (directMeta > 0) return directMeta;
+
+    const fromKey = parseFloat(localStorage.getItem('glpy_peso_sonho') ?? '');
+    if (!isNaN(fromKey) && fromKey > 0) return fromKey;
+
+    return 60.0; // Fallback mock final
+  })();
+
   const userHeight = onboarding.altura;
   const userName = onboarding.nome;
   const userDose = onboarding.dose || '—';
@@ -255,22 +290,135 @@ export default function HomePremiumV2() {
     try { const v = parseFloat(localStorage.getItem('glpy_agua_hoje') || ''); return isNaN(v) ? mockHomeData.nutrients.water.current : v; }
     catch { return mockHomeData.nutrients.water.current; }
   });
-  const [streakDays] = useState<number>(() => {
-    try { return (JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]') as string[]).length; }
-    catch { return 0; }
-  });
-  const [isCheckInDone] = useState<boolean>(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const raw = localStorage.getItem('glpy_checkin_hoje');
-    if (!raw) return false;
-    if (raw === today) return true;
-    try { return JSON.parse(raw).date === today; } catch { return false; }
-  });
+
+  // Streak de consecutividade real calculada dinamicamente
+  const streakDays = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_checkin_historico');
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return 0;
+      
+      const dates = parsed.map(item => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && item.date) return item.date;
+        return '';
+      }).filter(Boolean);
+
+      const uniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
+      if (uniqueDates.length === 0) return 0;
+
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      const hasToday = uniqueDates.includes(todayStr);
+      const hasYesterday = uniqueDates.includes(yesterdayStr);
+
+      if (!hasToday && !hasYesterday) {
+        return 0;
+      }
+
+      let streak = 0;
+      let currentCheckDate = new Date(hasToday ? todayStr : yesterdayStr);
+
+      while (true) {
+        const checkStr = currentCheckDate.toISOString().split('T')[0];
+        if (uniqueDates.includes(checkStr)) {
+          streak++;
+          currentCheckDate.setDate(currentCheckDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+
+      return streak;
+    } catch {
+      return 0;
+    }
+  })();
+
+  // Validação dinâmica se check-in foi realizado hoje
+  const isCheckInDone = (() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      const rawHoje = localStorage.getItem('glpy_checkin_hoje');
+      if (rawHoje) {
+        const parsed = JSON.parse(rawHoje);
+        if (parsed && (parsed === todayStr || parsed.date === todayStr)) {
+          return true;
+        }
+      }
+    } catch {}
+
+    try {
+      const rawHist = localStorage.getItem('glpy_checkin_historico');
+      if (rawHist) {
+        const parsedHist = JSON.parse(rawHist);
+        if (Array.isArray(parsedHist)) {
+          return parsedHist.some(item => {
+            if (typeof item === 'string') return item === todayStr;
+            if (item && typeof item === 'object') return item.date === todayStr;
+            return false;
+          });
+        }
+      }
+    } catch {}
+
+    return false;
+  })();
+
   const [bodyMeasures] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
     catch { return {}; }
   });
   const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
+
+  // Atividade física registrada no dia atual
+  const [todayActivity, setTodayActivity] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem('glpy_atividade_hoje');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const today = new Date().toISOString().split('T')[0];
+      const entryDate = parsed.savedAt ? new Date(parsed.savedAt).toISOString().split('T')[0] : '';
+      if (entryDate === today) {
+        return parsed;
+      }
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    const handleUpdateActivity = () => {
+      try {
+        const raw = localStorage.getItem('glpy_atividade_hoje');
+        if (!raw) {
+          setTodayActivity(null);
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        const today = new Date().toISOString().split('T')[0];
+        const entryDate = parsed.savedAt ? new Date(parsed.savedAt).toISOString().split('T')[0] : '';
+        if (entryDate === today) {
+          setTodayActivity(parsed);
+        } else {
+          setTodayActivity(null);
+        }
+      } catch {
+        setTodayActivity(null);
+      }
+    };
+    window.addEventListener('storage', handleUpdateActivity);
+    window.addEventListener('local-storage-change', handleUpdateActivity);
+    return () => {
+      window.removeEventListener('storage', handleUpdateActivity);
+      window.removeEventListener('local-storage-change', handleUpdateActivity);
+    };
+  }, []);
 
   // Popups & modals
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
@@ -278,21 +426,66 @@ export default function HomePremiumV2() {
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
+  // Próxima aplicação de medicamento dinâmica
+  const nextInj = calculateNextInjection();
+
+  const displayNextDose = (() => {
+    if (nextInj.nextDateFormatted === "Configure") return "Configure";
+    if (nextInj.daysRemainingText === "Hoje") return "Hoje";
+    if (nextInj.daysRemainingText === "Atrasada") return "Atrasada";
+    return `${nextInj.nextDateFormatted} (${nextInj.daysRemainingText})`;
+  })();
+
   // Computed weights — weightStart lido do dados reais do usuário
   const weightStart = (() => {
     try {
       const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
       const rsWeight = parseFloat(String(rs.initialWeight ?? ''));
       if (!isNaN(rsWeight) && rsWeight > 0) return rsWeight;
-    } catch { /* ignore */ }
-    return onboarding.pesoInicial > 0 ? onboarding.pesoInicial : mockHomeData.user.weightStart;
+    } catch {}
+
+    try {
+      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      const onbInitial = parseFloat(String(onb.pesoInicial ?? ''));
+      if (!isNaN(onbInitial) && onbInitial > 0) return onbInitial;
+      const onbAtual = parseFloat(String(onb.peso_atual ?? ''));
+      if (!isNaN(onbAtual) && onbAtual > 0) return onbAtual;
+    } catch {}
+
+    const directOnb = onboarding.pesoInicial;
+    if (directOnb > 0) return directOnb;
+
+    return 80.0; // Fallback mock final
   })();
-  const lostKg = parseFloat(Math.max(0, weightStart - weightCurrent).toFixed(1));
+
+  const lostKg = parseFloat((weightStart - weightCurrent).toFixed(1));
   const toGoKg = parseFloat(Math.max(0, weightCurrent - weightGoal).toFixed(1));
+  
   const totalRange = weightStart - weightGoal;
-  const progressPercent = totalRange > 0
-    ? Math.min(100, Math.max(0, Math.round(((weightStart - weightCurrent) / totalRange) * 100)))
-    : weightCurrent <= weightGoal ? 100 : 0;
+  let progressPercent = 0;
+  if (weightCurrent > weightStart) {
+    progressPercent = 0;
+  } else if (totalRange > 0) {
+    progressPercent = Math.min(100, Math.max(0, Math.round(((weightStart - weightCurrent) / totalRange) * 100)));
+  } else {
+    progressPercent = weightCurrent <= weightGoal ? 100 : 0;
+  }
+
+  // Data da última pesagem real
+  const lastWeightDateText = (() => {
+    if (currentWeightData.timestamp) {
+      try {
+        const d = new Date(currentWeightData.timestamp);
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          return `${day}/${month}/${year}`;
+        }
+      } catch {}
+    }
+    return '12/05/2024';
+  })();
   const bmi = userHeight > 0
     ? parseFloat((weightCurrent / (userHeight * userHeight)).toFixed(1))
     : null;
@@ -395,8 +588,8 @@ export default function HomePremiumV2() {
   const handleApplyWeight = () => {
     const numeric = parseFloat(weightInput);
     if (!isNaN(numeric) && numeric > 45 && numeric < 150) {
-      setWeightCurrent(numeric);
       saveWeightEntry({ weight: numeric });
+      window.dispatchEvent(new Event('local-storage-change'));
       setShowWeightModal(false);
       triggerConfetti();
       triggerToast(`⚖️ Peso atualizado para ${numeric} kg! Continue no foco.`);
@@ -614,12 +807,23 @@ export default function HomePremiumV2() {
                   
                   {/* Left stats */}
                   <div className="col-span-4 space-y-0.5">
-                    <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Você já perdeu</p>
-                    <div>
-                      <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{lostKg}</span>
-                      <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
-                    </div>
-                    <p className="text-[10px] text-[#3D5A70] font-bold block">desde {mockHomeData.user.lastUpdate}</p>
+                    {weightCurrent > weightStart ? (
+                      <>
+                        <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Ajuste em</p>
+                        <div>
+                          <span className="text-xl font-black text-[#0A1628] tracking-tight">andamento</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[10px] font-bold text-[#3D5A70] uppercase tracking-wider block">Você já perdeu</p>
+                        <div>
+                          <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">{lostKg}</span>
+                          <span className="text-xs font-bold text-[#3D5A70] ml-1">kg</span>
+                        </div>
+                      </>
+                    )}
+                    <p className="text-[10px] text-[#3D5A70] font-bold block">desde {lastWeightDateText}</p>
                   </div>
 
                   {/* SVG progress circle widget */}
@@ -817,9 +1021,6 @@ export default function HomePremiumV2() {
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none" style={{ display: 'inline-block', whiteSpace: 'nowrap', width: 'fit-content' }}>
-                      {mockHomeData.evolution.days} dias de foco
-                    </span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5 shrink-0" />
                 </div>
@@ -932,7 +1133,7 @@ export default function HomePremiumV2() {
 
                     <div className="space-y-1">
                       <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Próxima aplicação</span>
-                      <span className="text-sm font-black text-[#0A1628] block">{mockHomeData.performance.glp1.nextDose}</span>
+                      <span className="text-sm font-black text-[#0A1628] block">{displayNextDose}</span>
                     </div>
 
                     <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
@@ -961,25 +1162,53 @@ export default function HomePremiumV2() {
                       <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">{mockHomeData.performance.activity.name}</span>
                     </div>
 
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Passos hoje</span>
-                      <span className="text-sm font-black text-[#0A1628] block font-mono">
-                        {mockHomeData.performance.activity.stepsToday} <span className="text-[10px] text-slate-400 font-bold">/ {mockHomeData.performance.activity.stepsGoal}</span>
-                      </span>
-                    </div>
+                    {todayActivity ? (
+                      <>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">
+                            {todayActivity.activity.charAt(0).toUpperCase() + todayActivity.activity.slice(1)}
+                          </span>
+                          <span className="text-sm font-black text-[#0A1628] block font-mono">
+                            {todayActivity.duration} min
+                          </span>
+                        </div>
 
-                    <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
-                      <div>
-                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Treino</span>
-                        <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.activity.trainingThisWeek}/{mockHomeData.performance.activity.trainingGoal}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Foco</span>
-                        <span className="font-extrabold text-[#F5A623] bg-orange-50 px-1.5 py-0.5 rounded-md text-[9px] block">
-                          🔥 {mockHomeData.performance.activity.consistencyDays}d
-                        </span>
-                      </div>
-                    </div>
+                        <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                          <div>
+                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Esforço</span>
+                            <span className="font-black text-[#0a1628]">{todayActivity.intensity}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Gasto</span>
+                            <span className="font-extrabold text-[#E8445A] bg-red-50 px-1.5 py-0.5 rounded-md text-[9px] block">
+                              🔥 {todayActivity.calories} kcal
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Passos hoje</span>
+                          <span className="text-sm font-black text-[#0A1628] block font-mono">
+                            {mockHomeData.performance.activity.stepsToday} <span className="text-[10px] text-slate-400 font-bold">/ {mockHomeData.performance.activity.stepsGoal}</span>
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center bg-white/60 backdrop-blur-xs p-2 rounded-xl border border-[#E2EBE7]/50 text-[10px]">
+                          <div>
+                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Treino</span>
+                            <span className="font-black text-[#0a1628] font-mono">{mockHomeData.performance.activity.trainingThisWeek}/{mockHomeData.performance.activity.trainingGoal}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-[#3D5A70] block font-bold uppercase leading-none mb-1">Foco</span>
+                            <span className="font-extrabold text-[#F5A623] bg-orange-50 px-1.5 py-0.5 rounded-md text-[9px] block">
+                              🔥 {mockHomeData.performance.activity.consistencyDays}d
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Card 3: Suplementação */}

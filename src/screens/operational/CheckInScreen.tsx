@@ -50,16 +50,46 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   function handleCheckIn() {
     setCheckInCompleted(true);
     const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem('glpy_checkin_hoje', JSON.stringify({
+    const newEntry = {
       date:       today,
       dayFeeling: selectedDayFeeling,
       savedAt:    Date.now(),
-    }));
-    const hist: string[] = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]');
-    if (!hist.includes(today)) {
-      hist.push(today);
-      localStorage.setItem('glpy_checkin_historico', JSON.stringify(hist));
+    };
+    localStorage.setItem('glpy_checkin_hoje', JSON.stringify(newEntry));
+    
+    let hist: any[] = [];
+    try {
+      hist = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]');
+    } catch {
+      hist = [];
     }
+
+    if (!Array.isArray(hist)) {
+      hist = [];
+    }
+
+    const existingIndex = hist.findIndex(item => {
+      if (typeof item === 'string') {
+        return item === today;
+      }
+      return item && item.date === today;
+    });
+
+    if (existingIndex !== -1) {
+      if (typeof hist[existingIndex] === 'string') {
+        hist[existingIndex] = newEntry;
+      } else {
+        hist[existingIndex] = { ...hist[existingIndex], ...newEntry };
+      }
+    } else {
+      hist.push(newEntry);
+    }
+
+    localStorage.setItem('glpy_checkin_historico', JSON.stringify(hist));
+    
+    // Despacha o evento de alteração local para reatividade
+    window.dispatchEvent(new Event('local-storage-change'));
+
     setTimeout(() => onBack?.(), 1500);
   }
 

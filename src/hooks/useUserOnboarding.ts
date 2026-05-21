@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface UserOnboardingData {
   nome: string;
@@ -108,6 +108,21 @@ function readOnboarding(): UserOnboardingData {
 }
 
 export function useUserOnboarding(): UserOnboardingData {
-  const [data] = useState<UserOnboardingData>(readOnboarding);
+  const [data, setData] = useState<UserOnboardingData>(readOnboarding);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(readOnboarding());
+    };
+
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('local-storage-change', handleUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('local-storage-change', handleUpdate);
+    };
+  }, []);
+
   return data;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface CurrentWeightData {
   weight: number;
@@ -44,6 +44,21 @@ function readCurrentWeight(): CurrentWeightData {
 }
 
 export function useCurrentWeight(): CurrentWeightData {
-  const [data] = useState<CurrentWeightData>(readCurrentWeight);
+  const [data, setData] = useState<CurrentWeightData>(readCurrentWeight);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(readCurrentWeight());
+    };
+
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('local-storage-change', handleUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('local-storage-change', handleUpdate);
+    };
+  }, []);
+
   return data;
 }

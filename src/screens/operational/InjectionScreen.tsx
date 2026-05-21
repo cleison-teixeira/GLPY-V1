@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { calculateNextInjection } from '../../utils/treatmentUtils';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -52,9 +53,11 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
       return (['abdomen', 'thigh', 'arm'] as InjectionSite[]).includes(s) ? s : 'abdomen';
     } catch { return 'abdomen'; }
   });
-  const [medication] = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro');
+  const [medication] = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro®');
   const [dose]       = useState(() => localStorage.getItem('glpy_dose')        || '2,5 mg');
-  const [frequency]  = useState('Semanal');
+  const [frequency]  = useState(() => localStorage.getItem('glpy_frequencia')  || 'Semanal');
+
+  const nextInj = calculateNextInjection();
 
   function handleEditConfig(_field: string) {
     window.location.href = '/preview/treatment-settings';
@@ -239,9 +242,9 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
               </div>
               <span style={cardTitleStyle}>Próxima aplicação</span>
             </div>
-            <div style={badgeStyle}>Semanal</div>
-            <div style={mainValueStyle}>Qui, 21 mai</div>
-            <div style={subValueStyle}>em 3 dias</div>
+            <div style={badgeStyle}>{frequency}</div>
+            <div style={mainValueStyle}>{nextInj.nextDateFormatted}</div>
+            <div style={subValueStyle}>{nextInj.daysRemainingText}</div>
           </GLPYCard>
 
           {/* Card 2 — Última aplicação */}
@@ -253,8 +256,12 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
               <span style={cardTitleStyle}>Última aplicação</span>
             </div>
             <div style={{ ...badgeStyle, background: 'transparent', color: 'transparent' }}>·</div>
-            <div style={mainValueStyle}>{dose}</div>
-            <div style={subValueStyle}>há 4 dias · {medication}</div>
+            <div style={mainValueStyle}>{nextInj.hasHistory ? dose : 'Sem registro'}</div>
+            <div style={subValueStyle}>
+              {nextInj.hasHistory
+                ? `${nextInj.lastDateFormatted} · ${medication}`
+                : 'Tratamento não iniciado'}
+            </div>
           </GLPYCard>
 
         </div>
