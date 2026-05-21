@@ -306,6 +306,22 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/supplements') {
+  import('./screens/operational/SupplementsScreen.tsx').then(({ default: SupplementsScreen }) => {
+    root.render(
+      <StrictMode>
+        <SupplementsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/food-photo') {
+  import('./screens/operational/FoodPhotoScreen.tsx').then(({ default: FoodPhotoScreen }) => {
+    root.render(
+      <StrictMode>
+        <FoodPhotoScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/local-intelligence-test') {
   import('./screens/debug/LocalIntelligenceTestScreen.tsx').then(({ default: LocalIntelligenceTestScreen }) => {
     root.render(

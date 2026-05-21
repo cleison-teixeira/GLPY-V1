@@ -13,6 +13,8 @@ export interface GLPYTargetsInput {
   weightLossPace: 'leve' | 'equilibrado' | 'intenso';
   targetWeightKg?: number;
   activeMedicationDose?: string;
+  /** Calorias queimadas em atividade física hoje (0–2000). Aumenta a meta calórica ajustada. */
+  activityCaloriesBurned?: number;
 }
 
 export interface GLPYTargetsOutput {
@@ -30,6 +32,10 @@ export interface GLPYTargetsOutput {
   warnings: string[];
   clinicalContextNotes: string[];
   configVersion: string;
+  /** Calorias de atividade física hoje, validadas e aplicadas (0 se nenhuma). */
+  activityCaloriesBurned: number;
+  /** Meta calórica ajustada = caloriesTarget + activityCaloriesBurned. Use este valor para exibição. */
+  adjustedCaloriesTarget: number;
 }
 
 // Modelo de consumo diário acumulado
@@ -125,6 +131,13 @@ export function calculateGLPYDailyTargets(input: GLPYTargetsInput): GLPYTargetsO
   }
   caloriesTarget = Math.round(caloriesTarget);
 
+  // 4b. Bônus de Atividade Física (calorias queimadas hoje)
+  const rawActivityBonus = input.activityCaloriesBurned ?? 0;
+  const activityCaloriesBurned = (!isNaN(rawActivityBonus) && rawActivityBonus > 0 && rawActivityBonus <= 2000)
+    ? Math.round(rawActivityBonus)
+    : 0;
+  const adjustedCaloriesTarget = caloriesTarget + activityCaloriesBurned;
+
   // 5. Proteínas (g/kg)
   const pConfig = GLPY_TARGETS_CONFIG.protein;
   let refWeight = weightKg;
@@ -174,6 +187,8 @@ export function calculateGLPYDailyTargets(input: GLPYTargetsInput): GLPYTargetsO
     bmr: Math.round(bmr),
     tdee: Math.round(tdee),
     caloriesTarget,
+    adjustedCaloriesTarget,
+    activityCaloriesBurned,
     caloriesMinWarningApplied,
     proteinGrams,
     proteinCalories,
@@ -208,7 +223,8 @@ export function calculateDailyRemaining(
   targets: GLPYTargetsOutput,
   consumed: GLPYDailyConsumed
 ): GLPYDailyRemaining {
-  const calories    = buildBalance(consumed.calories,     targets.caloriesTarget);
+  const effectiveCaloriesTarget = targets.adjustedCaloriesTarget ?? targets.caloriesTarget;
+  const calories    = buildBalance(consumed.calories,     effectiveCaloriesTarget);
   const proteinGrams= buildBalance(consumed.proteinGrams, targets.proteinGrams);
   const carbsGrams  = buildBalance(consumed.carbsGrams,   targets.carbsGrams);
   const fatGrams    = buildBalance(consumed.fatGrams,      targets.fatGrams);
@@ -273,11 +289,15 @@ export function buildDailyTargetsForAI(
       ? `Meta concluída${b.overage > 0 ? ` (+${b.overage}${unit} acima)` : ''}`
       : `${b.remaining}${unit} restantes`;
 
+  const activityLine = targets.activityCaloriesBurned > 0
+    ? `\n- Bônus Atividade Física: +${targets.activityCaloriesBurned} kcal → Meta Ajustada: ${targets.adjustedCaloriesTarget} kcal`
+    : '';
+
   return `
 === GLPY DAILY TARGETS ENGINE ===
 
 Metas do Dia:
-- Calorias: ${targets.caloriesTarget} kcal
+- Calorias Base: ${targets.caloriesTarget} kcal${activityLine}
 - Proteína: ${targets.proteinGrams}g
 - Carboidratos: ${targets.carbsGrams}g
 - Gorduras: ${targets.fatGrams}g

@@ -966,11 +966,18 @@ export default function HomePremiumV2() {
                       <Flame className="w-5 h-5 text-orange-600 fill-orange-600" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-orange-800/80 uppercase tracking-wider block leading-none mb-1">Calorias Restantes</span>
+                      <span className="text-[10px] font-bold text-orange-800/80 uppercase tracking-wider block leading-none mb-1">Alvo Calórico do Dia</span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">1.446</span>
+                        <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">
+                          {(nutritionTargets?.adjustedCaloriesTarget ?? 1446).toLocaleString('pt-BR')}
+                        </span>
                         <span className="text-xs font-bold text-orange-600">kcal</span>
                       </div>
+                      {(nutritionTargets?.activityCaloriesBurned ?? 0) > 0 && (
+                        <span className="text-[9px] font-bold text-emerald-600 block mt-0.5">
+                          +{nutritionTargets!.activityCaloriesBurned} kcal atividade
+                        </span>
+                      )}
                     </div>
                   </div>
                   <span className="text-[9px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full select-none font-mono">
@@ -1213,8 +1220,8 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Card 3: Suplementação */}
-                  <div 
-                    onClick={handleSuplementTake} 
+                  <div
+                    onClick={() => goTo('/preview/supplements')}
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-purple-50/20 rounded-[22px] p-4 border border-[#E2EBE7] hover:border-purple-400 shadow-sm transition-all duration-305 flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
@@ -1280,7 +1287,7 @@ export default function HomePremiumV2() {
 
                   {/* Card 5: Foto do Prato */}
                   <div
-                    onClick={() => goTo('/preview/food-log')}
+                    onClick={() => goTo('/preview/food-photo')}
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">

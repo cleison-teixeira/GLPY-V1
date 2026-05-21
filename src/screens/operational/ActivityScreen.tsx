@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton, GLPYInput } from '../../components/ui';
+import { saveActivityEntry } from '../../core/glpyLocalIntelligence';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -139,7 +140,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   function handleSave() {
     if (saveState !== 'idle' || !isValid) return;
     setSaveState('saving');
-    const entry = {
+    const legacyEntry = {
       activity: selectedActivity,
       duration: selectedDuration,
       intensity: selectedIntensity,
@@ -147,7 +148,16 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       note,
       savedAt: Date.now(),
     };
-    localStorage.setItem('glpy_atividade_hoje', JSON.stringify(entry));
+    localStorage.setItem('glpy_atividade_hoje', JSON.stringify(legacyEntry));
+    try {
+      saveActivityEntry({
+        type: selectedActivity,
+        duration: parseFloat(selectedDuration) || 0,
+        intensity: selectedIntensity,
+        kcalBurned: calculatedCalories,
+      });
+    } catch { /* silent */ }
+    window.dispatchEvent(new Event('local-storage-change'));
     setTimeout(() => {
       setSaveState('saved');
       setTimeout(() => {

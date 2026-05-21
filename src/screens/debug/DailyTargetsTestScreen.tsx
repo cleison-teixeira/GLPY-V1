@@ -48,6 +48,7 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   const [pace, setPace]           = useState<GLPYTargetsInput['weightLossPace']>('equilibrado');
   const [targetWeight, setTargetWeight] = useState('70.0');
   const [medication, setMedication]     = useState('0.5mg');
+  const [activityKcal, setActivityKcal] = useState('0');
 
   // ── Consumption inputs ────────────────────────────────────────────────────
   const [waterInput, setWaterInput] = useState('0.5');
@@ -103,10 +104,12 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
   let calcError = '';
   try {
     if (w > 0 && h > 0 && a > 0) {
+      const actKcal = parseFloat(activityKcal) || 0;
       result = calculateGLPYDailyTargets({
         weightKg: w, heightCm: h, ageYears: a, gender,
         activityLevel: activity, weightLossPace: pace,
-        targetWeightKg: tw, activeMedicationDose: medication
+        targetWeightKg: tw, activeMedicationDose: medication,
+        activityCaloriesBurned: actKcal > 0 ? actKcal : undefined,
       });
     } else {
       calcError = 'Preencha peso, altura e idade válidos para calcular.';
@@ -261,6 +264,11 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
             <div style={formGroup}><label style={labelStyle}>Dose GLP-1</label>
               <input type="text" style={inputStyle} value={medication} onChange={e => setMedication(e.target.value)} placeholder="Ex: 0.5mg" /></div>
           </div>
+
+          <div style={formGroup}>
+            <label style={labelStyle}>Atividade Física Hoje (kcal queimadas, 0–2000)</label>
+            <input type="number" min="0" max="2000" step="10" style={inputStyle} value={activityKcal} onChange={e => setActivityKcal(e.target.value)} placeholder="Ex: 360" />
+          </div>
         </GLPYCard>
 
         {/* ── 2. METAS CALCULADAS ────────────────────────────────────────────── */}
@@ -277,9 +285,21 @@ export default function DailyTargetsTestScreen({ onBack }: { onBack?: () => void
               <div style={resultBadge}><span style={{ fontSize: 10, color: lightColors.text.secondary, display: 'block' }}>BMR</span><strong style={{ fontSize: 14 }}>{result.bmr} kcal</strong></div>
               <div style={resultBadge}><span style={{ fontSize: 10, color: lightColors.text.secondary, display: 'block' }}>TDEE</span><strong style={{ fontSize: 14 }}>{result.tdee} kcal</strong></div>
               <div style={{ ...resultBadge, backgroundColor: '#E8F5E9', borderColor: lightColors.brand.green, gridColumn: '1 / -1' }}>
-                <span style={{ fontSize: 10, color: lightColors.brand.greenDark, fontWeight: '700', display: 'block' }}>Meta Calórica ⚖️</span>
+                <span style={{ fontSize: 10, color: lightColors.brand.greenDark, fontWeight: '700', display: 'block' }}>Meta Calórica Base ⚖️</span>
                 <strong style={{ fontSize: 20, color: lightColors.brand.greenDark }}>{result.caloriesTarget} kcal</strong>
               </div>
+              {result.activityCaloriesBurned > 0 && (
+                <div style={{ ...resultBadge, backgroundColor: '#FFF3E0', borderColor: '#FF9800', gridColumn: '1 / -1' }}>
+                  <span style={{ fontSize: 10, color: '#E65100', fontWeight: '700', display: 'block' }}>Bônus Atividade Física 🏃</span>
+                  <strong style={{ fontSize: 14, color: '#E65100' }}>+{result.activityCaloriesBurned} kcal</strong>
+                </div>
+              )}
+              {result.activityCaloriesBurned > 0 && (
+                <div style={{ ...resultBadge, backgroundColor: '#FCE4EC', borderColor: '#E91E63', gridColumn: '1 / -1' }}>
+                  <span style={{ fontSize: 10, color: '#880E4F', fontWeight: '700', display: 'block' }}>Meta Calórica Ajustada ✅</span>
+                  <strong style={{ fontSize: 20, color: '#880E4F' }}>{result.adjustedCaloriesTarget} kcal</strong>
+                </div>
+              )}
               <div style={{ ...resultBadge, backgroundColor: '#E0F2FE', borderColor: '#38BDF8' }}>
                 <span style={{ fontSize: 10, color: '#0369A1', fontWeight: '700', display: 'block' }}>Proteína</span>
                 <strong style={{ fontSize: 14 }}>{result.proteinGrams}g</strong>

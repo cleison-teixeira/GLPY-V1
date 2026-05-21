@@ -230,7 +230,7 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
         <GLPYCard
           variant="light"
           hoverable
-          onClick={() => console.log("open_check_in")}
+          onClick={() => { window.location.href = '/preview/check-in'; }}
           style={{
             borderLeft: `4px solid ${lightColors.brand.green}`,
             background: '#FFFFFF',
@@ -310,65 +310,65 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
             width: '100%',
             boxSizing: 'border-box',
           }}>
-            <GridItem 
-              label="Peso" 
-              subtext="Registrar peso" 
-              Icon={Scale} 
-              onClick={() => console.log("open_current_weight")} 
+            <GridItem
+              label="Peso"
+              subtext="Registrar peso"
+              Icon={Scale}
+              onClick={() => { window.location.href = '/preview/current-weight'; }}
             />
-            <GridItem 
-              label="Água" 
-              subtext="Hidratação" 
-              Icon={Droplets} 
-              onClick={() => console.log("open_water")} 
+            <GridItem
+              label="Água"
+              subtext="Hidratação"
+              Icon={Droplets}
+              onClick={() => { window.location.href = '/preview/water'; }}
             />
-            <GridItem 
-              label="Refeição" 
-              subtext="Registrar refeição" 
-              Icon={Utensils} 
-              onClick={() => console.log("open_food_log")} 
+            <GridItem
+              label="Refeição"
+              subtext="Registrar refeição"
+              Icon={Utensils}
+              onClick={() => { window.location.href = '/preview/food-log'; }}
             />
-            <GridItem 
-              label="Aplicação" 
-              subtext="Registrar dose" 
-              Icon={Syringe} 
-              onClick={() => console.log("open_injection")} 
+            <GridItem
+              label="Aplicação"
+              subtext="Registrar dose"
+              Icon={Syringe}
+              onClick={() => { window.location.href = '/preview/injection'; }}
             />
-            <GridItem 
-              label="Sintomas" 
-              subtext="Sintomas" 
-              Icon={Activity} 
-              onClick={() => console.log("open_side_effects")} 
+            <GridItem
+              label="Sintomas"
+              subtext="Sintomas"
+              Icon={Activity}
+              onClick={() => { window.location.href = '/preview/side-effects'; }}
             />
-            <GridItem 
-              label="Emoção" 
-              subtext="Como você está?" 
-              Icon={Smile} 
-              onClick={() => console.log("open_emotion")} 
+            <GridItem
+              label="Emoção"
+              subtext="Como você está?"
+              Icon={Smile}
+              onClick={() => { window.location.href = '/preview/emotion'; }}
             />
-            <GridItem 
-              label="Atividade" 
-              subtext="Registrar treino" 
-              Icon={Flame} 
-              onClick={() => console.log("open_activity")} 
+            <GridItem
+              label="Atividade"
+              subtext="Registrar treino"
+              Icon={Flame}
+              onClick={() => { window.location.href = '/preview/activity'; }}
             />
-            <GridItem 
-              label="Medidas" 
-              subtext="Registrar medidas" 
-              Icon={Ruler} 
-              onClick={() => console.log("open_body_measurements")} 
+            <GridItem
+              label="Medidas"
+              subtext="Registrar medidas"
+              Icon={Ruler}
+              onClick={() => { window.location.href = '/preview/body-measurements'; }}
             />
-            <GridItem 
-              label="Foto corporal" 
-              subtext="Evolução" 
-              Icon={Camera} 
-              onClick={() => console.log("open_photo_timeline")} 
+            <GridItem
+              label="Foto corporal"
+              subtext="Evolução"
+              Icon={Camera}
+              onClick={() => { window.location.href = '/preview/photo-timeline'; }}
             />
-            <GridItem 
-              label="Check-in" 
-              subtext="Resumo do dia" 
-              Icon={CheckSquare} 
-              onClick={() => console.log("open_check_in")} 
+            <GridItem
+              label="Check-in"
+              subtext="Resumo do dia"
+              Icon={CheckSquare}
+              onClick={() => { window.location.href = '/preview/check-in'; }}
             />
           </div>
         </div>
@@ -406,21 +406,21 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
 
       {/* ── Bottom Navigation ───────────────────────────────────────────────── */}
       <div style={bottomNavStyle}>
-        <button style={navItemStyle(false)} onClick={() => console.log("nav_home")}>
+        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/home-premium-v2'; }}>
           <Compass size={20} strokeWidth={2.25} />
           <span style={{ fontSize: 9, fontWeight: '700' }}>Home</span>
         </button>
-        
-        <button style={navItemStyle(false)} onClick={() => console.log("nav_protocols")}>
+
+        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/protocols'; }}>
           <Activity size={20} strokeWidth={2.25} />
           <span style={{ fontSize: 9, fontWeight: '700' }}>Protocolos</span>
         </button>
-        
+
         {/* Central Plus Button */}
         <div style={centralBtnContainer}>
-          <button 
-            style={centralBtnStyle} 
-            onClick={() => console.log("nav_quick_actions_central_plus")}
+          <button
+            style={centralBtnStyle}
+            onClick={() => { window.location.href = '/preview/quick-actions'; }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.06)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
@@ -428,12 +428,12 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
           </button>
         </div>
 
-        <button style={navItemStyle(true)} onClick={() => console.log("nav_progress")}>
+        <button style={navItemStyle(true)} onClick={() => { window.location.href = '/preview/quick-actions'; }}>
           <TrendingDown size={20} strokeWidth={2.25} />
           <span style={{ fontSize: 9, fontWeight: '750' }}>Ações</span>
         </button>
-        
-        <button style={navItemStyle(false)} onClick={() => console.log("nav_profile")}>
+
+        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/home-premium-v2'; }}>
           <div style={avatarStyle}>C</div>
           <span style={{ fontSize: 9, fontWeight: '700', marginTop: 2 }}>Perfil</span>
         </button>
