@@ -493,8 +493,8 @@ export default function HomePremiumV2() {
           ))}
         </div>
 
-        {/* METRICS & STATUS NOTCH BAR */}
-        <div className="bg-[#FAFCFB] text-[#0A1628] h-[44px] px-6 shrink-0 flex justify-between items-center z-40 select-none relative">
+        {/* METRICS & STATUS NOTCH BAR — só no frame desktop; mobile usa a barra real do sistema */}
+        <div className="bg-[#FAFCFB] text-[#0A1628] h-[44px] px-6 shrink-0 hidden sm:flex justify-between items-center z-40 select-none relative">
           <span className="text-xs font-bold font-mono text-[#0A1628]">9:41</span>
           
           <div className="flex items-center gap-2 text-[#0A1628]">
@@ -790,51 +790,51 @@ export default function HomePremiumV2() {
               {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
               <div
                 onClick={() => goTo('/preview/body-measurements')}
-                className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
+                className="bg-white rounded-[24px] px-4 pt-2.5 pb-2.5 custom-shadow border border-[#E2EBE7]/70 space-y-1.5 cursor-pointer active:opacity-80 transition"
               >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-0.5">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none inline-block">
+                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none">
                       {mockHomeData.evolution.days} dias de foco
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5" />
+                  <ChevronRight className="w-4 h-4 text-[#3D5A70]" />
                 </div>
 
-                <div className="grid grid-cols-12 gap-2 items-center">
+                <div className="grid grid-cols-12 gap-2 items-stretch">
 
                   {/* Left values column */}
-                  <div className="col-span-8 grid grid-cols-2 gap-1.5">
-                    
-                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Cintura</span>
+                  <div className="col-span-8 grid grid-cols-2 gap-1.5 content-start">
+
+                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
                       </div>
                     </div>
 
-                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Busto</span>
+                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.busto.change} cm</span>
                       </div>
                     </div>
 
-                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Coxa</span>
+                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
                       </div>
                     </div>
 
-                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Panturrilha</span>
+                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Panturrilha</span>
                       <div className="flex items-baseline justify-between gap-1">
-                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
+                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
                         <span className="text-[9px] font-bold text-[#00C27A] leading-none whitespace-nowrap shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
                       </div>
                     </div>
@@ -842,7 +842,7 @@ export default function HomePremiumV2() {
                   </div>
 
                   {/* Right visual indicator model with scanner overlay */}
-                  <div className="col-span-4 flex justify-center items-center bg-transparent rounded-2xl relative overflow-hidden h-[155px] border border-emerald-100/40 shadow-inner group">
+                  <div className="col-span-4 flex justify-center items-center bg-transparent rounded-2xl relative overflow-hidden min-h-[120px] border border-emerald-100/40 shadow-inner group">
                     <img 
                       src="https://images.unsplash.com/photo-1518622358385-8ea7d0794bf6?auto=format&fit=crop&q=80&w=250&h=400"
                       alt="Silhueta saudável"
