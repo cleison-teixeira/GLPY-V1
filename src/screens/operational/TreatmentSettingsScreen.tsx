@@ -244,6 +244,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
               value={dose}
               onChange={setDose}
               unit="mg"
+              type="number"
               centerWithUnit
               placeholder="0"
             />

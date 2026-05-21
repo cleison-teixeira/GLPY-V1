@@ -130,7 +130,13 @@ if (path === '/admin') {
   import('./screens/operational/WaterScreen.tsx').then(({ default: WaterScreen }) => {
     root.render(
       <StrictMode>
-        <WaterScreen onBack={() => { window.location.href = '/'; }} />
+        <WaterScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(amount) => {
+            localStorage.setItem('glpy_agua_hoje', String(amount));
+            window.location.href = '/preview/home-premium-v2';
+          }}
+        />
       </StrictMode>,
     );
   });
@@ -138,7 +144,10 @@ if (path === '/admin') {
   import('./screens/operational/FoodLogScreen.tsx').then(({ default: FoodLogScreen }) => {
     root.render(
       <StrictMode>
-        <FoodLogScreen onBack={() => { window.location.href = '/'; }} />
+        <FoodLogScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={() => { window.location.href = '/preview/home-premium-v2'; }}
+        />
       </StrictMode>,
     );
   });
@@ -146,7 +155,13 @@ if (path === '/admin') {
   import('./screens/operational/InjectionScreen.tsx').then(({ default: InjectionScreen }) => {
     root.render(
       <StrictMode>
-        <InjectionScreen onBack={() => { window.location.href = '/'; }} />
+        <InjectionScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(data) => {
+            localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ ...data, savedAt: Date.now() }));
+            window.location.href = '/preview/home-premium-v2';
+          }}
+        />
       </StrictMode>,
     );
   });
@@ -154,7 +169,20 @@ if (path === '/admin') {
   import('./screens/operational/TreatmentSettingsScreen.tsx').then(({ default: TreatmentSettingsScreen }) => {
     root.render(
       <StrictMode>
-        <TreatmentSettingsScreen onBack={() => { window.location.href = '/'; }} />
+        <TreatmentSettingsScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(data) => {
+            localStorage.setItem('glpy_medicamento', data.medication);
+            if (data.dose) localStorage.setItem('glpy_dose', data.dose);
+            try {
+              const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+              onb.medicamento = data.medication;
+              if (data.dose) onb.dose = data.dose;
+              localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+            } catch {}
+            window.location.href = '/preview/home-premium-v2';
+          }}
+        />
       </StrictMode>,
     );
   });
@@ -170,7 +198,13 @@ if (path === '/admin') {
   import('./screens/operational/EmotionScreen.tsx').then(({ default: EmotionScreen }) => {
     root.render(
       <StrictMode>
-        <EmotionScreen onBack={() => { window.location.href = '/'; }} />
+        <EmotionScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(data) => {
+            localStorage.setItem('glpy_emocao_hoje', JSON.stringify({ ...data, savedAt: Date.now() }));
+            window.location.href = '/preview/home-premium-v2';
+          }}
+        />
       </StrictMode>,
     );
   });
@@ -178,7 +212,13 @@ if (path === '/admin') {
   import('./screens/operational/BodyMeasurementsScreen.tsx').then(({ default: BodyMeasurementsScreen }) => {
     root.render(
       <StrictMode>
-        <BodyMeasurementsScreen onBack={() => { window.location.href = '/'; }} />
+        <BodyMeasurementsScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={(data) => {
+            localStorage.setItem('glpy_medidas_corporais', JSON.stringify({ ...data, savedAt: Date.now() }));
+            window.location.href = '/preview/home-premium-v2';
+          }}
+        />
       </StrictMode>,
     );
   });
@@ -186,7 +226,7 @@ if (path === '/admin') {
   import('./screens/operational/PhotoTimelineScreen.tsx').then(({ default: PhotoTimelineScreen }) => {
     root.render(
       <StrictMode>
-        <PhotoTimelineScreen onBack={() => { window.location.href = '/'; }} />
+        <PhotoTimelineScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });
@@ -202,7 +242,10 @@ if (path === '/admin') {
   import('./screens/operational/ActivityScreen.tsx').then(({ default: ActivityScreen }) => {
     root.render(
       <StrictMode>
-        <ActivityScreen onBack={() => { window.location.href = '/'; }} />
+        <ActivityScreen
+          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onSave={() => { window.location.href = '/preview/home-premium-v2'; }}
+        />
       </StrictMode>,
     );
   });
@@ -210,7 +253,7 @@ if (path === '/admin') {
   import('./screens/operational/CheckInScreen.tsx').then(({ default: CheckInScreen }) => {
     root.render(
       <StrictMode>
-        <CheckInScreen onBack={() => { window.location.href = '/'; }} />
+        <CheckInScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });
@@ -234,7 +277,7 @@ if (path === '/admin') {
   import('./screens/operational/ResultsScreen.tsx').then(({ default: ResultsScreen }) => {
     root.render(
       <StrictMode>
-        <ResultsScreen onBack={() => { window.location.href = '/preview'; }} />
+        <ResultsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });
@@ -242,7 +285,7 @@ if (path === '/admin') {
   import('./screens/premium/QuickActionsScreen.tsx').then(({ default: QuickActionsScreen }) => {
     root.render(
       <StrictMode>
-        <QuickActionsScreen onBack={() => { window.location.href = '/preview'; }} />
+        <QuickActionsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });
@@ -258,7 +301,7 @@ if (path === '/admin') {
   import('./components/ChatIA.tsx').then(({ default: ChatIA }) => {
     root.render(
       <StrictMode>
-        <ChatIA onNavigate={() => { window.location.href = '/preview'; }} />
+        <ChatIA onNavigate={() => { window.location.href = '/preview/home-premium-v2'; }} />
       </StrictMode>,
     );
   });

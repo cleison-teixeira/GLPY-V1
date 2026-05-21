@@ -199,6 +199,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setWaist}
               label="Cintura"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="84"
             />
@@ -207,6 +208,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setHip}
               label="Quadril"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="104"
             />
@@ -215,6 +217,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setAbdomen}
               label="Abdômen"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="92"
             />
@@ -223,6 +226,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setChest}
               label="Peito"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="96"
             />
@@ -231,6 +235,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setArm}
               label="Braço"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="32"
             />
@@ -239,6 +244,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
               onChange={setThigh}
               label="Coxa"
               unit="cm"
+              type="number"
               centerWithUnit
               placeholder="58"
             />

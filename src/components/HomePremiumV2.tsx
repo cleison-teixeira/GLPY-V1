@@ -790,22 +790,22 @@ export default function HomePremiumV2() {
               {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
               <div
                 onClick={() => goTo('/preview/body-measurements')}
-                className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-3 cursor-pointer active:opacity-80 transition"
+                className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
               >
                 <div className="flex justify-between items-start">
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[10px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full font-mono select-none inline-block">
-                      -{mockHomeData.evolution.days} dias de foco
+                    <span className="text-[9px] font-bold bg-[#E2EBE7] text-teal-800 px-2 py-0.5 rounded-full font-mono select-none inline-block">
+                      {mockHomeData.evolution.days} dias de foco
                     </span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5" />
                 </div>
 
-                <div className="grid grid-cols-12 gap-3 items-center">
-                  
+                <div className="grid grid-cols-12 gap-2 items-center">
+
                   {/* Left values column */}
-                  <div className="col-span-8 grid grid-cols-2 gap-2">
+                  <div className="col-span-8 grid grid-cols-2 gap-1.5">
                     
                     <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
                       <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Cintura</span>

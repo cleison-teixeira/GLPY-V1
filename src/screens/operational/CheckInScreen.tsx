@@ -49,12 +49,14 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
   function handleCheckIn() {
     setCheckInCompleted(true);
-    console.log('[GLPY] check_in_completed:', {
-      selectedDayFeeling,
-      resumo: RESUMO_ITEMS.map(i => ({ id: i.id, done: i.done })),
-      xp:     80,
-      streak: 12,
-    });
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('glpy_checkin_hoje', today);
+    const hist: string[] = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]');
+    if (!hist.includes(today)) {
+      hist.push(today);
+      localStorage.setItem('glpy_checkin_historico', JSON.stringify(hist));
+    }
+    setTimeout(() => onBack?.(), 1500);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────

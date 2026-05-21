@@ -27,6 +27,7 @@ import { transition } from '../../theme/motion';
 
 interface ActivityScreenProps {
   onBack?: () => void;
+  onSave?: () => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ function calculateCalories(duration: string, intensity: string): number {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ActivityScreen({ onBack }: ActivityScreenProps) {
+export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedActivity,   setSelectedActivity]   = useState('caminhada');
   const [activityModalOpen,  setActivityModalOpen]  = useState(false);
@@ -105,13 +106,20 @@ export default function ActivityScreen({ onBack }: ActivityScreenProps) {
   }
 
   function handleSave() {
-    console.log('[GLPY] Activity saved:', {
-      selectedActivity,
-      selectedDuration,
-      selectedIntensity,
-      calculatedCalories,
+    const entry = {
+      activity: selectedActivity,
+      duration: selectedDuration,
+      intensity: selectedIntensity,
+      calories: calculatedCalories,
       note,
-    });
+      savedAt: Date.now(),
+    };
+    localStorage.setItem('glpy_atividade_hoje', JSON.stringify(entry));
+    if (onSave) {
+      onSave();
+    } else {
+      onBack?.();
+    }
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
