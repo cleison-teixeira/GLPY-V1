@@ -252,15 +252,12 @@ export default function HomePremiumV2() {
 
   // Interactive UI state proxies
   const [waterAmount, setWaterAmount] = useState<number>(mockHomeData.nutrients.water.current);
-  const [isCheckInDone, setIsCheckInDone] = useState<boolean>(false);
-  const [streakDays, setStreakDays] = useState<number>(mockHomeData.user.streakCoins);
+  const [streakDays] = useState<number>(0);
   const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
 
   // Popups & modals
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
   const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
-  const [showHubModal, setShowHubModal] = useState<boolean>(false);
-  const [showPlusDrawer, setShowPlusDrawer] = useState<boolean>(false);
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
 
@@ -280,6 +277,34 @@ export default function HomePremiumV2() {
     : bmi < 30 ? "Sobrepeso"
     : "Obesidade";
   const waterRemaining = Math.max(0, targetWaterL - waterAmount);
+
+  // Navigation helper
+  const goTo = (path: string) => { window.location.href = path; };
+
+  // Protocol name → preview route
+  const PROTOCOL_ROUTE_MAP: Record<string, string> = {
+    'Sobrevivendo às Canetas': '/preview/protocolo1',
+    sobrevivendoCanetas: '/preview/protocolo1',
+    'Efeitos Colaterais': '/preview/protocolo2',
+    efeitosColaterais: '/preview/protocolo2',
+    'Anti-Queda Capilar': '/preview/protocolo3',
+    antiQuedaCabelo: '/preview/protocolo3',
+    'Anti-Rebote': '/preview/protocolo4',
+    antiRebote: '/preview/protocolo4',
+    'anti-rebote': '/preview/protocolo4',
+    'Psicologia Emagrecimento': '/preview/protocolo5',
+    psicologiaEmagrecimento: '/preview/protocolo5',
+    'Alimentação Baixo Apetite': '/preview/protocolo6',
+    alimentacaoBaixoApetite: '/preview/protocolo6',
+    'Não Perca Músculos': '/preview/protocolo7',
+    naoPerdaMusculos: '/preview/protocolo7',
+    'Energia Baixa': '/preview/protocolo8',
+    energiaBaixa: '/preview/protocolo8',
+    'Ajuste Metabólico': '/preview/protocolo9',
+    ajusteMetabolico: '/preview/protocolo9',
+    'Transição Parar': '/preview/protocolo10',
+    transicaoParar: '/preview/protocolo10',
+  };
 
   // Live Toast dispatcher
   const triggerToast = (msg: string) => {
@@ -356,16 +381,7 @@ export default function HomePremiumV2() {
   };
 
   const handleToggleCheckin = () => {
-    const nextVal = !isCheckInDone;
-    setIsCheckInDone(nextVal);
-    if (nextVal) {
-      setStreakDays(prev => prev + 1);
-      triggerConfetti();
-      triggerToast("🔥 Check-In Concluído! Sequência protegida de 13 dias!");
-    } else {
-      setStreakDays(prev => Math.max(12, prev - 1));
-      triggerToast("Status de check-in cancelado.");
-    }
+    goTo('/preview/check-in');
   };
 
   const handleSuplementTake = () => {
@@ -395,19 +411,20 @@ export default function HomePremiumV2() {
 
   // Safe callback trigger matching simulated keys
   const handleQuickAction = (id: string) => {
-    switch (id) {
-      case "agua":
-        handleAddWater();
-        break;
-      case "peso":
-        setWeightInput(weightCurrent.toString());
-        setShowWeightModal(true);
-        break;
-      case "checkin":
-        handleToggleCheckin();
-        break;
-      default:
-        break;
+    const QUICK_ROUTES: Record<string, string> = {
+      agua:     '/preview/water',
+      refeicao: '/preview/food-log',
+      emocao:   '/preview/emotion',
+      medida:   '/preview/body-measurements',
+      aplicacao:'/preview/injection',
+      foto:     '/preview/photo-timeline',
+      checkin:  '/preview/check-in',
+    };
+    if (id === 'peso') {
+      setWeightInput(weightCurrent.toString());
+      setShowWeightModal(true);
+    } else if (QUICK_ROUTES[id]) {
+      goTo(QUICK_ROUTES[id]);
     }
   };
 
@@ -771,15 +788,18 @@ export default function HomePremiumV2() {
               </div>
 
               {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
-              <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
+              <div
+                onClick={() => goTo('/preview/body-measurements')}
+                className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-3 cursor-pointer active:opacity-80 transition"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
                     <h3 className="text-sm font-extrabold text-[#0A1628] tracking-tight">Evolução corporal</h3>
-                    <span className="text-[10px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full font-mono select-none">
+                    <span className="text-[10px] font-bold bg-[#E2EBE7] text-teal-800 px-2.5 py-0.5 rounded-full font-mono select-none inline-block">
                       -{mockHomeData.evolution.days} dias de foco
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#3D5A70]" />
+                  <ChevronRight className="w-4 h-4 text-[#3D5A70] mt-0.5" />
                 </div>
 
                 <div className="grid grid-cols-12 gap-3 items-center">
@@ -878,7 +898,8 @@ export default function HomePremiumV2() {
                   
                   {/* Card 1: Medicação */}
                   <div
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
+                    onClick={() => goTo('/preview/treatment-settings')}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00C27A] flex items-center justify-center shrink-0 border border-emerald-100/30">
@@ -908,7 +929,8 @@ export default function HomePremiumV2() {
 
                   {/* Card 2: Atividade Física */}
                   <div
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-blue-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
+                    onClick={() => goTo('/preview/activity')}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-blue-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 border border-blue-100/30">
@@ -973,7 +995,8 @@ export default function HomePremiumV2() {
 
                   {/* Card 4: Assistente IA */}
                   <div
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
+                    onClick={() => goTo('/preview/chat-ia')}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 border border-violet-100/30">
@@ -1005,7 +1028,8 @@ export default function HomePremiumV2() {
 
                   {/* Card 5: Foto do Prato */}
                   <div
-                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0"
+                    onClick={() => goTo('/preview/food-log')}
+                    className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0 border border-pink-100/30">
@@ -1111,15 +1135,18 @@ export default function HomePremiumV2() {
                 <div className="bg-white rounded-[24px] p-4 custom-shadow border border-[#E2EBE7]/70 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
-                  <button 
-                    onClick={() => setShowHubModal(true)} 
+                  <button
+                    onClick={() => goTo('/preview/protocols')}
                     className="text-[#00C27A] text-[10px] font-bold tracking-tight uppercase hover:underline"
                   >
                     Ver todos
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div
+                  onClick={() => goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocols')}
+                  className="flex items-center gap-3 cursor-pointer active:opacity-80 transition"
+                >
                   <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shrink-0 shadow-sm">
                     <Shield className="w-7 h-7 text-white stroke-[2.2]" />
                   </div>
@@ -1147,8 +1174,8 @@ export default function HomePremiumV2() {
                     <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
                     <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
                   </div>
-                  <button 
-                    onClick={() => setShowHubModal(true)}
+                  <button
+                    onClick={() => goTo('/preview/protocols')}
                     className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
                   >
                     <span>Entrar</span>
@@ -1329,25 +1356,25 @@ export default function HomePremiumV2() {
             <span className="text-[9px] font-bold mt-1">Início</span>
           </button>
 
-          <button 
-            onClick={() => { setActiveTab("protocolos"); }}
-            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "protocolos" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          <button
+            onClick={() => goTo('/preview/protocols')}
+            className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
           >
             <Shield className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[9px] font-bold mt-1">Protocolos</span>
           </button>
 
           {/* Big center action tab */}
-          <button 
-            onClick={() => { setShowPlusDrawer(true); }}
+          <button
+            onClick={() => goTo('/preview/quick-actions')}
             className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-lg lg:scale-105 active:scale-95 transition -translate-y-2 cursor-pointer"
           >
             <Plus className="w-6 h-6 text-white stroke-[2.8]" />
           </button>
 
-          <button 
-            onClick={() => { setActiveTab("progresso"); }}
-            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "progresso" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+          <button
+            onClick={() => goTo('/preview/results')}
+            className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
           >
             <LineChart className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[9px] font-bold mt-1">Progresso</span>
@@ -1405,106 +1432,6 @@ export default function HomePremiumV2() {
         </div>
       )}
 
-      {/* PROTOCOLS POPUP LIST */}
-      {showHubModal && (
-        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-[#FAFCFB] rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7] flex flex-col max-h-[85vh]">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <span className="text-xs font-black text-[#0A1628] uppercase tracking-wider">GLPY HUB DE PROTOCOLOS</span>
-              <button 
-                onClick={() => setShowHubModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="overflow-y-auto py-4 space-y-4 no-scrollbar">
-              <div className="bg-gradient-to-tr from-[#00C27A] to-[#00A38B] rounded-2xl p-4 text-white shadow-md space-y-1">
-                <span className="text-[8px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full inline-block">Protocolo ativo</span>
-                <h4 className="text-sm font-extrabold pt-1">{activeProtocol.name}</h4>
-                <p className="text-[11px] font-bold text-white/90">Dia {activeProtocol.currentDay} de {activeProtocol.totalDays}</p>
-                <div className="h-[4px] bg-white/20 rounded-full overflow-hidden mt-2">
-                  <div className="h-full bg-white/70 rounded-full" style={{ width: `${protocolPercent}%` }} />
-                </div>
-              </div>
-
-              <p className="text-[11px] text-[#3D5A70] leading-relaxed">
-                Continue sua jornada guiada com protocolos, metas e inteligência GLPY.
-              </p>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => setShowHubModal(false)}
-                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
-                >
-                  <span>Continuar protocolo</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-                <button
-                  onClick={() => setShowHubModal(false)}
-                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
-                >
-                  <span>Ver todos os protocolos</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-                <button
-                  onClick={() => setShowHubModal(false)}
-                  className="w-full p-3 bg-white rounded-xl border border-slate-100 hover:border-[#00C27A] transition flex justify-between items-center text-xs font-bold text-slate-800"
-                >
-                  <span>Falar com a IA GLPY</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QUICK DRAWER LAUNCH */}
-      {showPlusDrawer && (
-        <div className="fixed inset-0 bg-[#0A1628]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[28px] max-w-sm w-full p-5 shadow-2xl border border-[#E2EBE7]">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-              <span className="text-xs font-black text-[#0A1628] uppercase tracking-wider">Ações de registro rápido</span>
-              <button onClick={() => setShowPlusDrawer(false)} className="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <button 
-                onClick={() => { handleAddWater(); setShowPlusDrawer(false); }}
-                className="p-3 bg-blue-50/50 hover:bg-blue-50/80 rounded-xl border border-blue-100/50 flex flex-col items-center gap-1.5 transition text-xs"
-              >
-                <GlassWater className="w-5 h-5 text-blue-500" />
-                <span className="font-bold text-blue-800">Beber Água</span>
-              </button>
-
-              <button 
-                onClick={() => { setShowPlusDrawer(false); setWeightInput(weightCurrent.toString()); setShowWeightModal(true); }}
-                className="p-3 bg-emerald-50/50 hover:bg-emerald-50/80 rounded-xl border border-emerald-100/50 flex flex-col items-center gap-1.5 transition text-xs"
-              >
-                <Scale className="w-5 h-5 text-[#00C27A]" />
-                <span className="font-bold text-emerald-800">Registrar Peso</span>
-              </button>
-
-              <button 
-                onClick={() => { handleToggleCheckin(); setShowPlusDrawer(false); }}
-                className="p-3 bg-orange-50/50 hover:bg-orange-50/85 rounded-xl border border-orange-100/50 flex flex-col items-center gap-1.5 transition text-xs col-span-2"
-              >
-                <Flame className="w-5 h-5 text-[#E8445A]" />
-                <span className="font-bold text-orange-800">Garantir Check-In Diário</span>
-              </button>
-            </div>
-
-            <button 
-              onClick={() => setShowPlusDrawer(false)}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-[#0a1628] rounded-xl text-xs font-bold transition"
-            >
-              Fechar Panel
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
