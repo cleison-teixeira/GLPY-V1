@@ -461,8 +461,8 @@ export default function HomePremiumV2() {
           ))}
         </div>
 
-        {/* TOAST SYSTEM FEEDSTACK — fixed ao viewport, visível em qualquer posição do scroll */}
-        <div className="fixed bottom-[104px] left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm z-[9999] pointer-events-none flex flex-col-reverse gap-2">
+        {/* TOAST SYSTEM FEEDSTACK — absolute dentro do container relative, sempre acima da bottom nav */}
+        <div className="absolute bottom-[80px] left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-sm z-[9999] pointer-events-none flex flex-col-reverse gap-2">
           {toasts.map((t) => (
             <div
               key={t.id}
@@ -787,51 +787,35 @@ export default function HomePremiumV2() {
                   {/* Left values column */}
                   <div className="col-span-8 grid grid-cols-2 gap-2">
                     
-                    <div
-                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
-                    >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Cintura</span>
-                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
-                        {mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.cintura.change} cm</span>
+                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Cintura</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.cintura.current} {mockHomeData.evolution.cintura.unit}</span>
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.cintura.change} cm</span>
                       </div>
                     </div>
 
-                    <div
-                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
-                    >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Busto</span>
-                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
-                        {mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.busto.change} cm</span>
+                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Busto</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.busto.current} {mockHomeData.evolution.busto.unit}</span>
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.busto.change} cm</span>
                       </div>
                     </div>
 
-                    <div
-                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
-                    >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Coxa</span>
-                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
-                        {mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.coxa.change} cm</span>
+                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Coxa</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.coxa.current} {mockHomeData.evolution.coxa.unit}</span>
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.coxa.change} cm</span>
                       </div>
                     </div>
 
-                    <div
-                      className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 transition space-y-1.5"
-                    >
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide">Panturrilha</span>
-                      <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none block">
-                        {mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none">{mockHomeData.evolution.panturrilha.change} cm</span>
+                    <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1.5">Panturrilha</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[13px] font-extrabold text-[#0A1628] font-mono leading-none">{mockHomeData.evolution.panturrilha.current} {mockHomeData.evolution.panturrilha.unit}</span>
+                        <span className="text-[9px] font-black text-[#00C27A] bg-emerald-50 px-1.5 py-0.5 rounded-md leading-none shrink-0">{mockHomeData.evolution.panturrilha.change} cm</span>
                       </div>
                     </div>
 
