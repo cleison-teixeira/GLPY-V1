@@ -2,20 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ShoppingBag, CheckCircle } from "lucide-react";
 import BottomNav from "./BottomNav";
-
-const GlpyLogo = () => (
-  <div className="flex items-center gap-2">
-    <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
-      <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
-        <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-        <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-        <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="22" cy="9" r="2.5" fill="#fff"/>
-      </svg>
-    </div>
-    <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
-  </div>
-);
+import { GLPYHeader } from "./ui";
 
 type Recipe = {
   id: number;
@@ -118,17 +105,18 @@ export default function Recipes({ onNavigate }: { onNavigate: (screen: string) =
   );
 
   return (
-    <div id="recipes" className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
-      <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
-            <ChevronLeft className="w-4 h-4 text-text-muted" />
-          </button>
-          <div>
-            <GlpyLogo />
-            <p className="text-xs text-text-muted">Receitas do protocolo</p>
-          </div>
-        </div>
+    <div id="recipes" className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
+      <div className="bg-white px-5 pt-6 border-b border-border mb-5">
+        <GLPYHeader
+          title="Receitas"
+          subtitle="Receitas do protocolo"
+          showBranding={true}
+          onBack={() => {
+            const returnTo = sessionStorage.getItem('glpy_return_to');
+            sessionStorage.removeItem('glpy_return_to');
+            onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard');
+          }}
+        />
       </div>
       <div className="px-5">
 
@@ -171,36 +159,38 @@ export default function Recipes({ onNavigate }: { onNavigate: (screen: string) =
       {/* Detail Modal */}
       <AnimatePresence>
         {selectedRecipe && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
-            className="fixed inset-0 bg-background z-50 p-6 overflow-y-auto"
+            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-background z-50 md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden"
           >
-            <button onClick={() => setSelectedRecipe(null)} className="mb-6"><ChevronLeft /></button>
-            <div className="text-8xl mb-6 bg-border/20 p-8 rounded-3xl w-fit mx-auto">{selectedRecipe.emoji}</div>
-            <h2 className="text-3xl font-bold mb-4">{selectedRecipe.nome}</h2>
-            <div className="flex gap-4 mb-6">
-              <div className="bg-urgent/10 text-center p-3 rounded-2xl flex-1 border border-urgent/20"><p className="text-urgent font-bold text-lg">{selectedRecipe.kcal}</p><p className="text-xs text-urgent/80 font-bold">kcal</p></div>
-              <div className="bg-primary/10 text-center p-3 rounded-2xl flex-1 border border-primary/20"><p className="text-primary font-bold text-lg">{selectedRecipe.proteina}g</p><p className="text-xs text-primary/80 font-bold">prot</p></div>
-            </div>
-            
-            <h3 className="font-bold mb-2">Ingredientes</h3>
-            <ul className="list-disc list-inside text-sm text-text-muted mb-6">
-              {selectedRecipe.ingredientes.map((ing, i) => <li key={i}>{ing}</li>)}
-            </ul>
-            
-            <h3 className="font-bold mb-2">Preparo</h3>
-            <p className="text-sm text-text-muted mb-8">{selectedRecipe.preparo}</p>
+            <div className="h-full overflow-y-auto p-6">
+              <button onClick={() => setSelectedRecipe(null)} className="mb-6"><ChevronLeft /></button>
+              <div className="text-5xl mb-4 bg-border/20 p-5 rounded-3xl w-fit mx-auto">{selectedRecipe.emoji}</div>
+              <h2 className="text-2xl font-bold mb-4">{selectedRecipe.nome}</h2>
+              <div className="flex gap-4 mb-6">
+                <div className="bg-urgent/10 text-center p-3 rounded-2xl flex-1 border border-urgent/20"><p className="text-urgent font-bold text-lg">{selectedRecipe.kcal}</p><p className="text-xs text-urgent/80 font-bold">kcal</p></div>
+                <div className="bg-primary/10 text-center p-3 rounded-2xl flex-1 border border-primary/20"><p className="text-primary font-bold text-lg">{selectedRecipe.proteina}g</p><p className="text-xs text-primary/80 font-bold">prot</p></div>
+              </div>
 
-            <button className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-pill mb-4"><ShoppingBag className="w-5 h-5" /> Comprar ingredientes</button>
-            <button className="w-full flex items-center justify-center gap-2 bg-white border border-primary text-primary font-bold py-4 rounded-pill mb-24"><CheckCircle className="w-5 h-5" /> Marcar como feita</button>
+              <h3 className="font-bold mb-2">Ingredientes</h3>
+              <ul className="list-disc list-inside text-sm text-text-muted mb-6">
+                {selectedRecipe.ingredientes.map((ing, i) => <li key={i}>{ing}</li>)}
+              </ul>
+
+              <h3 className="font-bold mb-2">Preparo</h3>
+              <p className="text-sm text-text-muted mb-8">{selectedRecipe.preparo}</p>
+
+              <button className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-pill mb-4"><ShoppingBag className="w-5 h-5" /> Comprar ingredientes</button>
+              <button className="w-full flex items-center justify-center gap-2 bg-white border border-primary text-primary font-bold py-4 rounded-pill mb-6"><CheckCircle className="w-5 h-5" /> Marcar como feita</button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       </div>
-      <BottomNav active="recipes" onNavigate={onNavigate} />
+      <BottomNav active="receitas" onNavigate={onNavigate} />
     </div>
   );
 }

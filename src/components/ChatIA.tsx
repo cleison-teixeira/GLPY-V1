@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Send, Bot, Loader2, ChevronLeft, X } from "lucide-react";
+import { Send, Sparkles, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
+import glpyLogoLight from '@/assets/logos/logo-light.png';
 import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, type ContextoIA } from "../services/firestore";
 import { buildGLPYContextForAI, getGLPYIntelligenceContext } from "../core/glpyLocalIntelligence";
 import {
@@ -230,16 +231,28 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const plano = localStorage.getItem("glpy_plano") || "starter";
-  const [msgsUsadas, setMsgsUsadas] = useState(0);
+  const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const raw = localStorage.getItem('glpy_ai_usage');
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      if (parsed.month !== currentMonth) return 0;
+      return typeof parsed.used === 'number' ? parsed.used : 0;
+    } catch { return 0; }
+  });
   const [limiteIA, setLimiteIA] = useState(LIMITES_INICIAIS[plano] ?? 10);
   const [ctxIA, setCtxIA] = useState<ContextoIA | null>(null);
 
-  // Carrega limites do Firestore e aplica reset automático de mês
+  // Carrega limites do Firestore e aplica reset automático de mês; sincroniza em localStorage
   useEffect(() => {
     carregarLimitesIA(plano)
       .then(({ usadas, limite }) => {
         setMsgsUsadas(usadas);
         setLimiteIA(limite);
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        localStorage.setItem('glpy_ai_usage', JSON.stringify({ month: currentMonth, used: usadas, limit: limite, updatedAt: new Date().toISOString() }));
+        window.dispatchEvent(new Event('local-storage-change'));
       })
       .catch(() => {});
   }, [plano]);
@@ -293,10 +306,13 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
 
       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ia', text: iaText }]);
 
-      // Incrementa no Firestore e atualiza estado local
+      // Incrementa no Firestore, atualiza estado local e persiste em localStorage
       const novas = msgsUsadas + 1;
       setMsgsUsadas(novas);
       incrementarMsgIA().catch(() => {});
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      localStorage.setItem('glpy_ai_usage', JSON.stringify({ month: currentMonth, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() }));
+      window.dispatchEvent(new Event('local-storage-change'));
     } catch (error) {
       console.error("[ChatIA] DeepSeek fetch error:", {
         message: error instanceof Error ? error.message : String(error),
@@ -313,29 +329,32 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
   };
 
   return (
-    <div className="min-h-screen bg-background text-text-main flex flex-col pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]">
 
       {/* Header */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur-sm p-4 border-b border-border z-10">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('dashboard')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
-            <ChevronLeft className="w-4 h-4 text-text-muted" />
-          </button>
-          <div className="flex items-center gap-2 flex-grow">
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-primary" />
-              </div>
-              <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background animate-pulse" />
+      <header className="sticky top-0 bg-white px-5 pt-6 pb-5 border-b border-[#E2EBE7] z-10">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <button onClick={() => { const returnTo = sessionStorage.getItem('glpy_return_to'); sessionStorage.removeItem('glpy_return_to'); onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard'); }} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
+              <ChevronLeft className="w-4 h-4 text-text-muted" />
+            </button>
+            <img src={glpyLogoLight} alt="GLPY" className="w-[84px] h-auto object-contain" />
+          </div>
+
+          <div className="relative flex-shrink-0">
+            <div className="w-11 h-11 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center shadow-sm">
+              <Sparkles className="w-5 h-5 text-violet-600 stroke-[2.2]" />
             </div>
-            <div>
-              <h1 className="font-bold text-base">GLPY.IA</h1>
-              <p className="text-text-muted text-xs">
-                Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
-              </p>
-            </div>
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#00C27A] rounded-full border-2 border-white animate-pulse" />
           </div>
         </div>
+
+        <h1 className="text-3xl font-black text-[#0A1628] tracking-tight">
+          GLPY IA
+        </h1>
+        <p className="text-sm text-[#3D5A70] mt-1">
+          Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
+        </p>
       </header>
 
       {/* Mensagens */}
@@ -432,7 +451,7 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
         </div>
       </div>
 
-      {!keyboardOpen && <BottomNav active="chatIA" onNavigate={onNavigate} />}
+      {!keyboardOpen && <BottomNav active="hub" onNavigate={onNavigate} />}
 
       {/* Modal limite atingido */}
       <AnimatePresence>

@@ -5,24 +5,24 @@
 // Esta tela é o hub operacional de ações rápidas do GLPY.
 // A tela usa LIGHT PREMIUM porque serve para registros rápidos.
 // Telas abertas por ela são telas operacionais Light Premium.
-// No MVP, ações e navegação são mockadas via console.log.
-// Futuramente será conectada ao App Shell e navegação real.
 
 import React from 'react';
 import { 
-  Scale, Droplets, Utensils, Syringe, Activity, Smile, Flame, Ruler, Camera, CheckSquare, Sparkles, Lightbulb, Compass, User, TrendingDown, ChevronRight
+  Scale, Droplets, Utensils, Syringe, Activity, Smile, Flame, Ruler, Camera, CheckSquare, Sparkles, Lightbulb, Compass, User, TrendingDown, ChevronRight,
+  Brain, Settings, Pill, Users, ShoppingBag, BookOpen, LayoutGrid
 } from 'lucide-react';
 
-import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { GLPYScreen, GLPYHeader, GLPYCard } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
-import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
-import { gap, padding } from '../../theme/spacing';
+import { fontFamily, fontSize } from '../../theme/typography';
+import { gap } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface QuickActionsScreenProps {
   onBack?: () => void;
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Grid Item Component (Light Premium Compact style) ──────────────────────────
@@ -32,16 +32,18 @@ interface GridItemProps {
   subtext: string;
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
   onClick: () => void;
+  badge?: string;
+  isComingSoon?: boolean;
 }
 
-function GridItem({ label, subtext, Icon, onClick }: GridItemProps) {
+function GridItem({ label, subtext, Icon, onClick, badge, isComingSoon }: GridItemProps) {
   const [hovered, setHovered] = React.useState(false);
   const [active, setActive] = React.useState(false);
 
   const cardStyle: React.CSSProperties = {
     background:   hovered ? lightColors.background.secondary : '#FFFFFF',
     borderRadius: radius.main,
-    border:       `1.5px solid ${hovered || active ? lightColors.brand.green : lightColors.border.soft}`,
+    border:       `1.5px solid ${hovered || active ? (isComingSoon ? lightColors.border.soft : lightColors.brand.green) : lightColors.border.soft}`,
     padding:      '12px 14px',
     display:      'flex',
     alignItems:   'center',
@@ -49,24 +51,25 @@ function GridItem({ label, subtext, Icon, onClick }: GridItemProps) {
     cursor:       'pointer',
     transition:   'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     boxShadow:    hovered || active 
-      ? '0 6px 20px rgba(106, 210, 143, 0.12)' 
+      ? '0 6px 20px rgba(106, 210, 143, 0.08)' 
       : '0 2px 8px rgba(0, 0, 0, 0.03)',
     transform:    active ? 'scale(0.97)' : hovered ? 'scale(1.02)' : 'scale(1)',
     minWidth:     0,
     boxSizing:    'border-box',
     width:        '100%',
+    opacity:      isComingSoon ? 0.82 : 1,
   };
 
   const iconWrapStyle: React.CSSProperties = {
     width:          34,
     height:         34,
     borderRadius:   10,
-    background:     'rgba(106, 210, 143, 0.08)',
+    background:     isComingSoon ? 'rgba(148, 163, 184, 0.08)' : 'rgba(106, 210, 143, 0.08)',
     display:        'flex',
     alignItems:     'center',
     justifyContent: 'center',
     flexShrink:     0,
-    border:         `1px solid rgba(106, 210, 143, 0.15)`,
+    border:         isComingSoon ? '1px solid rgba(148, 163, 184, 0.15)' : `1px solid rgba(106, 210, 143, 0.15)`,
   };
 
   const textContainerStyle: React.CSSProperties = {
@@ -82,7 +85,7 @@ function GridItem({ label, subtext, Icon, onClick }: GridItemProps) {
     fontFamily: fontFamily.primary,
     fontSize:   13,
     fontWeight: '700',
-    color:      lightColors.text.navy,
+    color:      isComingSoon ? '#64748B' : lightColors.text.navy,
     margin:     0,
     whiteSpace: 'nowrap',
     textOverflow: 'ellipsis',
@@ -109,7 +112,7 @@ function GridItem({ label, subtext, Icon, onClick }: GridItemProps) {
       onMouseUp={() => setActive(false)}
     >
       <div style={iconWrapStyle}>
-        <Icon size={16} color={lightColors.brand.greenDark} strokeWidth={2.25} />
+        <Icon size={16} color={isComingSoon ? '#64748B' : lightColors.brand.greenDark} strokeWidth={2.25} />
       </div>
       
       <div style={textContainerStyle}>
@@ -117,14 +120,56 @@ function GridItem({ label, subtext, Icon, onClick }: GridItemProps) {
         <p style={subtextStyle}>{subtext}</p>
       </div>
 
-      <ChevronRight size={12} color={lightColors.text.secondary} style={{ opacity: 0.5, flexShrink: 0 }} />
+      {badge ? (
+        <span style={{
+          fontSize: 9,
+          fontWeight: '800',
+          padding: '2px 6px',
+          borderRadius: 6,
+          background: isComingSoon ? 'rgba(148, 163, 184, 0.1)' : 'rgba(106, 210, 143, 0.12)',
+          color: isComingSoon ? '#64748B' : lightColors.brand.greenDark,
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          marginLeft: 6,
+          flexShrink: 0,
+        }}>
+          {badge}
+        </span>
+      ) : (
+        <ChevronRight size={12} color={lightColors.text.secondary} style={{ opacity: 0.5, flexShrink: 0 }} />
+      )}
     </div>
   );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) {
+export default function QuickActionsScreen({ onBack, onNavigate }: QuickActionsScreenProps) {
+  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    const timer = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(timer);
+  };
+
+  const isRealApp = sessionStorage.getItem('glpy_nav_mode') === 'real';
+
+  const handleNavigate = (previewPath: string, realAppAction?: string) => {
+    if (onNavigate && realAppAction) {
+      onNavigate(realAppAction);
+    } else {
+      window.location.href = previewPath;
+    }
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      window.location.href = isRealApp ? '/' : '/preview/home-premium-v2';
+    }
+  };
 
   // ── Shared Styles ──────────────────────────────────────────────────────────
 
@@ -132,9 +177,27 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
     display:       'flex',
     flexDirection: 'column',
     gap:           gap.medium,
-    paddingBottom: 88, // clear spacing above bottom nav
+    paddingBottom: 96, // clear spacing above bottom nav
     boxSizing:     'border-box',
     width:         '100%',
+  };
+
+  const sectionHeaderStyle: React.CSSProperties = {
+    fontFamily: fontFamily.primary,
+    fontSize:   11, 
+    fontWeight: '800', 
+    color:      lightColors.text.secondary, 
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    margin:     '18px 0 4px 0',
+  };
+
+  const gridStyle: React.CSSProperties = {
+    display:             'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap:                 gap.small,
+    width:               '100%',
+    boxSizing:           'border-box',
   };
 
   // ── Bottom Nav ──────────────────────────────────────────────────────────────
@@ -211,7 +274,14 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
 
   return (
     <GLPYScreen variant="light">
-      <GLPYHeader title="Ações rápidas" onBack={onBack} />
+      <GLPYHeader title="Painel de controle" onBack={handleBack} />
+
+      <style>{`
+        @keyframes glpyToastIn {
+          from { opacity: 0; transform: translate(-50%, 12px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
 
       <div style={containerStyle}>
         
@@ -223,14 +293,14 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
           margin:     '0 0 -4px 0',
           textAlign:  'left',
         }}>
-          Registre sua jornada em poucos segundos.
+          Gerencie e registre sua jornada de saúde em um só lugar.
         </p>
 
         {/* ── Card Recomendado ─────────────────────────────────────────────── */}
         <GLPYCard
           variant="light"
           hoverable
-          onClick={() => { window.location.href = '/preview/check-in'; }}
+          onClick={() => handleNavigate('/preview/check-in', 'checkin')}
           style={{
             borderLeft: `4px solid ${lightColors.brand.green}`,
             background: '#FFFFFF',
@@ -289,86 +359,135 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
           </div>
         </GLPYCard>
 
-        {/* ── Grid de Ações Rápidas ─────────────────────────────────────────── */}
+        {/* ── GRUPO 1: REGISTROS DIÁRIOS ────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small, width: '100%', boxSizing: 'border-box' }}>
-          <h3 style={{ 
-            fontFamily: fontFamily.primary,
-            fontSize:   11, 
-            fontWeight: '800', 
-            color:      lightColors.text.secondary, 
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            margin:     '12px 0 2px 0',
-          }}>
-            O que você quer registrar agora?
-          </h3>
+          <h3 style={sectionHeaderStyle}>Registros Diários</h3>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: gap.small,
-            width: '100%',
-            boxSizing: 'border-box',
-          }}>
+          <div style={gridStyle}>
             <GridItem
               label="Peso"
               subtext="Registrar peso"
               Icon={Scale}
-              onClick={() => { window.location.href = '/preview/current-weight'; }}
+              onClick={() => handleNavigate('/preview/current-weight')}
             />
             <GridItem
               label="Água"
               subtext="Hidratação"
               Icon={Droplets}
-              onClick={() => { window.location.href = '/preview/water'; }}
+              onClick={() => handleNavigate('/preview/water')}
             />
             <GridItem
               label="Refeição"
               subtext="Registrar refeição"
               Icon={Utensils}
-              onClick={() => { window.location.href = '/preview/food-log'; }}
+              onClick={() => handleNavigate('/preview/food-log', 'fotoPrato')}
             />
             <GridItem
               label="Aplicação"
               subtext="Registrar dose"
               Icon={Syringe}
-              onClick={() => { window.location.href = '/preview/injection'; }}
+              onClick={() => handleNavigate('/preview/injection', 'injecao')}
             />
             <GridItem
               label="Sintomas"
-              subtext="Sintomas"
+              subtext="Registrar sintomas"
               Icon={Activity}
-              onClick={() => { window.location.href = '/preview/side-effects'; }}
+              onClick={() => handleNavigate('/preview/side-effects')}
             />
             <GridItem
               label="Emoção"
               subtext="Como você está?"
               Icon={Smile}
-              onClick={() => { window.location.href = '/preview/emotion'; }}
+              onClick={() => handleNavigate('/preview/emotion')}
             />
             <GridItem
               label="Atividade"
               subtext="Registrar treino"
               Icon={Flame}
-              onClick={() => { window.location.href = '/preview/activity'; }}
+              onClick={() => handleNavigate('/preview/activity')}
             />
             <GridItem
               label="Medidas"
               subtext="Registrar medidas"
               Icon={Ruler}
-              onClick={() => { window.location.href = '/preview/body-measurements'; }}
+              onClick={() => handleNavigate('/preview/body-measurements')}
             />
             <GridItem
               label="Foto corporal"
               subtext="Evolução"
               Icon={Camera}
-              onClick={() => { window.location.href = '/preview/photo-timeline'; }}
+              onClick={() => handleNavigate('/preview/photo-timeline', 'fotosEvolucao')}
+            />
+          </div>
+        </div>
+
+        {/* ── GRUPO 2: SUPORTE & TRATAMENTO ─────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small, width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={sectionHeaderStyle}>Suporte & Tratamento</h3>
+
+          <div style={gridStyle}>
+            <GridItem
+              label="GLPY IA"
+              subtext="Chat inteligente"
+              Icon={Brain}
+              badge="Beta"
+              onClick={() => handleNavigate('/preview/chat-ia', 'chatIA')}
             />
             <GridItem
-              label="Check-in"
-              subtext="Resumo do dia"
-              Icon={CheckSquare}
-              onClick={() => { window.location.href = '/preview/check-in'; }}
+              label="Protocolos"
+              subtext="Guias de saúde"
+              Icon={BookOpen}
+              onClick={() => handleNavigate('/preview/protocols', 'protocolHub')}
+            />
+            <GridItem
+              label="Tratamento"
+              subtext="Configurações"
+              Icon={Settings}
+              onClick={() => handleNavigate('/preview/treatment-settings')}
+            />
+          </div>
+        </div>
+
+        {/* ── GRUPO 3: ESTILO DE VIDA & PROGRAMAS ─────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small, width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={sectionHeaderStyle}>Estilo de Vida & Programas</h3>
+
+          <div style={gridStyle}>
+            <GridItem
+              label="Receitas"
+              subtext="Pratos saudáveis"
+              Icon={Utensils}
+              onClick={() => handleNavigate('/preview/recipes', 'recipes')}
+            />
+            <GridItem
+              label="Suplementação"
+              subtext="Vitaminas & macros"
+              Icon={Pill}
+              onClick={() => handleNavigate('/preview/supplements')}
+            />
+          </div>
+        </div>
+
+        {/* ── GRUPO 4: COMUNIDADE & LOJA ────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small, width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={sectionHeaderStyle}>Comunidade & Loja</h3>
+
+          <div style={gridStyle}>
+            <GridItem
+              label="Células"
+              subtext="Comunidade"
+              Icon={Users}
+              badge="Breve"
+              isComingSoon
+              onClick={() => { showToast("Comunidade estará disponível em breve! 🚀"); }}
+            />
+            <GridItem
+              label="Loja GLPY"
+              subtext="Suplementos"
+              Icon={ShoppingBag}
+              badge="Breve"
+              isComingSoon
+              onClick={() => { showToast("Loja GLPY estará disponível em breve! 🛍️"); }}
             />
           </div>
         </div>
@@ -398,29 +517,56 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
             lineHeight: 1.45,
             fontWeight: '500'
           }}>
-            Pequenos registros ajudam a GLPY IA a entender melhor sua jornada e encontrar padrões ao longo do tempo.
+            Use este painel para acessar de forma rápida todas as ferramentas do GLPY. Acompanhe seu tratamento e melhore seus resultados!
           </p>
         </GLPYCard>
 
       </div>
 
+      {/* ── Toast Notification ──────────────────────────────────────────────── */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 92, // float nicely above bottom tab bar
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0F172A',
+          color: '#FFFFFF',
+          padding: '12px 20px',
+          borderRadius: radius.main,
+          fontSize: 13,
+          fontWeight: '600',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          animation: 'glpyToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          whiteSpace: 'nowrap',
+        }}>
+          <Sparkles size={14} color="#6AD28F" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── Bottom Navigation ───────────────────────────────────────────────── */}
       <div style={bottomNavStyle}>
-        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/home-premium-v2'; }}>
+        <button style={navItemStyle(false)} onClick={handleBack}>
           <Compass size={20} strokeWidth={2.25} />
           <span style={{ fontSize: 9, fontWeight: '700' }}>Home</span>
         </button>
 
-        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/protocols'; }}>
-          <Activity size={20} strokeWidth={2.25} />
-          <span style={{ fontSize: 9, fontWeight: '700' }}>Protocolos</span>
+        <button style={navItemStyle(false)} onClick={() => handleNavigate('/preview/hub', 'hub')}>
+          <LayoutGrid size={20} strokeWidth={2.25} />
+          <span style={{ fontSize: 9, fontWeight: '700' }}>HUB</span>
         </button>
 
         {/* Central Plus Button */}
         <div style={centralBtnContainer}>
           <button
             style={centralBtnStyle}
-            onClick={() => { window.location.href = '/preview/quick-actions'; }}
+            onClick={() => handleNavigate('/preview/quick-actions', 'quickActions')}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.06)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
@@ -428,12 +574,12 @@ export default function QuickActionsScreen({ onBack }: QuickActionsScreenProps) 
           </button>
         </div>
 
-        <button style={navItemStyle(true)} onClick={() => { window.location.href = '/preview/quick-actions'; }}>
+        <button style={navItemStyle(true)} onClick={() => handleNavigate('/preview/quick-actions', 'quickActions')}>
           <TrendingDown size={20} strokeWidth={2.25} />
           <span style={{ fontSize: 9, fontWeight: '750' }}>Ações</span>
         </button>
 
-        <button style={navItemStyle(false)} onClick={() => { window.location.href = '/preview/home-premium-v2'; }}>
+        <button style={navItemStyle(false)} onClick={() => handleNavigate('/preview/home-premium-v2', 'perfil')}>
           <div style={avatarStyle}>C</div>
           <span style={{ fontSize: 9, fontWeight: '700', marginTop: 2 }}>Perfil</span>
         </button>

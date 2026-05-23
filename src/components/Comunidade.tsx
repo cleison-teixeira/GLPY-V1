@@ -1,22 +1,23 @@
-import { ChevronLeft, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { GLPYHeader } from "./ui";
 
 export default function Comunidade({ onNavigate }: { onNavigate: (screen: string) => void }) {
   return (
-    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 flex flex-col">
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 flex flex-col max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
 
-      {/* Header */}
-      <div className="bg-white px-5 pt-12 pb-5 border-b border-border flex items-center gap-3">
-        <button
-          onClick={() => onNavigate('dashboard')}
-          className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0"
-        >
-          <ChevronLeft className="w-4 h-4 text-text-muted" />
-        </button>
-        <div>
-          <h1 className="font-black text-xl text-[#0A1628]">Comunidade GLPY</h1>
-          <p className="text-xs text-text-muted">Conecte-se com quem vive o mesmo tratamento</p>
-        </div>
+      {/* Header Global */}
+      <div className="bg-white px-5 pt-6 border-b border-border">
+        <GLPYHeader
+          title="Comunidade"
+          subtitle="Conecte-se com quem vive o mesmo tratamento"
+          showBranding={true}
+          onBack={() => {
+            const returnTo = sessionStorage.getItem('glpy_return_to');
+            sessionStorage.removeItem('glpy_return_to');
+            onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard');
+          }}
+        />
       </div>
 
       {/* Conteúdo central */}

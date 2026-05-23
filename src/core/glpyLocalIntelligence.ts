@@ -727,7 +727,14 @@ export function buildGLPYContextForAI(): string {
       symStr.push("- Sintomas: Nenhum sintoma severo reportado.");
     }
     if (ctx.emotion.today?.emotion) {
-      symStr.push(`- Humor/Estado: ${ctx.emotion.today.emotion}`);
+      const emotionParts: string[] = [`- Humor/Estado: ${ctx.emotion.today.emotion}`];
+      if ((ctx.emotion.today as any).emotionalEnergy) {
+        emotionParts.push(`Energia: ${(ctx.emotion.today as any).emotionalEnergy}`);
+      }
+      if ((ctx.emotion.today as any).notes) {
+        emotionParts.push(`Observação: ${(ctx.emotion.today as any).notes}`);
+      }
+      symStr.push(emotionParts.join(" | "));
     }
 
     sections.push(symStr.join("\n"));

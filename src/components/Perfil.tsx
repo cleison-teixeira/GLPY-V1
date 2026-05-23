@@ -8,6 +8,7 @@ import {
   RotateCcw, Calendar, Moon, Sun, Globe, ChevronDown
 } from "lucide-react";
 import BottomNav from "./BottomNav";
+import glpyLogoLight from '@/assets/logos/logo-light.png';
 
 export default function Perfil({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -332,16 +333,13 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+    <div className="min-h-screen max-w-[430px] mx-auto bg-[#F4F6F8] text-text-main pb-24 relative shadow-sm">
 
       {/* Header com avatar */}
-      <div className="bg-white px-5 pt-12 pb-6 border-b border-border">
-        <button
-          onClick={() => onNavigate('dashboard')}
-          className="mb-3 flex items-center justify-center w-9 h-9 -ml-1 rounded-full bg-transparent"
-        >
-          <ChevronLeft size={24} color="#0A1628" />
-        </button>
+      <div className="bg-white px-5 pt-6 pb-6 border-b border-border">
+        <div className="mb-6">
+          <img src={glpyLogoLight} alt="GLPY" className="w-[84px] h-auto object-contain" />
+        </div>
         <div className="flex items-center gap-4">
           <div className="relative flex-shrink-0">
             <img

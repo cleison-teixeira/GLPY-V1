@@ -5,7 +5,40 @@ import AdminPanel from './components/AdminPanel.tsx';
 import './index.css';
 
 const root = createRoot(document.getElementById('root')!);
-const path  = window.location.pathname;
+const path = window.location.pathname;
+const getHomePath = () => {
+  return sessionStorage.getItem('glpy_nav_mode') === 'real' ? '/' : '/preview/home-premium-v2';
+};
+
+const PREVIEW_ROUTE_MAP: Record<string, string> = {
+  dashboard:               '/preview/home-premium-v2',
+  hub:                     '/preview/hub',
+  progress:                '/preview/results',
+  perfil:                  '/preview/home-premium-v2',
+  protocolHub:             '/preview/protocols',
+  checkin:                 '/preview/check-in',
+  chatIA:                  '/preview/chat-ia',
+  recipes:                 '/preview/recipes',
+  receitas:                '/preview/recipes',
+  comunidade:              '/preview/comunidade',
+  sobrevivendoCanetas:     '/preview/protocolo1',
+  efeitosColaterais:       '/preview/protocolo2',
+  antiQuedaCabelo:         '/preview/protocolo3',
+  antiRebote:              '/preview/protocolo4',
+  psicologiaEmagrecimento: '/preview/protocolo5',
+  alimentacaoBaixoApetite: '/preview/protocolo6',
+  naoPerdaMusculos:        '/preview/protocolo7',
+  energiaBaixa:            '/preview/protocolo8',
+  ajusteMetabolico:        '/preview/protocolo9',
+  transicaoParar:          '/preview/protocolo10',
+  fotoPrato:               '/preview/food-photo',
+  agua:                    '/preview/water',
+  refeicao:                '/preview/food-log',
+  injecao:                 '/preview/injection',
+  emocao:                  '/preview/emotion',
+  medida:                  '/preview/body-measurements',
+  foto:                    '/preview/photo-timeline',
+};
 
 if (path === '/admin') {
   // Rota admin completamente isolada — App nunca é montado
@@ -41,8 +74,7 @@ if (path === '/admin') {
       <StrictMode>
         <ProtocolHub
           onNavigate={(screen) => {
-            const dest = PREVIEW_ROTA_MAP[screen];
-            window.location.href = dest ?? '/preview/home-premium-v2';
+            window.location.href = PREVIEW_ROTA_MAP[screen] ?? PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -54,13 +86,7 @@ if (path === '/admin') {
       <StrictMode>
         <AntiRebote
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') {
-              window.location.href = '/preview/protocols';
-            } else if (screen === 'checkin') {
-              window.location.href = '/preview/check-in';
-            } else {
-              window.location.href = '/preview';
-            }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -71,8 +97,54 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <Recipes
+          onNavigate={(screen) => {
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/comunidade') {
+  import('./components/Comunidade.tsx').then(({ default: Comunidade }) => {
+    root.render(
+      <StrictMode>
+        <Comunidade
+          onNavigate={(screen) => {
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/hub') {
+  import('./screens/premium/HubScreen.tsx').then(({ default: HubScreen }) => {
+    root.render(
+      <StrictMode>
+        <HubScreen
+          onNavigate={(screen) => {
+            const routes: Record<string, string> = {
+              dashboard:   '/preview/home-premium-v2',
+              protocolHub: '/preview/protocols',
+              recipes:     '/preview/recipes',
+              comunidade:  '/preview/comunidade',
+              chatIA:      '/preview/chat-ia',
+              loja:        '/preview/loja',
+              progress:    '/preview/results',
+              perfil:      '/preview/home-premium-v2',
+            };
+            window.location.href = routes[screen] ?? '/preview/home-premium-v2';
+          }}
+        />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/loja') {
+  import('./components/Loja.tsx').then(({ default: Loja }) => {
+    root.render(
+      <StrictMode>
+        <Loja
           onNavigate={() => {
-            window.location.href = '/preview';
+            window.location.href = '/preview/hub';
           }}
         />
       </StrictMode>,
@@ -130,7 +202,7 @@ if (path === '/admin') {
   import('./screens/operational/BodyProfileScreen.tsx').then(({ default: BodyProfileScreen }) => {
     root.render(
       <StrictMode>
-        <BodyProfileScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <BodyProfileScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -139,12 +211,12 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <WaterScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(amount) => {
             const today = new Date().toISOString().slice(0, 10);
             localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today, updatedAt: new Date().toISOString() }));
             window.dispatchEvent(new Event('local-storage-change'));
-            window.location.href = '/preview/home-premium-v2';
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -155,7 +227,7 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <FoodLogScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
             try {
               const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
@@ -165,7 +237,7 @@ if (path === '/admin') {
               localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
             }
             window.dispatchEvent(new Event('local-storage-change'));
-            window.location.href = '/preview/home-premium-v2';
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -176,10 +248,10 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <InjectionScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
             localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ ...data, savedAt: Date.now() }));
-            window.location.href = '/preview/home-premium-v2';
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -190,7 +262,7 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <TreatmentSettingsScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
             localStorage.setItem('glpy_medicamento', data.medication);
             localStorage.setItem('glpy_frequencia',  data.frequency);
@@ -208,7 +280,7 @@ if (path === '/admin') {
               localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
             } catch {}
             window.dispatchEvent(new Event('local-storage-change'));
-            window.location.href = '/preview/home-premium-v2';
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -218,7 +290,7 @@ if (path === '/admin') {
   import('./screens/operational/SideEffectsScreen.tsx').then(({ default: SideEffectsScreen }) => {
     root.render(
       <StrictMode>
-        <SideEffectsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <SideEffectsScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -227,10 +299,19 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <EmotionScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
+            const today = new Date().toISOString().slice(0, 10);
             localStorage.setItem('glpy_emocao_hoje', JSON.stringify({ ...data, savedAt: Date.now() }));
-            window.location.href = '/preview/home-premium-v2';
+            localStorage.setItem('glpy_today_emotion', JSON.stringify({
+              emotion: data.mood,
+              emotionalEnergy: data.energy,
+              notes: data.note ?? '',
+              date: today,
+              savedAt: new Date().toISOString(),
+            }));
+            window.dispatchEvent(new Event('local-storage-change'));
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -241,7 +322,7 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <BodyMeasurementsScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
             const toNum = (s: string) => {
               const n = parseFloat(s.replace(',', '.'));
@@ -263,7 +344,7 @@ if (path === '/admin') {
               panturrilha: toNum(data.calf),
               savedAt:     Date.now(),
             }));
-            window.location.href = '/preview/home-premium-v2';
+            window.location.href = getHomePath();
           }}
         />
       </StrictMode>,
@@ -273,7 +354,7 @@ if (path === '/admin') {
   import('./screens/operational/PhotoTimelineScreen.tsx').then(({ default: PhotoTimelineScreen }) => {
     root.render(
       <StrictMode>
-        <PhotoTimelineScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <PhotoTimelineScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -290,8 +371,8 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <ActivityScreen
-          onBack={() => { window.location.href = '/preview/home-premium-v2'; }}
-          onSave={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onBack={() => { window.location.href = getHomePath(); }}
+          onSave={() => { window.location.href = getHomePath(); }}
         />
       </StrictMode>,
     );
@@ -300,7 +381,7 @@ if (path === '/admin') {
   import('./screens/operational/CheckInScreen.tsx').then(({ default: CheckInScreen }) => {
     root.render(
       <StrictMode>
-        <CheckInScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <CheckInScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -324,7 +405,7 @@ if (path === '/admin') {
   import('./screens/operational/ResultsScreen.tsx').then(({ default: ResultsScreen }) => {
     root.render(
       <StrictMode>
-        <ResultsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <ResultsScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -332,7 +413,7 @@ if (path === '/admin') {
   import('./screens/premium/QuickActionsScreen.tsx').then(({ default: QuickActionsScreen }) => {
     root.render(
       <StrictMode>
-        <QuickActionsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <QuickActionsScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -340,7 +421,7 @@ if (path === '/admin') {
   import('./screens/operational/SupplementsScreen.tsx').then(({ default: SupplementsScreen }) => {
     root.render(
       <StrictMode>
-        <SupplementsScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <SupplementsScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -348,7 +429,7 @@ if (path === '/admin') {
   import('./screens/operational/FoodPhotoScreen.tsx').then(({ default: FoodPhotoScreen }) => {
     root.render(
       <StrictMode>
-        <FoodPhotoScreen onBack={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <FoodPhotoScreen onBack={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -364,7 +445,17 @@ if (path === '/admin') {
   import('./components/ChatIA.tsx').then(({ default: ChatIA }) => {
     root.render(
       <StrictMode>
-        <ChatIA onNavigate={() => { window.location.href = '/preview/home-premium-v2'; }} />
+        <ChatIA onNavigate={(screen) => {
+          window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
+        }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/planos') {
+  import('./components/Planos.tsx').then(({ default: Planos }) => {
+    root.render(
+      <StrictMode>
+        <Planos onNavigate={() => { window.location.href = getHomePath(); }} />
       </StrictMode>,
     );
   });
@@ -407,9 +498,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo1
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -421,9 +510,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo2
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -435,9 +522,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo3
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -449,9 +534,7 @@ if (path === '/admin') {
       <StrictMode>
         <AntiRebote
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -463,9 +546,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo5
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -477,9 +558,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo6
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -491,9 +570,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo7
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -505,9 +582,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo8
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -519,9 +594,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo9
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -533,9 +606,7 @@ if (path === '/admin') {
       <StrictMode>
         <Protocolo10
           onNavigate={(screen) => {
-            if (screen === 'protocolHub') { window.location.href = '/preview/protocols'; }
-            else if (screen === 'checkin') { window.location.href = '/preview/check-in'; }
-            else { window.location.href = '/preview'; }
+            window.location.href = PREVIEW_ROUTE_MAP[screen] ?? '/preview/home-premium-v2';
           }}
         />
       </StrictMode>,
@@ -556,7 +627,7 @@ if (path === '/admin') {
         <InstallAppModalScreen
           onInstall={() => { alert('Prompt de instalação — implementar em produção'); }}
           onGuide={() => { window.location.href = '/preview/install-app-modal'; }}
-          onDismiss={() => { window.location.href = '/preview/home-premium-v2'; }}
+          onDismiss={() => { window.location.href = getHomePath(); }}
         />
       </StrictMode>,
     );

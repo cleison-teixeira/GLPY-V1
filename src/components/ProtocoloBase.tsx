@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { GLPYHeader } from "./ui";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { playSound } from "../utils/sounds";
 import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
@@ -330,7 +331,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
 
       {/* XP flutuante */}
       <AnimatePresence>
@@ -346,22 +347,25 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div id="protocol-share-card" className="bg-white px-5 pt-12 pb-4 border-b border-border">
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => onNavigate("protocolHub")} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
-            <ChevronLeft className="w-4 h-4 text-text-muted" />
-          </button>
-          <div className="flex-grow">
-            <p className="text-xs text-text-muted font-medium">Protocolo {n}</p>
-            <h1 className="font-bold text-base leading-tight">{emoji} {nome}</h1>
-          </div>
-          <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
-            Dia {diaAtual + 1}/7
-          </div>
-          <button onClick={handleShare} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
-            <Share2 className="w-4 h-4 text-text-muted" />
-          </button>
+      {/* Header Global */}
+      <div id="protocol-share-card" className="bg-white px-5 pt-6 pb-4 border-b border-border">
+        <div className="mb-3">
+          <GLPYHeader
+            title={`${emoji} ${nome}`}
+            subtitle={`Protocolo ${n}`}
+            showBranding={true}
+            onBack={() => onNavigate("protocolHub")}
+            rightAction={
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
+                  Dia {diaAtual + 1}/7
+                </div>
+                <button onClick={handleShare} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
+                  <Share2 className="w-4 h-4 text-text-muted" />
+                </button>
+              </div>
+            }
+          />
         </div>
 
         <div className="flex gap-1.5">
@@ -610,7 +614,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
         )}
       </AnimatePresence>
 
-      <BottomNav active="protocolHub" onNavigate={onNavigate} />
+      <BottomNav active="hub" onNavigate={onNavigate} />
     </div>
   );
 }

@@ -2,9 +2,11 @@
 // System: Operational — LIGHT PREMIUM
 
 import React from 'react';
-import { Ruler, CheckSquare, Flame, Scale, TrendingDown, Image, Sparkles, Check, Camera } from 'lucide-react';
+import { Ruler, CheckSquare, Flame, Scale, TrendingDown, Image, Sparkles, Check, Camera, ChevronLeft, LineChart } from 'lucide-react';
+import glpyLogoLight from '@/assets/logos/logo-light.png';
 
-import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { GLPYScreen, GLPYHeader, GLPYCard } from '../../components/ui';
+import BottomNav from '../../components/BottomNav';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -14,6 +16,7 @@ import { radius } from '../../theme/radius';
 
 interface ResultsScreenProps {
   onBack?: () => void;
+  onNavigate: (screen: string) => void;
 }
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
@@ -84,7 +87,7 @@ function fmt(v: number | null, decimals = 2): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ResultsScreen({ onBack }: ResultsScreenProps) {
+export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps) {
   const onb      = readOnboarding();
   const medidas  = readMedidas();
   const hist     = readCheckinHistorico();
@@ -275,8 +278,31 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
   }
 
   return (
-    <GLPYScreen variant="light">
-      <GLPYHeader title="Resultados" onBack={onBack} />
+    <>
+      <GLPYScreen variant="light">
+        <header className="sticky top-0 bg-white -mx-6 -mt-6 px-6 pt-6 pb-8 border-b border-[#E2EBE7] z-10 mb-5">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <button onClick={onBack} className="w-9 h-9 bg-[#F4F6F8] border border-[#E2EBE7] rounded-full flex items-center justify-center flex-shrink-0">
+                <ChevronLeft className="w-4 h-4 text-[#3D5A70]" />
+              </button>
+              <img src={glpyLogoLight} alt="GLPY" className="w-[84px] h-auto object-contain" />
+            </div>
+
+            <div className="relative flex-shrink-0">
+              <div className="w-11 h-11 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                <LineChart className="w-5 h-5 text-blue-500 stroke-[2.2]" />
+              </div>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-black text-[#0A1628] tracking-tight">
+            Resultados
+          </h1>
+          <p className="text-sm text-[#3D5A70] mt-1">
+            Acompanhe sua evolução
+          </p>
+        </header>
 
       <div style={containerStyle}>
 
@@ -472,16 +498,10 @@ export default function ResultsScreen({ onBack }: ResultsScreenProps) {
           </p>
         </GLPYCard>
 
-        <GLPYButton
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onBack}
-        >
-          Voltar para o início
-        </GLPYButton>
-
       </div>
     </GLPYScreen>
-  );
+
+    <BottomNav active="progress" onNavigate={onNavigate} />
+  </>
+);
 }

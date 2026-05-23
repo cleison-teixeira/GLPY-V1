@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Lock, Play } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { GLPYHeader } from "./ui";
 import { saveProtocolProgress } from "../services/firestore";
 
 type Protocolo = {
@@ -131,29 +132,20 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
 
-      {/* Header */}
-      <div className="bg-white px-5 pt-12 pb-5 border-b border-border">
-        <button
-          onClick={() => onNavigate('dashboard')}
-          className="mb-3 flex items-center justify-center w-9 h-9 -ml-1 rounded-full bg-transparent"
-        >
-          <ChevronLeft size={24} color="#0A1628" />
-        </button>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0" style={{ background: "#00C27A" }}>
-            <svg width="18" height="16" viewBox="0 0 32 28" fill="none">
-              <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="22" cy="9" r="2.5" fill="#fff"/>
-            </svg>
-          </div>
-          <span className="font-extrabold text-lg text-[#0A1628]">GLPY</span>
-        </div>
-        <h1 className="font-black text-2xl text-[#0A1628] leading-tight">Protocolos</h1>
-        <p className="text-sm text-text-muted mt-1">Ciência aplicada ao tratamento GLP-1</p>
+      {/* Header Global */}
+      <div className="bg-white px-5 pt-6 border-b border-border">
+        <GLPYHeader
+          title="Protocolos"
+          subtitle="Ciência aplicada ao tratamento GLP-1"
+          showBranding={true}
+          onBack={() => {
+            const returnTo = sessionStorage.getItem('glpy_return_to');
+            sessionStorage.removeItem('glpy_return_to');
+            onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard');
+          }}
+        />
       </div>
 
       {/* Lista */}
@@ -237,7 +229,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
         })}
       </div>
 
-      <BottomNav active="protocolHub" onNavigate={onNavigate} />
+      <BottomNav active="hub" onNavigate={onNavigate} />
 
       {/* Modal de confirmação de troca */}
       <AnimatePresence>

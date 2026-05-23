@@ -290,10 +290,49 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
           return { primeiroAcesso: false };
         }
       }
-      if (planoObj.tipo) localStorage.setItem("glpy_plano", String(planoObj.tipo));
+      if (planoObj.tipo) localStorage.setItem("glpy_plano", String(planoObj.tipo).trim().toLowerCase());
     } else {
-      localStorage.setItem("glpy_plano", String(data.plano));
+      localStorage.setItem("glpy_plano", String(data.plano).trim().toLowerCase());
     }
+  }
+
+  // Fallback: se users/{uid} não tem plano, buscar em admin_grants pelo email logado.
+  // Cobre o caso de UID mismatch ou falha silenciosa na escrita do users/{uid}.
+  if (!localStorage.getItem("glpy_plano") && auth.currentUser?.email) {
+    const email = auth.currentUser.email.toLowerCase();
+    try {
+      const grantsSnap = await getDocs(
+        query(
+          collection(db, "admin_grants"),
+          where("email", "==", email),
+          where("status", "==", "active"),
+          orderBy("liberadoEm", "desc"),
+          limit(1),
+        )
+      );
+      if (!grantsSnap.empty) {
+        const grant = grantsSnap.docs[0].data();
+        const expTs = grant.dataExpiracao as { toDate?: () => Date } | null;
+        const isExpired = expTs?.toDate ? expTs.toDate() < new Date() : false;
+        if (!isExpired) {
+          const planoNorm = String(grant.plano).trim().toLowerCase();
+          localStorage.setItem("glpy_plano", planoNorm);
+          // Sincroniza de volta para users/{uid} — evita re-consultar admin_grants nos próximos logins
+          if (id) {
+            setDoc(doc(db, "users", id), {
+              plano: {
+                tipo: planoNorm,
+                status: "active",
+                origem: "manual",
+                dataExpiracao: grant.dataExpiracao ?? null,
+                liberadoPor: "admin",
+              },
+              updatedAt: serverTimestamp(),
+            }, { merge: true }).catch(() => {});
+          }
+        }
+      }
+    } catch { /* fallback silencioso — não bloqueia o fluxo */ }
   }
 
   return { primeiroAcesso: data.primeiroAcesso === true };

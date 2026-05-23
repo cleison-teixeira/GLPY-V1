@@ -1,8 +1,8 @@
-// v3 - Firestore sync + once-per-day guard
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { GLPYHeader } from "./ui";
 import { playSound } from "../utils/sounds";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
@@ -465,7 +465,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24">
+    <div className="min-h-screen bg-[#F4F6F8] text-text-main pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
 
       {/* XP flutuante */}
       <AnimatePresence>
@@ -481,19 +481,20 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div className="bg-white px-5 pt-12 pb-4 border-b border-border">
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => onNavigate('protocolHub')} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center">
-            <ChevronLeft className="w-4 h-4 text-text-muted" />
-          </button>
-          <div className="flex-grow">
-            <p className="text-xs text-text-muted font-medium">Protocolo 4</p>
-            <h1 className="font-bold text-base leading-tight">⚖️ Anti-Rebote</h1>
-          </div>
-          <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
-            Dia {diaAtual + 1}/7
-          </div>
+      {/* Header Global */}
+      <div className="bg-white px-5 pt-6 pb-4 border-b border-border">
+        <div className="mb-3">
+          <GLPYHeader
+            title="⚖️ Anti-Rebote"
+            subtitle="Protocolo 4"
+            showBranding={true}
+            onBack={() => onNavigate('protocolHub')}
+            rightAction={
+              <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
+                Dia {diaAtual + 1}/7
+              </div>
+            }
+          />
         </div>
 
         {/* Barra 7 dias */}
@@ -773,7 +774,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
         )}
       </AnimatePresence>
 
-      <BottomNav active="protocolHub" onNavigate={onNavigate} />
+      <BottomNav active="hub" onNavigate={onNavigate} />
     </div>
   );
 }

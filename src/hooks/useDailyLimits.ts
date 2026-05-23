@@ -1,10 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface DailyLimitsData {
-  // Foto do prato — count lido localmente; limite derivado do plano
   fotosUsadas: number;
   fotosLimite: number;
-  // IA — sem fonte local (Firestore-only); count sempre 0 como fallback
   iaUsadas: number;
   iaLimite: number;
 }
@@ -14,6 +12,21 @@ const LIMITES_IA:   Record<string, number> = { starter: 10, plus: 20, pro: 30, t
 
 function getTodayKey(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function getCurrentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function readIAUsage(iaLimite: number): number {
+  try {
+    const raw = localStorage.getItem('glpy_ai_usage');
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (parsed.month !== getCurrentMonth()) return 0;
+    const used = typeof parsed.used === 'number' ? parsed.used : 0;
+    return Math.min(used, iaLimite);
+  } catch { return 0; }
 }
 
 function readDailyLimits(): DailyLimitsData {
@@ -28,19 +41,28 @@ function readDailyLimits(): DailyLimitsData {
       const n = parseInt(localStorage.getItem('glpy_fotos_hoje') ?? '0', 10);
       if (!isNaN(n) && n >= 0) fotosUsadas = n;
     }
-    // Se a data gravada for de outro dia o contador ainda não foi resetado pelo
-    // FotoPrato — tratamos como 0 (nenhuma foto feita hoje ainda).
   } catch {}
 
   return {
     fotosUsadas,
     fotosLimite,
-    iaUsadas: 0, // armazenado apenas no Firestore; fallback local = 0
+    iaUsadas: readIAUsage(iaLimite),
     iaLimite,
   };
 }
 
 export function useDailyLimits(): DailyLimitsData {
-  const [data] = useState<DailyLimitsData>(readDailyLimits);
+  const [data, setData] = useState<DailyLimitsData>(readDailyLimits);
+
+  useEffect(() => {
+    const handleUpdate = () => setData(readDailyLimits());
+    window.addEventListener('local-storage-change', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('local-storage-change', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   return data;
 }

@@ -97,7 +97,7 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
   const missoesPct = checkedMissions.length / MISSIONS.length;
 
   return (
-    <div className="min-h-screen bg-background text-text-main pb-24">
+    <div className="min-h-screen bg-background text-text-main pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)] md:overflow-hidden">
 
       {/* XP flutuante */}
       <AnimatePresence>
@@ -120,6 +120,17 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
             <ChevronLeft className="w-5 h-5 text-text-muted" />
           </button>
           <div className="flex-grow">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="w-4 h-4 flex items-center justify-center rounded flex-shrink-0" style={{ background: "#00C27A" }}>
+                <svg width="10" height="9" viewBox="0 0 32 28" fill="none">
+                  <path d="M6 22 C6 13 12 6 22 9" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+                  <path d="M22 9 C28 10 30 16 24 21 C18 26 8 25 6 22" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+                  <path d="M17 5 L22 1" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+                  <circle cx="22" cy="9" r="2.5" fill="#fff"/>
+                </svg>
+              </div>
+              <span className="text-[10px] font-extrabold text-[#0A1628] tracking-wide">GLPY</span>
+            </div>
             <h1 className="font-bold text-base">{protocoloNome} · Dia {diaAtual} de {totalDias}</h1>
             <div className="flex gap-1.5 mt-1.5">
               {Array.from({ length: totalDias }, (_, i) => i + 1).map(dia => (
@@ -324,7 +335,7 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
         </AnimatePresence>
       </div>
 
-      <BottomNav active="protocolHub" onNavigate={onNavigate} />
+      <BottomNav active="hub" onNavigate={onNavigate} />
     </div>
   );
 }

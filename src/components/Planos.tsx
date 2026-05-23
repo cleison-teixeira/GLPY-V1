@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { hasActiveAccess } from '../core/accessControl';
 
 interface PlanosProps {
   onNavigate: (tela: string) => void;
@@ -141,22 +142,24 @@ export default function Planos({ onNavigate, planoAtual = '' }: PlanosProps) {
         top: 0,
         zIndex: 10,
       }}>
-        <button
-          onClick={() => onNavigate('dashboard')}
-          style={{
-            background: '#F4F6F8',
-            border: '1px solid #E2EBE7',
-            borderRadius: 10,
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: 16,
-            color: '#0A1628',
-          }}
-        >←</button>
+        {hasActiveAccess() && (
+          <button
+            onClick={() => onNavigate('dashboard')}
+            style={{
+              background: '#F4F6F8',
+              border: '1px solid #E2EBE7',
+              borderRadius: 10,
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: 16,
+              color: '#0A1628',
+            }}
+          >←</button>
+        )}
         <div>
           <div style={{ fontWeight: 800, fontSize: 17, color: '#0A1628', letterSpacing: '-0.3px' }}>
             Escolha seu plano

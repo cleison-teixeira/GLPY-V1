@@ -16,7 +16,10 @@ import {
   Camera,
   Compass,
   LineChart,
+  LayoutGrid,
   User,
+  Users,
+  ChefHat,
   Shield,
   Sparkles,
   Plus,
@@ -235,13 +238,26 @@ function NutritionGoalCard({
   );
 }
 
-export default function HomePremiumV2() {
+export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: string) => void } = {}) {
   // Mobile Frame States
-  const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">("inicio");
+  const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">(() => {
+    const restore = sessionStorage.getItem('glpy_restore_tab');
+    if (restore === 'perfil' || restore === 'protocolos' || restore === 'progresso') {
+      sessionStorage.removeItem('glpy_restore_tab');
+      return restore;
+    }
+    return "inicio";
+  });
   
   // Tick de renderização para garantir reatividade total a qualquer mudança de storage
   const [renderTick, setRenderTick] = useState(0);
   useEffect(() => {
+    if (window.location.pathname === '/') {
+      sessionStorage.setItem('glpy_nav_mode', 'real');
+    } else if (window.location.pathname.startsWith('/preview')) {
+      sessionStorage.setItem('glpy_nav_mode', 'preview');
+    }
+
     const handleUpdate = () => {
       setRenderTick(t => t + 1);
     };
@@ -521,6 +537,7 @@ export default function HomePremiumV2() {
   }, []);
 
   // Popups & modals
+  const [showQuickModal, setShowQuickModal] = useState<boolean>(false);
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
   const [weightInput, setWeightInput] = useState<string>(() => String(currentWeightData.weight));
   const [showGoalModal,  setShowGoalModal]  = useState<boolean>(false);
@@ -627,6 +644,31 @@ export default function HomePremiumV2() {
     ajusteMetabolico: '/preview/protocolo9',
     'Transição Parar': '/preview/protocolo10',
     transicaoParar: '/preview/protocolo10',
+  };
+
+  // Mapa de nome do protocolo ativo → chave de onNavigate no App.tsx (telas reais aprovadas)
+  const PROTOCOL_SCREEN_MAP: Record<string, string> = {
+    'Sobrevivendo às Canetas': 'sobrevivendoCanetas',
+    sobrevivendoCanetas:       'sobrevivendoCanetas',
+    'Efeitos Colaterais':      'efeitosColaterais',
+    efeitosColaterais:         'efeitosColaterais',
+    'Anti-Queda Capilar':      'antiQuedaCabelo',
+    antiQuedaCabelo:           'antiQuedaCabelo',
+    'Anti-Rebote':             'antiRebote',
+    antiRebote:                'antiRebote',
+    'anti-rebote':             'antiRebote',
+    'Psicologia Emagrecimento':'psicologiaEmagrecimento',
+    psicologiaEmagrecimento:   'psicologiaEmagrecimento',
+    'Alimentação Baixo Apetite':'alimentacaoBaixoApetite',
+    alimentacaoBaixoApetite:   'alimentacaoBaixoApetite',
+    'Não Perca Músculos':      'naoPerdaMusculos',
+    naoPerdaMusculos:          'naoPerdaMusculos',
+    'Energia Baixa':           'energiaBaixa',
+    energiaBaixa:              'energiaBaixa',
+    'Ajuste Metabólico':       'ajusteMetabolico',
+    ajusteMetabolico:          'ajusteMetabolico',
+    'Transição Parar':         'transicaoParar',
+    transicaoParar:            'transicaoParar',
   };
 
   // Live Toast dispatcher
@@ -745,7 +787,7 @@ export default function HomePremiumV2() {
   };
 
   const handleToggleCheckin = () => {
-    goTo('/preview/check-in');
+    onNavigate ? onNavigate('checkin') : goTo('/preview/check-in');
   };
 
   const handleSuplementTake = () => {
@@ -785,6 +827,15 @@ export default function HomePremiumV2() {
       foto:     '/preview/photo-timeline',
       checkin:  '/preview/check-in',
     };
+    const NAV_KEYS: Record<string, string> = {
+      agua:      'agua',
+      checkin:   'checkin',
+      refeicao:  'refeicao',
+      emocao:    'emocao',
+      medida:    'medida',
+      aplicacao: 'aplicacao',
+      foto:      'foto',
+    };
     if (id === 'peso') {
       setWeightInput(formatDecimalBR(weightCurrent));
       setShowWeightModal(true);
@@ -792,6 +843,8 @@ export default function HomePremiumV2() {
       const h = userHeight > 0 ? userHeight.toFixed(2).replace('.', ',') : '';
       setHeightInput(h);
       setShowHeightModal(true);
+    } else if (onNavigate && NAV_KEYS[id]) {
+      onNavigate(NAV_KEYS[id]);
     } else if (QUICK_ROUTES[id]) {
       goTo(QUICK_ROUTES[id]);
     }
@@ -818,6 +871,13 @@ export default function HomePremiumV2() {
         }
         .custom-shadow {
           box-shadow: 0 4px 20px -2px rgba(10, 22, 40, 0.05), 0 2px 8px -1px rgba(10, 22, 40, 0.03);
+        }
+        @keyframes slideUpSheet {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+        .animate-slide-up-sheet {
+          animation: slideUpSheet 0.28s cubic-bezier(0.32, 0.72, 0, 1);
         }
       `}</style>
       
@@ -884,7 +944,7 @@ export default function HomePremiumV2() {
         </div>
 
         {/* SCROLLABLE APP MAIN V2 BODY FEED */}
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#FAFCFB] pb-24">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#FAFCFB]" style={{ paddingBottom: "calc(96px + env(safe-area-inset-bottom))" }}>
           
           {/* TAB: INICIO */}
           {activeTab === "inicio" && (
@@ -1219,7 +1279,7 @@ export default function HomePremiumV2() {
 
               {/* SECTION: EVOLUÇÃO CORPORAL VISUAL SCANNER */}
               <div
-                onClick={() => goTo('/preview/body-measurements')}
+                onClick={() => onNavigate ? onNavigate('medida') : goTo('/preview/body-measurements')}
                 className="bg-white rounded-[24px] px-4 pt-3 pb-3 custom-shadow border border-[#E2EBE7]/70 space-y-2 cursor-pointer active:opacity-80 transition"
               >
                 {!hasRealBodyMeasurements ? (
@@ -1240,7 +1300,7 @@ export default function HomePremiumV2() {
                       ))}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); window.location.href = '/preview/body-measurements'; }}
+                      onClick={(e) => { e.stopPropagation(); onNavigate ? onNavigate('medida') : goTo('/preview/body-measurements'); }}
                       className="w-full text-[10px] font-extrabold text-[#00C27A] uppercase tracking-wide py-1 text-center"
                     >
                       Registrar medidas
@@ -1681,45 +1741,37 @@ export default function HomePremiumV2() {
                       </div>
                     </div>
 
-                    {/* Promotional direct link */}
-                    <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/5 rounded-2xl p-3 border border-emerald-100 flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
-                        <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
-                      </div>
-                      <button
-                        onClick={() => goTo('/preview/protocols')}
-                        className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
-                      >
-                        <span>Entrar</span>
-                        <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-                      </button>
-                    </div>
                   </>
+                )}
+
+                {/* GLPY HUB — sempre visível para usuário com perfil válido */}
+                {hasValidProfile && (
+                  <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/5 rounded-2xl p-3 border border-emerald-100 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-extrabold text-teal-950">Acesse o GLPY HUB</h4>
+                      <p className="text-[9px] text-[#3D5A70] font-bold">Protocolos, receitas e inteligência de dose.</p>
+                    </div>
+                    <button
+                      onClick={() => onNavigate ? onNavigate('hub') : goTo('/preview/hub')}
+                      className="bg-[#00C27A] hover:bg-[#00A38B] text-white font-extrabold py-2 px-3.5 rounded-xl text-[10px] flex items-center gap-1.5 transition active:scale-95"
+                    >
+                      <span>Entrar</span>
+                      <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+                    </button>
+                  </div>
                 )}
 
               </div>
             </div>
 
             {/* CARD SOCIAL TRAFFIC BANNER */}
-              <div
-                onClick={() => {
-                  if (!hasValidProfile) { window.location.href = '/'; }
-                  else { goTo('/preview/protocols'); }
-                }}
-                className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 text-center flex items-center justify-between transition select-none cursor-pointer active:opacity-80"
-              >
+              <div className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 flex items-center select-none">
                 <div className="flex items-center gap-2">
                   <span className="text-base text-[#00C27A]">🌍</span>
                   <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">
-                    {(hasValidProfile && hasRealActiveProtocol)
-                      ? mockHomeData.social
-                      : hasValidProfile
-                        ? 'Inicie um protocolo para entrar na jornada GLPY.'
-                        : 'Complete seu perfil para entrar na jornada GLPY.'}
+                    {mockHomeData.social}
                   </span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </div>
 
             </div>
@@ -1828,6 +1880,9 @@ export default function HomePremiumV2() {
           {/* TAB: PERFIL */}
           {activeTab === "perfil" && (
             <div className="px-5 pt-3 space-y-4">
+              <div className="mb-2">
+                <img src={glpyLogoSymbol} alt="GLPY" className="w-[84px] h-auto object-contain" />
+              </div>
               <div className="text-center space-y-2 py-4">
                 <div className="relative inline-block mx-auto">
                   <img 
@@ -1868,7 +1923,7 @@ export default function HomePremiumV2() {
               </div>
 
               <button
-                onClick={() => goTo('/preview/body-profile')}
+                onClick={() => { sessionStorage.setItem('glpy_return_to', 'dashboard'); sessionStorage.setItem('glpy_restore_tab', 'perfil'); onNavigate ? onNavigate('bodyProfile') : goTo('/preview/body-profile'); }}
                 className="w-full flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E2EBE7] shadow-xs hover:shadow-sm hover:border-[#00C27A]/30 transition active:opacity-70"
               >
                 <div className="flex items-center gap-2.5">
@@ -1890,52 +1945,58 @@ export default function HomePremiumV2() {
         </div>
 
         {/* BOTTOM FIXED premium navigation */}
-        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-[#E2EBE7] h-[72px] px-6 py-2 flex justify-between items-center z-40">
-          
-          <button 
-            onClick={() => { setActiveTab("inicio"); }}
-            className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "inicio" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
-          >
-            <Compass className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[9px] font-bold mt-1">Início</span>
-          </button>
+        <div
+          className="fixed bottom-0 left-0 right-0 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 bg-white/95 backdrop-blur-md border-t border-[#E2EBE7] z-40 cursor-pointer"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="w-full h-[72px] px-6 py-2 flex justify-between items-center">
 
-          <button
-            onClick={() => goTo('/preview/protocols')}
-            className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
-          >
-            <Shield className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[9px] font-bold mt-1">Protocolos</span>
-          </button>
+            <button
+              onClick={() => { setActiveTab("inicio"); }}
+              className={`flex flex-col items-center justify-center w-12 h-12 transition ${activeTab === "inicio" ? "text-[#00C27A]" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              <Compass className="w-5 h-5 stroke-[2.2]" />
+              <span className="text-[9px] font-bold mt-1">Início</span>
+            </button>
 
-          {/* Big center action tab */}
-          <button
-            onClick={() => goTo('/preview/quick-actions')}
-            className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-lg lg:scale-105 active:scale-95 transition -translate-y-2 cursor-pointer"
-          >
-            <Plus className="w-6 h-6 text-white stroke-[2.8]" />
-          </button>
+            <button
+              onClick={() => onNavigate ? onNavigate('hub') : goTo('/preview/hub')}
+              className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
+            >
+              <LayoutGrid className="w-5 h-5 stroke-[2.2]" />
+              <span className="text-[9px] font-bold mt-1">HUB</span>
+            </button>
 
-          <button
-            onClick={() => goTo('/preview/results')}
-            className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
-          >
-            <LineChart className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[9px] font-bold mt-1">Progresso</span>
-          </button>
+            {/* Big center action tab */}
+            <button
+              onClick={() => setShowQuickModal(true)}
+              style={{ touchAction: 'manipulation' }}
+              className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shadow-lg active:scale-95 transition -translate-y-2 cursor-pointer"
+            >
+              <Plus className="w-6 h-6 text-white stroke-[2.8]" />
+            </button>
 
-          <button
-            onClick={() => { setActiveTab("perfil"); }}
-            className="flex flex-col items-center justify-center w-12 h-12 transition"
-          >
-            <img
-              src={mockHomeData.user.avatarUrl}
-              alt="Perfil"
-              className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}
-            />
-            <span className={`text-[9px] font-bold mt-1 ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400"}`}>Perfil</span>
-          </button>
+            <button
+              onClick={() => onNavigate ? onNavigate('progress') : goTo('/preview/results')}
+              className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
+            >
+              <LineChart className="w-5 h-5 stroke-[2.2]" />
+              <span className="text-[9px] font-bold mt-1">Progresso</span>
+            </button>
 
+            <button
+              onClick={() => { setActiveTab("perfil"); }}
+              className="flex flex-col items-center justify-center w-12 h-12 transition"
+            >
+              <img
+                src={mockHomeData.user.avatarUrl}
+                alt="Perfil"
+                className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}
+              />
+              <span className={`text-[9px] font-bold mt-1 ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400"}`}>Perfil</span>
+            </button>
+
+          </div>
         </div>
 
       </div>
@@ -2055,6 +2116,122 @@ export default function HomePremiumV2() {
               >
                 Salvar meta
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK MODAL — Bottom Sheet do botão "+" */}
+      {showQuickModal && (
+        <div
+          className="fixed inset-0 bg-[#0A1628]/50 z-[200] flex flex-col justify-end"
+          onClick={() => setShowQuickModal(false)}
+        >
+          <div
+            className="bg-white rounded-t-[28px] w-full max-w-[430px] mx-auto animate-slide-up-sheet"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-slate-200 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="px-6 pt-3 pb-4">
+              <h2 className="text-base font-black text-[#0A1628]">O que você quer fazer agora?</h2>
+              <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Acesse rapidamente o que mais importa na sua jornada.</p>
+            </div>
+
+            {/* Options */}
+            <div className="px-4 pb-8 space-y-2">
+
+              {/* 1 — Protocolo em andamento */}
+              <button
+                onClick={() => {
+                  if (hasRealActiveProtocol) {
+                    setShowQuickModal(false);
+                    if (onNavigate) {
+                      onNavigate(PROTOCOL_SCREEN_MAP[activeProtocol.name] ?? 'antiRebote');
+                    } else {
+                      goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocolo4');
+                    }
+                  } else {
+                    setShowQuickModal(false);
+                    triggerToast('Você ainda não iniciou um protocolo. Acesse o GLPY HUB para escolher.');
+                  }
+                }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-100/60 active:opacity-80 transition text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white border border-emerald-100/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <Shield className="w-5 h-5 text-emerald-600 stroke-[2.2]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Protocolo em andamento</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Continue sua missão do dia</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+
+              {/* 2 — GLPY IA */}
+              <button
+                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('chatIA') : goTo('/preview/chat-ia'); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-violet-50 border border-violet-100/60 active:opacity-80 transition text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white border border-violet-100/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <Sparkles className="w-5 h-5 text-violet-600 stroke-[2.2]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">GLPY IA</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Tire dúvidas com base na sua jornada</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+
+              {/* 3 — Comunidade */}
+              <button
+                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('comunidade') : goTo('/preview/comunidade'); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-blue-50 border border-blue-100/60 active:opacity-80 transition text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white border border-blue-100/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <Users className="w-5 h-5 text-blue-500 stroke-[2.2]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Comunidade</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Acesse sua célula</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+
+              {/* 4 — Receitas */}
+              <button
+                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('recipes') : goTo('/preview/recipes'); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-amber-50 border border-amber-100/60 active:opacity-80 transition text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white border border-amber-100/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <ChefHat className="w-5 h-5 text-amber-600 stroke-[2.2]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Receitas</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Ideias alinhadas ao seu momento</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+
+              {/* 5 — Foto do prato */}
+              <button
+                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('fotoPrato') : goTo('/preview/food-photo'); }}
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-pink-50 border border-pink-100/60 active:opacity-80 transition text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-white border border-pink-100/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <Camera className="w-5 h-5 text-pink-500 stroke-[2.2]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Foto do prato</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Analise sua refeição</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { syncFromFirestore } from './services/firestore';
+import { hasActiveAccess } from './core/accessControl';
 import Login from './components/Login';
 import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
@@ -41,6 +42,18 @@ import Protocolo9 from './components/Protocolo9';
 import Protocolo10 from './components/Protocolo10';
 import LocalIntelligenceTestScreen from './screens/debug/LocalIntelligenceTestScreen';
 import DailyTargetsTestScreen from './screens/debug/DailyTargetsTestScreen';
+import QuickActionsScreen from './screens/premium/QuickActionsScreen';
+import HubScreen from './screens/premium/HubScreen';
+import BodyProfileScreen from './screens/operational/BodyProfileScreen';
+import WaterScreen from './screens/operational/WaterScreen';
+import ResultsScreen from './screens/operational/ResultsScreen';
+import CheckInScreen from './screens/operational/CheckInScreen';
+import FoodLogScreen from './screens/operational/FoodLogScreen';
+import EmotionScreen from './screens/operational/EmotionScreen';
+import BodyMeasurementsScreen from './screens/operational/BodyMeasurementsScreen';
+import InjectionScreen from './screens/operational/InjectionScreen';
+import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
+import { resolveSafeReturn } from './utils/navigationReturn';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
@@ -76,15 +89,13 @@ export default function App() {
           if (primeiroAcesso) {
             setTelaAtual('onboarding');
           } else {
-            // Bloqueia acesso sem plano pago (verificado via Firestore)
-            const plano = localStorage.getItem("glpy_plano");
-            if (!plano && onboardingDone) {
+            // Bloqueia acesso sem plano ativo (verificado via Firestore → accessControl)
+            if (!hasActiveAccess() && onboardingDone) {
               setTelaAtual('planos');
             }
           }
         } catch {
-          const plano = localStorage.getItem("glpy_plano");
-          if (!plano && onboardingDone) {
+          if (!hasActiveAccess() && onboardingDone) {
             setTelaAtual('planos');
           }
         }
@@ -128,15 +139,23 @@ export default function App() {
             onDashboard={() => setTelaAtual('dashboard')}
           />
         );
-      case 'onboarding':   return <Onboarding onNext={() => setTelaAtual('planos')} />;
-      case 'dashboard':    return <HomePremiumV2 />;
+      case 'onboarding':   return <Onboarding onNext={() => { const plano = localStorage.getItem('glpy_plano'); setTelaAtual(plano ? 'dashboard' : 'planos'); }} />;
+      case 'dashboard':    return <HomePremiumV2 onNavigate={setTelaAtual} />;
+      case 'quickActions':
+        return (
+          <QuickActionsScreen
+            onBack={() => setTelaAtual('dashboard')}
+            onNavigate={setTelaAtual}
+          />
+        );
+      case 'hub':          return <HubScreen onNavigate={setTelaAtual} />;
       case 'protocolHub':  return <ProtocolHub onNavigate={setTelaAtual} />;
       case 'protocolDay':  return <ProtocolDay onNavigate={setTelaAtual} />;
       case 'chatIA':       return <ChatIA onNavigate={setTelaAtual} />;
       case 'recipes':
       case 'receitas':     return <Recipes onNavigate={setTelaAtual} />;
-      case 'checkin':      return <CheckIn onNavigate={setTelaAtual} />;
-      case 'progress':     return <Progress onNavigate={setTelaAtual} />;
+      case 'checkin':      return <CheckInScreen onBack={() => setTelaAtual('dashboard')} />;
+      case 'progress':     return <ResultsScreen onBack={() => setTelaAtual('dashboard')} onNavigate={setTelaAtual} />;
       case 'perfil':       return <Perfil onNavigate={setTelaAtual} />;
       case 'profile':      return <Profile onNavigate={setTelaAtual} />;
       case 'fotoPrato':    return <FotoPrato onNavigate={setTelaAtual} />;
@@ -161,7 +180,59 @@ export default function App() {
       case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
       case 'localIntelligenceTest': return <LocalIntelligenceTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'dailyTargetsTest': return <DailyTargetsTestScreen onBack={() => setTelaAtual('dashboard')} />;
-      default:                      return <HomePremiumV2 />;
+      case 'bodyProfile':  return <BodyProfileScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
+      case 'refeicao':     return <FoodLogScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+        onSave={(data) => {
+          try {
+            const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
+            existing.push({ ...data, savedAt: Date.now() });
+            localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
+          } catch {
+            localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
+          }
+          window.dispatchEvent(new Event('local-storage-change'));
+          setTelaAtual(resolveSafeReturn('dashboard'));
+        }}
+      />;
+      case 'agua':         return <WaterScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+        onSave={(amount) => {
+          const today = new Date().toISOString().slice(0, 10);
+          localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today, updatedAt: new Date().toISOString() }));
+          window.dispatchEvent(new Event('local-storage-change'));
+          setTelaAtual(resolveSafeReturn('dashboard'));
+        }}
+      />;
+      case 'emocao':       return <EmotionScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+        onSave={(data) => {
+          const today = new Date().toISOString().slice(0, 10);
+          localStorage.setItem('glpy_emocao_hoje', JSON.stringify({ ...data, savedAt: Date.now() }));
+          localStorage.setItem('glpy_today_emotion', JSON.stringify({ emotion: data.mood, emotionalEnergy: data.energy, notes: data.note ?? '', date: today, savedAt: new Date().toISOString() }));
+          window.dispatchEvent(new Event('local-storage-change'));
+          setTelaAtual(resolveSafeReturn('dashboard'));
+        }}
+      />;
+      case 'medida':       return <BodyMeasurementsScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+        onSave={(data) => {
+          const toNum = (s: string) => { const n = parseFloat(s.replace(',', '.')); return (isNaN(n) || n <= 0) ? undefined : n; };
+          localStorage.setItem('glpy_medidas_corporais', JSON.stringify({ waist: toNum(data.waist), hip: toNum(data.hip), abdomen: toNum(data.abdomen), chest: toNum(data.chest), arm: toNum(data.arm), thigh: toNum(data.thigh), calf: toNum(data.calf), cintura: toNum(data.waist), quadril: toNum(data.hip), busto: toNum(data.chest), braco: toNum(data.arm), coxa: toNum(data.thigh), panturrilha: toNum(data.calf), savedAt: Date.now() }));
+          window.dispatchEvent(new Event('local-storage-change'));
+          setTelaAtual(resolveSafeReturn('dashboard'));
+        }}
+      />;
+      case 'aplicacao':    return <InjectionScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+        onSave={(data) => {
+          localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ ...data, savedAt: Date.now() }));
+          window.dispatchEvent(new Event('local-storage-change'));
+          setTelaAtual(resolveSafeReturn('dashboard'));
+        }}
+      />;
+      case 'foto':         return <PhotoTimelineScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
+      default:                      return <HomePremiumV2 onNavigate={setTelaAtual} />;
     }
   };
 
