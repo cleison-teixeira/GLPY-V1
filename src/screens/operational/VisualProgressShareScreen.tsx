@@ -5,7 +5,8 @@
 // Fotos e dados vêm de glpy_body_photos, glpy_medidas_iniciais,
 // glpy_medidas_corporais e glpy_protocolo_ativo (localStorage).
 // Se dado real não existir, fallback seguro '—'.
-// Salvar/compartilhar: html2canvas captura o story card 9:16.
+// Exportação: html2canvas captura exportStoryCardRef (1080×1920 offscreen).
+// Photos usam backgroundImage no exportRef porque html2canvas ignora objectFit em <img>.
 // iOS: abre popup antes do canvas (preserva gesto) e instrui pressionar para salvar.
 
 import React, { useRef, useState } from 'react';
@@ -100,7 +101,6 @@ function readWaistFromKey(key: string): number | null {
   } catch { return null; }
 }
 
-// Formata número no padrão BR com 2 casas decimais, vírgula decimal.
 function fmtBR(n: number, decimals = 2): string {
   return n.toFixed(decimals).replace('.', ',');
 }
@@ -143,7 +143,8 @@ const SHARE_OPTIONS = [
 
 export default function VisualProgressShareScreen({ onBack }: VisualProgressShareScreenProps) {
 
-  const storyCardRef = useRef<HTMLDivElement>(null);
+  const storyCardRef       = useRef<HTMLDivElement>(null);
+  const exportStoryCardRef = useRef<HTMLDivElement>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -161,7 +162,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   const pesoAntesNum  = beforePhoto?.weight ?? null;
   const pesoDepoisNum = afterPhoto?.weight  ?? readCurrentWeight();
 
-  // Evolução: prioridade 1 — pesos das fotos; prioridade 2 — peso inicial vs atual
   const evolucaoKg = (() => {
     if (pesoAntesNum != null && pesoDepoisNum != null && pesoAntesNum > pesoDepoisNum)
       return `- ${fmtBR(pesoAntesNum - pesoDepoisNum)} kg`;
@@ -201,16 +201,21 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   // ── Image generation ──────────────────────────────────────────────────────
 
-  async function generateStoryImage(): Promise<{ dataUrl: string; blob: Blob } | null> {
-    if (!storyCardRef.current) return null;
-    const el = storyCardRef.current;
-    // Pass explicit pixel dimensions so html2canvas doesn't misread the CSS
-    // `aspectRatio` property — guarantees the exported PNG matches what's on screen.
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const canvas = await html2canvas(el, {
-      scale: 2, useCORS: true, backgroundColor: S_BG, logging: false,
-      width: w, height: h,
+  // Captures exportStoryCardRef: fixed 1080×1920, photos via backgroundImage.
+  // backgroundSize:cover is correctly rendered by html2canvas; objectFit is not.
+  async function generateStoryImageBlob(): Promise<{ dataUrl: string; blob: Blob } | null> {
+    if (!exportStoryCardRef.current) return null;
+    const canvas = await html2canvas(exportStoryCardRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: S_BG,
+      logging: false,
+      width: 1080,
+      height: 1920,
+      windowWidth: 1080,
+      windowHeight: 1920,
+      scrollX: 0,
+      scrollY: 0,
     });
     const dataUrl = canvas.toDataURL('image/png');
     return new Promise(resolve =>
@@ -225,7 +230,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
     const ios = isIOS();
 
     // Open popup synchronously (preserves user-gesture context on iOS).
-    // If we open after await, Safari blocks window.open().
     let popup: Window | null = null;
     if (ios) {
       popup = window.open('', '_blank');
@@ -237,7 +241,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
     }
 
     try {
-      const result = await generateStoryImage();
+      const result = await generateStoryImageBlob();
       if (!result) { if (popup) popup.close(); return; }
 
       if (ios) {
@@ -271,7 +275,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   async function handleShareAction() {
     setActionMsg(null);
     try {
-      const result = await generateStoryImage();
+      const result = await generateStoryImageBlob();
       if (!result) return;
 
       const file = new File([result.blob], 'evolucao-glpy.png', { type: 'image/png' });
@@ -285,7 +289,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
         return;
       }
 
-      // Fallback: download/new tab
+      // Fallback: download / nova aba
       if (isIOS()) {
         const t = window.open();
         if (t) {
@@ -353,7 +357,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small }}>
 
-        {/* ─── Story card 9:16 ────────────────────────────────────────────── */}
+        {/* ─── Story card 9:16 (preview visível — não usado para exportação) ─── */}
         <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(0,194,122,0.18)', boxShadow: '0 8px 40px rgba(0,194,122,0.07)' }}>
           <div
             ref={storyCardRef}
@@ -404,12 +408,10 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 </div>
               </div>
 
-              {/* Depois — wrapper para glow externo + coluna interna */}
+              {/* Depois */}
               <div style={{ flex: 1, boxShadow: `0 0 18px rgba(0,194,122,0.22), 0 0 5px rgba(0,194,122,0.10)`, borderRadius: '16px 16px 0 0' }}>
                 <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px 16px 0 0', background: S_PHOTO_B, borderTop: `2px solid ${S_GREEN}`, borderLeft: `1px solid rgba(0,194,122,0.28)`, borderRight: `1px solid rgba(0,194,122,0.28)` }}>
-                  {/* glow suave interno */}
                   <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 20%, rgba(0,194,122,0.10) 0%, transparent 65%)', zIndex: 1, pointerEvents: 'none' }} />
-
                   {afterPhoto
                     ? <img src={afterPhoto.imageDataUrl} alt="Depois" style={photoAbs} />
                     : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -432,8 +434,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
             {/* ── Métricas ─────────────────────────────────────────────── */}
             <div style={{ flexShrink: 0, padding: '16px 20px 12px', textAlign: 'center' }}>
-
-              {/* Número principal */}
               <div style={{ fontFamily: ff, fontSize: 34, fontWeight: '900', color: evolucaoKg !== '—' ? S_GREEN : S_MUTED, letterSpacing: '-1.4px', lineHeight: 1 }}>
                 {evolucaoKg}
               </div>
@@ -442,8 +442,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   eliminados
                 </div>
               )}
-
-              {/* Métricas secundárias */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginTop: 12 }}>
                 <div>
                   <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Peso (kg)</div>
@@ -514,7 +512,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
           </div>
         </GLPYCard>
 
-        {/* Feedback das ações de salvar/compartilhar */}
         {actionMsg && (
           <div style={{
             fontFamily: fontFamily.primary, fontSize: 12, color: lightColors.text.secondary,
@@ -530,6 +527,165 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
         </GLPYButton>
 
       </div>
+
+      {/* ─── Export card offscreen 1080×1920 ─────────────────────────────────
+          Capturado por generateStoryImageBlob(). Dimensões fixas garantem 9:16
+          real. Photos usam backgroundSize:cover (html2canvas não renderiza
+          objectFit:cover em <img>; backgroundSize funciona corretamente).      */}
+      <div
+        ref={exportStoryCardRef}
+        style={{
+          position: 'fixed',
+          left: -99999,
+          top: 0,
+          width: 1080,
+          height: 1920,
+          pointerEvents: 'none',
+          background: S_BG,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+
+        {/* ── Header ────────────────────────────────────────────────────── */}
+        <div style={{ flexShrink: 0, padding: '66px 60px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 42 }}>
+            <img src={logoGlpyDark} alt="GLPY" style={{ height: 66, objectFit: 'contain', display: 'block' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+              <div style={{ width: 15, height: 15, background: S_GREEN, borderRadius: 99 }} />
+              <span style={{ fontFamily: ff, fontSize: 30, fontWeight: '700', color: S_GREEN, letterSpacing: '0.02em' }}>
+                {protocoloNome}
+              </span>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', marginBottom: 39 }}>
+            <div style={{ fontFamily: ff, fontSize: 66, fontWeight: '900', color: S_WHITE, letterSpacing: '-0.9px', lineHeight: 1.05, marginBottom: 15 }}>
+              Meu Antes &amp; Depois
+            </div>
+            <div style={{ fontFamily: ff, fontSize: 30, color: S_MUTED, letterSpacing: '0.02em' }}>
+              Mais saúde. Mais controle. Mais eu.
+            </div>
+          </div>
+          <div style={{ height: 3, background: `linear-gradient(to right, transparent, ${S_GREEN}55, transparent)` }} />
+        </div>
+
+        {/* ── Fotos ─────────────────────────────────────────────────────── */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, padding: '30px 42px 0', gap: 24 }}>
+
+          {/* Antes — backgroundImage evita distorção no canvas */}
+          <div style={{
+            flex: 1,
+            marginTop: 60,
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '48px 48px 0 0',
+            background: S_PHOTO_A,
+            ...(beforePhoto ? {
+              backgroundImage: `url("${beforePhoto.imageDataUrl}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+            } : {}),
+          }}>
+            {!beforePhoto && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+            )}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '96px 30px 36px', zIndex: 1 }}>
+              <div style={{ fontFamily: ff, fontSize: 27, fontWeight: '700', color: 'rgba(255,255,255,0.40)', letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: 9 }}>Antes</div>
+              <div style={{ fontFamily: ff, fontSize: 24, color: 'rgba(255,255,255,0.22)', marginBottom: 15 }}>{dataAntes}</div>
+              {pesoAntesStr !== '—' && (
+                <div style={{ fontFamily: ff, fontSize: 39, fontWeight: '800', color: 'rgba(255,255,255,0.75)' }}>{pesoAntesStr} kg</div>
+              )}
+            </div>
+          </div>
+
+          {/* Depois — backgroundImage evita distorção no canvas */}
+          <div style={{ flex: 1, boxShadow: `0 0 54px rgba(0,194,122,0.22), 0 0 15px rgba(0,194,122,0.10)`, borderRadius: '48px 48px 0 0' }}>
+            <div style={{
+              height: '100%',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '48px 48px 0 0',
+              background: S_PHOTO_B,
+              borderTop: `6px solid ${S_GREEN}`,
+              borderLeft: `3px solid rgba(0,194,122,0.28)`,
+              borderRight: `3px solid rgba(0,194,122,0.28)`,
+              ...(afterPhoto ? {
+                backgroundImage: `url("${afterPhoto.imageDataUrl}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+              } : {}),
+            }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 20%, rgba(0,194,122,0.10) 0%, transparent 65%)', zIndex: 1, pointerEvents: 'none' }} />
+              {!afterPhoto && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke={`${S_GREEN}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+              )}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '96px 30px 36px', zIndex: 2 }}>
+                <div style={{ fontFamily: ff, fontSize: 27, fontWeight: '700', color: S_GREEN, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: 9 }}>Depois</div>
+                <div style={{ fontFamily: ff, fontSize: 24, color: 'rgba(255,255,255,0.22)', marginBottom: 15 }}>{dataDepois}</div>
+                {pesoDepoisStr !== '—' && (
+                  <div style={{ fontFamily: ff, fontSize: 39, fontWeight: '800', color: S_WHITE }}>{pesoDepoisStr} kg</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Métricas ──────────────────────────────────────────────────── */}
+        <div style={{ flexShrink: 0, padding: '48px 60px 36px', textAlign: 'center' }}>
+          <div style={{ fontFamily: ff, fontSize: 102, fontWeight: '900', color: evolucaoKg !== '—' ? S_GREEN : S_MUTED, letterSpacing: '-1.4px', lineHeight: 1 }}>
+            {evolucaoKg}
+          </div>
+          {evolucaoKg !== '—' && (
+            <div style={{ fontFamily: ff, fontSize: 30, color: S_MUTED, letterSpacing: '0.05em', marginTop: 30 }}>
+              eliminados
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 84, marginTop: 36 }}>
+            <div>
+              <div style={{ fontFamily: ff, fontSize: 24, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 12 }}>Peso (kg)</div>
+              <div style={{ fontFamily: ff, fontSize: 39, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 9, justifyContent: 'center' }}>
+                <span>{pesoAntesStr}</span>
+                {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={27} color={S_GREEN} strokeWidth={2.5} />}
+                <span>{pesoDepoisStr}</span>
+              </div>
+            </div>
+            {hasCintura && (
+              <div>
+                <div style={{ fontFamily: ff, fontSize: 24, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: 12 }}>Cintura (cm)</div>
+                <div style={{ fontFamily: ff, fontSize: 39, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 9, justifyContent: 'center' }}>
+                  <span>{cinturaAntesStr}</span>
+                  <ArrowRight size={27} color={S_GREEN} strokeWidth={2.5} />
+                  <span>{cinturaDepoisStr}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Rodapé ────────────────────────────────────────────────────── */}
+        <div style={{ flexShrink: 0, borderTop: '3px solid rgba(255,255,255,0.06)', padding: '33px 60px 66px', textAlign: 'center' }}>
+          <div style={{ fontFamily: ff, fontSize: 33, fontWeight: '500', color: S_MUTED, fontStyle: 'italic', marginBottom: 21 }}>
+            Disciplina hoje. Liberdade amanhã.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+            <div style={{ width: 12, height: 12, background: S_GREEN, borderRadius: 99, opacity: 0.55 }} />
+            <span style={{ fontFamily: ff, fontSize: 27, fontWeight: '600', color: S_MUTED_LO, letterSpacing: '0.07em' }}>glpy.com.br</span>
+            <div style={{ width: 12, height: 12, background: S_GREEN, borderRadius: 99, opacity: 0.55 }} />
+          </div>
+        </div>
+
+      </div>
+
     </GLPYScreen>
   );
 }
