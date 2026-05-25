@@ -76,8 +76,32 @@ function readCurrentWeight(): number | null {
 }
 
 function readStreak(): number {
-  const v = parseInt(localStorage.getItem('glpy_streak') || '0', 10);
-  return isNaN(v) ? 0 : v;
+  try {
+    const raw = localStorage.getItem('glpy_checkin_historico');
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return 0;
+    const dates = (parsed as unknown[]).map(item => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && 'date' in item) return (item as Record<string, unknown>).date as string;
+      return '';
+    }).filter(Boolean) as string[];
+    const unique = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
+    if (unique.length === 0) return 0;
+    const todayStr    = new Date().toISOString().split('T')[0];
+    const yest        = new Date(); yest.setDate(yest.getDate() - 1);
+    const yesterdayStr = yest.toISOString().split('T')[0];
+    const hasToday     = unique.includes(todayStr);
+    const hasYesterday = unique.includes(yesterdayStr);
+    if (!hasToday && !hasYesterday) return 0;
+    let streak = 0;
+    const d = new Date(hasToday ? todayStr : yesterdayStr);
+    while (true) {
+      const s = d.toISOString().split('T')[0];
+      if (unique.includes(s)) { streak++; d.setDate(d.getDate() - 1); } else break;
+    }
+    return streak;
+  } catch { return 0; }
 }
 
 function fmt(v: number | null, decimals = 2): string {
@@ -441,7 +465,7 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
           </div>
 
           <div style={photoContainerStyle}>
-            <div style={beforeBoxStyle}>
+            <div style={{ ...beforeBoxStyle, cursor: 'pointer' }} onClick={() => onNavigate?.('foto')}>
               <span style={photoLabelStyle}>Antes</span>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%',
@@ -453,7 +477,7 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
               </div>
               <span style={photoWeightStyle}>{fmt(pesoInicial)} kg</span>
             </div>
-            <div style={afterBoxStyle}>
+            <div style={{ ...afterBoxStyle, cursor: 'pointer' }} onClick={() => onNavigate?.('foto')}>
               <span style={photoLabelStyle}>Depois</span>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%',
