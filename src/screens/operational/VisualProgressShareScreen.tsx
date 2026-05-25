@@ -203,8 +203,14 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   async function generateStoryImage(): Promise<{ dataUrl: string; blob: Blob } | null> {
     if (!storyCardRef.current) return null;
-    const canvas = await html2canvas(storyCardRef.current, {
+    const el = storyCardRef.current;
+    // Pass explicit pixel dimensions so html2canvas doesn't misread the CSS
+    // `aspectRatio` property — guarantees the exported PNG matches what's on screen.
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const canvas = await html2canvas(el, {
       scale: 2, useCORS: true, backgroundColor: S_BG, logging: false,
+      width: w, height: h,
     });
     const dataUrl = canvas.toDataURL('image/png');
     return new Promise(resolve =>
@@ -432,7 +438,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 {evolucaoKg}
               </div>
               {evolucaoKg !== '—' && (
-                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.05em', marginTop: 3 }}>
+                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.05em', marginTop: 10 }}>
                   eliminados
                 </div>
               )}
