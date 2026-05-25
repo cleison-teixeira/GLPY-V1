@@ -1442,7 +1442,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   
                   {/* Card 1: Medicação */}
                   <div
-                    onClick={() => goTo('/preview/treatment-settings')}
+                    onClick={() => handleQuickAction('aplicacao')}
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
