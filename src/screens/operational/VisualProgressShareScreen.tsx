@@ -135,13 +135,6 @@ const S_WHITE   = '#FFFFFF';
 const S_MUTED   = 'rgba(255,255,255,0.42)';
 const S_MUTED_LO= 'rgba(255,255,255,0.18)';
 
-// ── Arc constants (270° gauge) ────────────────────────────────────────────────
-
-const ARC_R    = 38;
-const ARC_CIRC = 2 * Math.PI * ARC_R;           // ≈ 238.8
-const ARC_TRACK= (270 / 360) * ARC_CIRC;        // ≈ 179.1  (270° dash)
-const ARC_GAP  = ARC_CIRC - ARC_TRACK;          // ≈  59.7  (90° gap at bottom)
-
 // ── Share options ─────────────────────────────────────────────────────────────
 
 const SHARE_OPTIONS = [
@@ -208,23 +201,6 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   })();
 
   const protocoloNome = readProtocolo() ?? '—';
-
-  // Arco de progresso (0..1) — para o gauge SVG
-  const arcProgress = (() => {
-    if (evolucaoKg === '—') return 0;
-    const inicial = readInitialWeight();
-    const atual   = readCurrentWeight();
-    const meta    = readGoalWeight();
-    if (inicial == null || atual == null) return 0;
-    const lost        = Math.max(0, inicial - atual);
-    const totalToLose = meta != null
-      ? Math.max(1, inicial - meta)
-      : Math.max(1, lost * 1.5);       // fallback: mostra ~66% se não há meta
-    return Math.min(0.94, lost / totalToLose);
-  })();
-
-  const arcFillDash = arcProgress * ARC_TRACK;
-  const arcFillGap  = ARC_CIRC - arcFillDash;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -375,72 +351,20 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
             </div>
 
             {/* ── Métricas ─────────────────────────────────────────────── */}
-            <div style={{ flexShrink: 0, padding: '16px 20px 12px', textAlign: 'center', position: 'relative' }}>
-
-              {/* 1. Arco de progresso (SVG atrás do número) */}
-              {arcProgress > 0 && (
-                <svg
-                  width="96" height="96" viewBox="0 0 96 96"
-                  style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}
-                  aria-hidden="true"
-                >
-                  {/* trilha */}
-                  <circle cx="48" cy="48" r={ARC_R} fill="none"
-                    stroke="rgba(167,139,250,0.12)" strokeWidth="4"
-                    strokeDasharray={`${ARC_TRACK} ${ARC_GAP}`}
-                    strokeLinecap="round"
-                    transform="rotate(-135 48 48)"
-                  />
-                  {/* preenchimento proporcional ao progresso */}
-                  <circle cx="48" cy="48" r={ARC_R} fill="none"
-                    stroke={S_LILAC} strokeWidth="4"
-                    strokeDasharray={`${arcFillDash} ${arcFillGap}`}
-                    strokeLinecap="round" opacity={0.55}
-                    transform="rotate(-135 48 48)"
-                  />
-                  {/* ponto final do arco */}
-                  {arcProgress > 0.05 && (
-                    <circle
-                      cx={48 + ARC_R * Math.cos((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
-                      cy={48 + ARC_R * Math.sin((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
-                      r="3" fill={S_LILAC} opacity={0.75}
-                    />
-                  )}
-                </svg>
-              )}
+            <div style={{ flexShrink: 0, padding: '16px 20px 12px', textAlign: 'center' }}>
 
               {/* Número principal */}
-              <div style={{ fontFamily: ff, fontSize: 30, fontWeight: '900', color: evolucaoKg !== '—' ? S_LILAC : S_MUTED, letterSpacing: '-1.2px', lineHeight: 1, position: 'relative', zIndex: 1 }}>
+              <div style={{ fontFamily: ff, fontSize: 34, fontWeight: '900', color: evolucaoKg !== '—' ? S_LILAC : S_MUTED, letterSpacing: '-1.4px', lineHeight: 1 }}>
                 {evolucaoKg}
               </div>
               {evolucaoKg !== '—' && (
-                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.05em', marginTop: 2, position: 'relative', zIndex: 1 }}>
+                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.05em', marginTop: 3 }}>
                   eliminados
                 </div>
               )}
 
-              {/* 5. Mini gráfico de queda */}
-              {evolucaoKg !== '—' && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, marginBottom: 6, position: 'relative', zIndex: 1 }}>
-                  <svg width="52" height="18" viewBox="0 0 52 18" aria-hidden="true">
-                    {/* área preenchida */}
-                    <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1 L52,18 L0,18 Z"
-                      fill={`${S_LILAC}18`} />
-                    {/* linha de queda */}
-                    <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1"
-                      fill="none" stroke={S_LILAC} strokeWidth="1.8"
-                      strokeLinecap="round" strokeLinejoin="round" opacity={0.65}
-                    />
-                    {/* ponto inicial (Antes) */}
-                    <circle cx="1" cy="16" r="2" fill="rgba(255,255,255,0.22)" />
-                    {/* ponto final (Depois) */}
-                    <circle cx="51" cy="1" r="2.5" fill={S_LILAC} opacity={0.80} />
-                  </svg>
-                </div>
-              )}
-
               {/* Métricas secundárias */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginTop: evolucaoKg === '—' ? 10 : 2, position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginTop: 12 }}>
                 <div>
                   <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Peso (kg)</div>
                   <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
