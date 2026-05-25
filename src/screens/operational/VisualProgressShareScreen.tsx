@@ -5,9 +5,10 @@
 // Fotos e dados vêm de glpy_body_photos, glpy_medidas_iniciais,
 // glpy_medidas_corporais e glpy_protocolo_ativo (localStorage).
 // Se dado real não existir, fallback seguro '—'.
-// Salvar imagem: html2canvas captura o story card 9:16; iOS abre em nova aba.
+// Salvar/compartilhar: html2canvas captura o story card 9:16.
+// iOS: abre popup antes do canvas (preserva gesto) e instrui pressionar para salvar.
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { ArrowRight, TrendingUp, Ruler, CalendarDays, Check, Users, Share2 } from 'lucide-react';
 import logoGlpyDark from '@/assets/logos/logo-dark.png';
@@ -80,20 +81,6 @@ function readInitialWeight(): number | null {
   return null;
 }
 
-function readGoalWeight(): number | null {
-  try {
-    const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
-    const v = parseFloat(String(rs.goalWeight ?? rs.weightGoal ?? ''));
-    if (!isNaN(v) && v > 0) return v;
-  } catch {}
-  try {
-    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-    const v = parseFloat(String(onb.pesoMeta ?? onb.peso_meta ?? ''));
-    if (!isNaN(v) && v > 0) return v;
-  } catch {}
-  return null;
-}
-
 function readProtocolo(): string | null {
   try {
     const raw = localStorage.getItem('glpy_protocolo_ativo');
@@ -113,6 +100,11 @@ function readWaistFromKey(key: string): number | null {
   } catch { return null; }
 }
 
+// Formata número no padrão BR com 2 casas decimais, vírgula decimal.
+function fmtBR(n: number, decimals = 2): string {
+  return n.toFixed(decimals).replace('.', ',');
+}
+
 const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function fmtMonthPT(dateStr: string): string {
@@ -124,13 +116,16 @@ function calcDaysApart(d1: string, d2: string): number {
   return Math.round(Math.abs(new Date(d1).getTime() - new Date(d2).getTime()) / 86400000);
 }
 
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
+}
+
 // ── Dark tokens ───────────────────────────────────────────────────────────────
 
 const S_BG      = '#0A1628';
 const S_PHOTO_A = '#111e30';
 const S_PHOTO_B = '#0e1628';
-const S_GREEN   = '#00C27A';   // usado só fora do story card (Resumo/share)
-const S_LILAC   = '#A78BFA';   // destaque principal do story card
+const S_GREEN   = '#00C27A';
 const S_WHITE   = '#FFFFFF';
 const S_MUTED   = 'rgba(255,255,255,0.42)';
 const S_MUTED_LO= 'rgba(255,255,255,0.18)';
@@ -149,6 +144,7 @@ const SHARE_OPTIONS = [
 export default function VisualProgressShareScreen({ onBack }: VisualProgressShareScreenProps) {
 
   const storyCardRef = useRef<HTMLDivElement>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -165,30 +161,31 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   const pesoAntesNum  = beforePhoto?.weight ?? null;
   const pesoDepoisNum = afterPhoto?.weight  ?? readCurrentWeight();
 
+  // Evolução: prioridade 1 — pesos das fotos; prioridade 2 — peso inicial vs atual
   const evolucaoKg = (() => {
     if (pesoAntesNum != null && pesoDepoisNum != null && pesoAntesNum > pesoDepoisNum)
-      return `−${(pesoAntesNum - pesoDepoisNum).toFixed(1).replace('.', ',')} kg`;
+      return `- ${fmtBR(pesoAntesNum - pesoDepoisNum)} kg`;
     const pi = readInitialWeight(), pa = readCurrentWeight();
     if (pi != null && pa != null && pi > pa)
-      return `−${(pi - pa).toFixed(1).replace('.', ',')} kg`;
+      return `- ${fmtBR(pi - pa)} kg`;
     return '—';
   })();
 
   const displayPesoAntes  = pesoAntesNum  ?? readInitialWeight();
   const displayPesoDepois = pesoDepoisNum ?? null;
-  const pesoAntesStr  = displayPesoAntes  != null ? String(Math.round(displayPesoAntes))  : '—';
-  const pesoDepoisStr = displayPesoDepois != null ? String(Math.round(displayPesoDepois)) : '—';
+  const pesoAntesStr  = displayPesoAntes  != null ? fmtBR(displayPesoAntes)  : '—';
+  const pesoDepoisStr = displayPesoDepois != null ? fmtBR(displayPesoDepois) : '—';
 
   const cinturaAntes  = readWaistFromKey('glpy_medidas_iniciais');
   const cinturaDepois = readWaistFromKey('glpy_medidas_corporais');
   const hasCintura    = cinturaAntes != null && cinturaDepois != null;
-  const cinturaAntesStr  = hasCintura ? String(Math.round(cinturaAntes!))  : '—';
-  const cinturaDepoisStr = hasCintura ? String(Math.round(cinturaDepois!)) : '—';
+  const cinturaAntesStr  = hasCintura ? fmtBR(cinturaAntes!)  : '—';
+  const cinturaDepoisStr = hasCintura ? fmtBR(cinturaDepois!) : '—';
 
   const evolucaoCintura = (() => {
     if (!hasCintura) return '—';
     const d = cinturaAntes! - cinturaDepois!;
-    return d > 0 ? `−${Math.round(d)} cm` : '—';
+    return d > 0 ? `- ${fmtBR(d)} cm` : '—';
   })();
 
   const dataAntes  = beforePhoto ? fmtMonthPT(beforePhoto.date) : '—';
@@ -202,36 +199,113 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   const protocoloNome = readProtocolo() ?? '—';
 
+  // ── Image generation ──────────────────────────────────────────────────────
+
+  async function generateStoryImage(): Promise<{ dataUrl: string; blob: Blob } | null> {
+    if (!storyCardRef.current) return null;
+    const canvas = await html2canvas(storyCardRef.current, {
+      scale: 2, useCORS: true, backgroundColor: S_BG, logging: false,
+    });
+    const dataUrl = canvas.toDataURL('image/png');
+    return new Promise(resolve =>
+      canvas.toBlob(blob => resolve(blob ? { dataUrl, blob } : null), 'image/png')
+    );
+  }
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleShare(platform: string) { console.log(`[GLPY] share_${platform}`); }
-
   async function handleSaveImage() {
-    if (!storyCardRef.current) return;
+    setActionMsg(null);
+    const ios = isIOS();
+
+    // Open popup synchronously (preserves user-gesture context on iOS).
+    // If we open after await, Safari blocks window.open().
+    let popup: Window | null = null;
+    if (ios) {
+      popup = window.open('', '_blank');
+      if (popup) popup.document.write(
+        '<html><body style="background:#0A1628;color:rgba(255,255,255,.5);font-family:sans-serif;' +
+        'display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+        '<p>Gerando imagem…</p></body></html>'
+      );
+    }
+
     try {
-      const canvas = await html2canvas(storyCardRef.current, {
-        scale: 2, useCORS: true, backgroundColor: S_BG, logging: false,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
-      if (isIOS) {
+      const result = await generateStoryImage();
+      if (!result) { if (popup) popup.close(); return; }
+
+      if (ios) {
+        if (popup) {
+          popup.document.open();
+          popup.document.write(
+            `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
+            `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+            `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
+            `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
+            `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
+            `text-align:center;padding:0 20px;margin:0}</style></head>` +
+            `<body><img src="${result.dataUrl}" style="max-width:100%;display:block"/>` +
+            `<p>Pressione a imagem e toque em "Salvar" para guardar no rolo.</p>` +
+            `</body></html>`
+          );
+          popup.document.close();
+        }
+        setActionMsg('Imagem gerada. Pressione e segure para salvar.');
+      } else {
+        const a = document.createElement('a');
+        a.href = result.dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
+        setActionMsg('Download iniciado.');
+      }
+    } catch (err) {
+      console.error('[GLPY] Erro ao gerar imagem', err);
+      if (popup) popup.close();
+    }
+  }
+
+  async function handleShareAction() {
+    setActionMsg(null);
+    try {
+      const result = await generateStoryImage();
+      if (!result) return;
+
+      const file = new File([result.blob], 'evolucao-glpy.png', { type: 'image/png' });
+      const canShareFiles =
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        (() => { try { return navigator.canShare({ files: [file] }); } catch { return false; } })();
+
+      if (canShareFiles) {
+        await navigator.share({ title: 'Minha evolução GLPY', text: 'Veja minha evolução!', files: [file] });
+        return;
+      }
+
+      // Fallback: download/new tab
+      if (isIOS()) {
         const t = window.open();
         if (t) {
           t.document.write(
             `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
             `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-            `<style>body{margin:0;background:#0A1628;display:flex;align-items:center;justify-content:center;min-height:100vh}` +
-            `p{color:rgba(255,255,255,.50);font-family:sans-serif;font-size:13px;text-align:center;position:fixed;bottom:24px;width:100%;padding:0 16px;box-sizing:border-box}</style></head>` +
-            `<body><img src="${dataUrl}" style="max-width:100%;display:block"/>` +
-            `<p>Pressione a imagem e toque em "Salvar".</p></body></html>`
+            `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
+            `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
+            `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
+            `text-align:center;padding:0 20px;margin:0}</style></head>` +
+            `<body><img src="${result.dataUrl}" style="max-width:100%;display:block"/>` +
+            `<p>Pressione a imagem e toque em "Salvar" para guardar no rolo.</p>` +
+            `</body></html>`
           );
           t.document.close();
         }
       } else {
         const a = document.createElement('a');
-        a.href = dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
+        a.href = result.dataUrl; a.download = 'evolucao-glpy.png'; a.click();
       }
-    } catch (err) { console.error('[GLPY] Erro ao gerar imagem', err); }
+      setActionMsg('Imagem gerada. Pressione e segure para salvar.');
+    } catch (err: unknown) {
+      if ((err as { name?: string }).name !== 'AbortError') {
+        console.error('[GLPY] Erro ao compartilhar', err);
+      }
+    }
   }
 
   // ── Shared style helpers ───────────────────────────────────────────────────
@@ -274,7 +348,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
       <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small }}>
 
         {/* ─── Story card 9:16 ────────────────────────────────────────────── */}
-        <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(167,139,250,0.18)', boxShadow: '0 8px 40px rgba(167,139,250,0.07)' }}>
+        <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(0,194,122,0.18)', boxShadow: '0 8px 40px rgba(0,194,122,0.07)' }}>
           <div
             ref={storyCardRef}
             style={{ background: S_BG, aspectRatio: '9 / 16', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
@@ -285,8 +359,8 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <img src={logoGlpyDark} alt="GLPY" style={{ height: 22, objectFit: 'contain', display: 'block' }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 5, height: 5, background: S_LILAC, borderRadius: 99 }} />
-                  <span style={{ fontFamily: ff, fontSize: 10, fontWeight: '700', color: S_LILAC, letterSpacing: '0.02em' }}>
+                  <div style={{ width: 5, height: 5, background: S_GREEN, borderRadius: 99 }} />
+                  <span style={{ fontFamily: ff, fontSize: 10, fontWeight: '700', color: S_GREEN, letterSpacing: '0.02em' }}>
                     {protocoloNome}
                   </span>
                 </div>
@@ -299,7 +373,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   Mais saúde. Mais controle. Mais eu.
                 </div>
               </div>
-              <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${S_LILAC}55, transparent)` }} />
+              <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${S_GREEN}55, transparent)` }} />
             </div>
 
             {/* ── Fotos ───────────────────────────────────────────────── */}
@@ -325,21 +399,21 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
               </div>
 
               {/* Depois — wrapper para glow externo + coluna interna */}
-              <div style={{ flex: 1, boxShadow: `0 0 18px rgba(167,139,250,0.20), 0 0 5px rgba(167,139,250,0.10)`, borderRadius: '16px 16px 0 0' }}>
-                <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px 16px 0 0', background: S_PHOTO_B, borderTop: `2px solid ${S_LILAC}`, borderLeft: `1px solid rgba(167,139,250,0.28)`, borderRight: `1px solid rgba(167,139,250,0.28)` }}>
+              <div style={{ flex: 1, boxShadow: `0 0 18px rgba(0,194,122,0.22), 0 0 5px rgba(0,194,122,0.10)`, borderRadius: '16px 16px 0 0' }}>
+                <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px 16px 0 0', background: S_PHOTO_B, borderTop: `2px solid ${S_GREEN}`, borderLeft: `1px solid rgba(0,194,122,0.28)`, borderRight: `1px solid rgba(0,194,122,0.28)` }}>
                   {/* glow suave interno */}
-                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 20%, rgba(167,139,250,0.10) 0%, transparent 65%)', zIndex: 1, pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 20%, rgba(0,194,122,0.10) 0%, transparent 65%)', zIndex: 1, pointerEvents: 'none' }} />
 
                   {afterPhoto
                     ? <img src={afterPhoto.imageDataUrl} alt="Depois" style={photoAbs} />
                     : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_LILAC}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_GREEN}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
                       </div>
                   }
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '32px 10px 12px', zIndex: 2 }}>
-                    <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: S_LILAC, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Depois</div>
+                    <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: S_GREEN, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Depois</div>
                     <div style={{ fontFamily: ff, fontSize: 8, color: 'rgba(255,255,255,0.22)', marginBottom: 5 }}>{dataDepois}</div>
                     {pesoDepoisStr !== '—' && (
                       <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE }}>{pesoDepoisStr} kg</div>
@@ -354,7 +428,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
             <div style={{ flexShrink: 0, padding: '16px 20px 12px', textAlign: 'center' }}>
 
               {/* Número principal */}
-              <div style={{ fontFamily: ff, fontSize: 34, fontWeight: '900', color: evolucaoKg !== '—' ? S_LILAC : S_MUTED, letterSpacing: '-1.4px', lineHeight: 1 }}>
+              <div style={{ fontFamily: ff, fontSize: 34, fontWeight: '900', color: evolucaoKg !== '—' ? S_GREEN : S_MUTED, letterSpacing: '-1.4px', lineHeight: 1 }}>
                 {evolucaoKg}
               </div>
               {evolucaoKg !== '—' && (
@@ -369,7 +443,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Peso (kg)</div>
                   <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
                     <span>{pesoAntesStr}</span>
-                    {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={9} color={S_LILAC} strokeWidth={2.5} />}
+                    {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />}
                     <span>{pesoDepoisStr}</span>
                   </div>
                 </div>
@@ -378,7 +452,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                     <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Cintura (cm)</div>
                     <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
                       <span>{cinturaAntesStr}</span>
-                      <ArrowRight size={9} color={S_LILAC} strokeWidth={2.5} />
+                      <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />
                       <span>{cinturaDepoisStr}</span>
                     </div>
                   </div>
@@ -392,9 +466,9 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 Disciplina hoje. Liberdade amanhã.
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <div style={{ width: 4, height: 4, background: S_LILAC, borderRadius: 99, opacity: 0.55 }} />
+                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99, opacity: 0.55 }} />
                 <span style={{ fontFamily: ff, fontSize: 9, fontWeight: '600', color: S_MUTED_LO, letterSpacing: '0.07em' }}>glpy.com.br</span>
-                <div style={{ width: 4, height: 4, background: S_LILAC, borderRadius: 99, opacity: 0.55 }} />
+                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99, opacity: 0.55 }} />
               </div>
             </div>
 
@@ -427,12 +501,22 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
           <div style={sectionTitle}>Compartilhar</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.small }}>
             {SHARE_OPTIONS.map(opt => (
-              <div key={opt.id} style={shareBtnStyle} onClick={() => handleShare(opt.id)} role="button" aria-label={opt.label}>
+              <div key={opt.id} style={shareBtnStyle} onClick={handleShareAction} role="button" aria-label={opt.label}>
                 {opt.icon}<span>{opt.label}</span>
               </div>
             ))}
           </div>
         </GLPYCard>
+
+        {/* Feedback das ações de salvar/compartilhar */}
+        {actionMsg && (
+          <div style={{
+            fontFamily: fontFamily.primary, fontSize: 12, color: lightColors.text.secondary,
+            textAlign: 'center', padding: '4px 16px',
+          }}>
+            {actionMsg}
+          </div>
+        )}
 
         {/* ─── CTA ─────────────────────────────────────────────────────────── */}
         <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSaveImage}>
