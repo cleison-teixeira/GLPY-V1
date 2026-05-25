@@ -530,9 +530,11 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
           <p style={cardSubtextStyle}>
             {checkins === 0
               ? 'Faça seu primeiro check-in diário para acompanhar sua evolução.'
-              : checkins < 7
-                ? `Você tem ${checkins} check-in${checkins > 1 ? 's' : ''}. Continue por mais ${7 - checkins} dias para completar sua primeira semana.`
-                : 'Continue registrando seu progresso diariamente.'}
+              : streak === 0
+                ? `Você já fez ${checkins} check-in${checkins > 1 ? 's' : ''}. Faça o check-in de hoje para iniciar sua sequência.`
+                : streak < 7
+                  ? `Continue assim. Faltam ${7 - streak} dias para completar sua primeira semana.`
+                  : 'Excelente. Você completou sua primeira semana de sequência.'}
           </p>
         </GLPYCard>
 
