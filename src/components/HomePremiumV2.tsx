@@ -1248,7 +1248,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                       <span className="text-[10px] font-bold text-orange-800/80 uppercase tracking-wider block leading-none mb-1">Alvo Calórico do Dia</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-black text-[#0A1628] tracking-tight font-mono">
-                          {(nutritionTargets?.adjustedCaloriesTarget ?? 1446).toLocaleString('pt-BR')}
+                          {Math.max(0, Math.round((nutritionTargets?.adjustedCaloriesTarget ?? 1446) - nutritionConsumed.consumedCalories)).toLocaleString('pt-BR')}
                         </span>
                         <span className="text-xs font-bold text-orange-600">kcal</span>
                       </div>

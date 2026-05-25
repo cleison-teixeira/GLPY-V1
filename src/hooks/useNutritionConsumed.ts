@@ -24,7 +24,15 @@ function readTodayConsumed(): NutritionConsumed {
       return new Date(e.savedAt).toISOString().slice(0, 10) === todayKey;
     });
     return {
-      consumedCalories: todayEntries.reduce((s, e) => s + (parseFloat(String(e.calories ?? 0)) || 0), 0),
+      consumedCalories: todayEntries.reduce((s, e) => {
+        const cal = parseFloat(String(e.calories ?? 0)) || 0;
+        if (cal > 0) return s + cal;
+        // Fallback: calcular por macros quando calorias não foram preenchidas
+        const p = parseFloat(String(e.protein ?? 0)) || 0;
+        const c = parseFloat(String(e.carbs   ?? 0)) || 0;
+        const f = parseFloat(String(e.fat     ?? 0)) || 0;
+        return s + (p * 4 + c * 4 + f * 9);
+      }, 0),
       consumedProtein:  todayEntries.reduce((s, e) => s + (parseFloat(String(e.protein  ?? 0)) || 0), 0),
       consumedCarbs:    todayEntries.reduce((s, e) => s + (parseFloat(String(e.carbs    ?? 0)) || 0), 0),
       consumedFat:      todayEntries.reduce((s, e) => s + (parseFloat(String(e.fat      ?? 0)) || 0), 0),
