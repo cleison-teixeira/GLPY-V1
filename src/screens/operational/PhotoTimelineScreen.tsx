@@ -3,11 +3,12 @@
 // Authority: docs/glpy-screen-map-v1.md | docs/glpy-design-system-v1.md
 //
 // Fotos corporais salvas em glpy_body_photos (localStorage, base64 comprimido).
+// Formato: { id, date, createdAt, weight, imageDataUrl, role }
+// role: 'before' | 'after' | 'progress' — fotos antigas sem role migram para 'progress'.
 // O GLPY deve incentivar progresso sem pressionar exposição pública.
-// Futuramente o botão "Ver minha evolução" abrirá a VisualProgressShareScreen.
 
 import React, { useState, useRef } from 'react';
-import { TrendingUp, Camera, Lightbulb } from 'lucide-react';
+import { TrendingUp, Camera, Lightbulb, X } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -24,12 +25,22 @@ interface PhotoTimelineScreenProps {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+type PhotoRole = 'before' | 'after' | 'progress';
+
 interface BodyPhoto {
   id:           string;
   date:         string;       // YYYY-MM-DD
   createdAt:    string;       // ISOString
   weight:       number | null;
   imageDataUrl: string;
+  role:         PhotoRole;
+}
+
+interface ModalState {
+  imageDataUrl: string;
+  date:         string;
+  weightInput:  string;
+  role:         PhotoRole;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,23 +50,16 @@ function readPhotos(): BodyPhoto[] {
     const raw = localStorage.getItem('glpy_body_photos');
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // migração: fotos sem role recebem 'progress'
+    return parsed.map((p: BodyPhoto) => ({ ...p, role: p.role ?? 'progress' }));
   } catch { return []; }
 }
 
-function readCurrentWeight(): number | null {
-  try {
-    for (const key of ['glpy_latest_weight', 'glpy_peso_atual']) {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw);
-      const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
-      if (!isNaN(v) && v > 0) return v;
-    }
-    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-    const v = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));
-    return !isNaN(v) && v > 0 ? v : null;
-  } catch { return null; }
+// Aceita vírgula ou ponto como separador decimal
+function parseBRWeight(s: string): number | null {
+  const v = parseFloat(s.trim().replace(',', '.'));
+  return !isNaN(v) && v > 10 && v < 500 ? v : null;
 }
 
 // Redimensiona para máx 800px e comprime para JPEG 0.8 — mantém fotos abaixo de ~300KB
@@ -85,8 +89,9 @@ function fmtDateBR(dateStr: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps) {
-  const [photos, setPhotos] = useState<BodyPhoto[]>(() => readPhotos());
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos]   = useState<BodyPhoto[]>(() => readPhotos());
+  const [modal, setModal]     = useState<ModalState | null>(null);
+  const fileInputRef          = useRef<HTMLInputElement>(null);
 
   function handleAddPhoto() {
     fileInputRef.current?.click();
@@ -99,21 +104,33 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     reader.onload = async (ev) => {
       const raw = ev.target?.result as string;
       const imageDataUrl = await resizeImage(raw);
-      const newPhoto: BodyPhoto = {
-        id:           `photo_${Date.now()}`,
-        date:         new Date().toISOString().split('T')[0],
-        createdAt:    new Date().toISOString(),
-        weight:       readCurrentWeight(),
-        imageDataUrl,
-      };
-      const existing = readPhotos();
-      const updated = [...existing, newPhoto];
-      localStorage.setItem('glpy_body_photos', JSON.stringify(updated));
-      window.dispatchEvent(new Event('local-storage-change'));
-      setPhotos(updated);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setModal({
+        imageDataUrl,
+        date:        new Date().toISOString().split('T')[0],
+        weightInput: '',
+        role:        'progress',
+      });
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleSavePhoto() {
+    if (!modal) return;
+    const newPhoto: BodyPhoto = {
+      id:           `photo_${Date.now()}`,
+      date:         modal.date || new Date().toISOString().split('T')[0],
+      createdAt:    new Date().toISOString(),
+      weight:       parseBRWeight(modal.weightInput),
+      imageDataUrl: modal.imageDataUrl,
+      role:         modal.role,
+    };
+    const existing = readPhotos();
+    const updated  = [...existing, newPhoto];
+    localStorage.setItem('glpy_body_photos', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-change'));
+    setPhotos(updated);
+    setModal(null);
   }
 
   function handleViewProgress() {
@@ -122,23 +139,27 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
-  const firstPhoto  = photos.length > 0 ? photos[0]                    : null;
-  const lastPhoto   = photos.length > 1 ? photos[photos.length - 1]    : null;
-  const beforePhoto = firstPhoto;
-  const afterPhoto  = lastPhoto;
+  // Antes: primeira com role 'before', senão primeira foto
+  const beforePhoto = photos.find(p => p.role === 'before')
+    ?? (photos.length > 0 ? photos[0] : null);
 
-  const lastUpdateStr = (lastPhoto ?? firstPhoto)
-    ? fmtDateBR((lastPhoto ?? firstPhoto)!.date)
-    : '—';
+  // Depois: última com role 'after', senão última (requer 2+ fotos)
+  const afterCandidates = photos.filter(p => p.role === 'after');
+  const afterPhoto = afterCandidates.length > 0
+    ? afterCandidates[afterCandidates.length - 1]
+    : (photos.length > 1 ? photos[photos.length - 1] : null);
+
+  const lastAny        = photos.length > 0 ? photos[photos.length - 1] : null;
+  const lastUpdateStr  = lastAny ? fmtDateBR(lastAny.date) : '—';
 
   const weightEvolutionStr = (() => {
-    if (!firstPhoto?.weight || !lastPhoto?.weight) return null;
-    const diff = firstPhoto.weight - lastPhoto.weight;
+    if (!beforePhoto?.weight || !afterPhoto?.weight) return null;
+    const diff = beforePhoto.weight - afterPhoto.weight;
     if (diff <= 0) return null;
     return `${diff.toFixed(1).replace('.', ',')} kg eliminados`;
   })();
 
-  // ── Shared styles ──────────────────────────────────────────────────────────
+  // ── Shared card styles ─────────────────────────────────────────────────────
 
   const sectionGap: React.CSSProperties = {
     display:       'flex',
@@ -179,7 +200,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     marginBottom: gap.small,
   };
 
-  // card 1 — summary block
+  // card 1 — summary
   const summaryBlockStyle: React.CSSProperties = {
     background:    lightColors.background.secondary,
     borderRadius:  radius.secondary,
@@ -260,17 +281,12 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
   };
 
   const realPhotoStyle: React.CSSProperties = {
-    position:   'absolute',
-    inset:      0,
-    width:      '100%',
-    height:     '100%',
-    objectFit:  'cover',
+    position:     'absolute',
+    inset:        0,
+    width:        '100%',
+    height:       '100%',
+    objectFit:    'cover',
     borderRadius: radius.secondary,
-  };
-
-  // card 3
-  const addPhotoButtonWrapStyle: React.CSSProperties = {
-    marginTop: 4,
   };
 
   // dica
@@ -295,6 +311,31 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     lineHeight: 1.5,
   };
 
+  // ── Modal styles ───────────────────────────────────────────────────────────
+
+  const modalLabelStyle: React.CSSProperties = {
+    display:      'block',
+    fontFamily:   fontFamily.primary,
+    fontSize:     fontSize.small,
+    fontWeight:   fontWeight.h3,
+    color:        lightColors.text.navy,
+    marginBottom: 6,
+  };
+
+  const modalInputStyle: React.CSSProperties = {
+    width:        '100%',
+    padding:      '11px 12px',
+    border:       `1px solid ${lightColors.border.soft}`,
+    borderRadius: radius.secondary,
+    fontFamily:   fontFamily.primary,
+    fontSize:     fontSize.bodyDefault,
+    color:        lightColors.text.navy,
+    background:   lightColors.background.secondary,
+    marginBottom: 16,
+    boxSizing:    'border-box',
+    outline:      'none',
+  };
+
   // ── Render helpers ─────────────────────────────────────────────────────────
 
   function PhotoSlot({ photo, label }: { photo: BodyPhoto | null; label: string }) {
@@ -304,9 +345,9 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
         {photo ? (
           <>
             <img src={photo.imageDataUrl} alt={label} style={realPhotoStyle} />
-            {photo.weight && (
-              <span style={photoWeightBadgeStyle}>{photo.weight.toFixed(1).replace('.', ',')} kg</span>
-            )}
+            <span style={photoWeightBadgeStyle}>
+              {photo.weight ? `${photo.weight.toFixed(1).replace('.', ',')} kg` : '— kg'}
+            </span>
           </>
         ) : (
           <Camera size={28} color={lightColors.border.soft} strokeWidth={1.5} />
@@ -315,9 +356,15 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     );
   }
 
+  const ROLE_OPTIONS: { key: PhotoRole; label: string }[] = [
+    { key: 'before',   label: 'Antes'    },
+    { key: 'after',    label: 'Depois'   },
+    { key: 'progress', label: 'Registro' },
+  ];
+
   return (
     <GLPYScreen variant="light">
-      {/* hidden file input — accept images from gallery or camera */}
+      {/* hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -387,12 +434,8 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
           <p style={{ ...cardSubtextStyle, marginBottom: 0 }}>
             Registre uma nova foto para acompanhar sua evolução.
           </p>
-          <div style={addPhotoButtonWrapStyle}>
-            <GLPYButton
-              variant="secondary"
-              size="sm"
-              onClick={handleAddPhoto}
-            >
+          <div style={{ marginTop: 4 }}>
+            <GLPYButton variant="secondary" size="sm" onClick={handleAddPhoto}>
               Adicionar foto
             </GLPYButton>
           </div>
@@ -418,16 +461,141 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
         </GLPYCard>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <GLPYButton
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleViewProgress}
-        >
+        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleViewProgress}>
           Ver minha evolução
         </GLPYButton>
 
       </div>
+
+      {/* ── Modal — dados da foto ──────────────────────────────────────────────── */}
+      {modal && (
+        <>
+          {/* Overlay — não fecha ao clicar para evitar perda acidental da foto */}
+          <div
+            style={{
+              position:   'fixed',
+              inset:      0,
+              background: 'rgba(10,22,40,0.52)',
+              zIndex:     100,
+            }}
+          />
+
+          {/* Bottom sheet */}
+          <div
+            style={{
+              position:     'fixed',
+              bottom:       0,
+              left:         0,
+              right:        0,
+              zIndex:       101,
+              background:   lightColors.background.primary,
+              borderRadius: '20px 20px 0 0',
+              padding:      '20px 20px 36px',
+              boxShadow:    '0 -8px 40px rgba(10,22,40,0.14)',
+              maxHeight:    '88vh',
+              overflowY:    'auto',
+            }}
+          >
+            {/* Drag pill */}
+            <div style={{ width: 36, height: 4, background: lightColors.border.soft, borderRadius: 99, margin: '0 auto 18px' }} />
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <span style={{ fontFamily: fontFamily.primary, fontSize: fontSize.bodyDefault, fontWeight: fontWeight.h3, color: lightColors.text.navy }}>
+                Nova foto corporal
+              </span>
+              <button
+                onClick={() => setModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+              >
+                <X size={18} color={lightColors.text.secondary} />
+              </button>
+            </div>
+
+            {/* Preview */}
+            <img
+              src={modal.imageDataUrl}
+              alt="Preview"
+              style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: radius.secondary, marginBottom: 20 }}
+            />
+
+            {/* Data */}
+            <label style={modalLabelStyle}>Data da foto</label>
+            <input
+              type="date"
+              value={modal.date}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => setModal(m => m ? { ...m, date: e.target.value } : m)}
+              style={modalInputStyle}
+            />
+
+            {/* Peso */}
+            <label style={modalLabelStyle}>
+              Peso naquela foto{' '}
+              <span style={{ fontWeight: 400, color: lightColors.text.secondary }}>(opcional)</span>
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={modal.weightInput}
+              onChange={e => setModal(m => m ? { ...m, weightInput: e.target.value } : m)}
+              placeholder="Ex: 85,0"
+              style={modalInputStyle}
+            />
+
+            {/* Tipo da foto */}
+            <label style={{ ...modalLabelStyle, marginBottom: 10 }}>Tipo da foto</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+              {ROLE_OPTIONS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setModal(m => m ? { ...m, role: key } : m)}
+                  style={{
+                    flex:         1,
+                    padding:      '10px 4px',
+                    borderRadius: radius.secondary,
+                    border:       `1.5px solid ${modal.role === key ? lightColors.brand.green : lightColors.border.soft}`,
+                    background:   modal.role === key ? lightColors.brand.green : lightColors.background.secondary,
+                    color:        modal.role === key ? '#fff' : lightColors.text.navy,
+                    fontFamily:   fontFamily.primary,
+                    fontSize:     fontSize.small,
+                    fontWeight:   modal.role === key ? fontWeight.h3 : '400',
+                    cursor:       'pointer',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Salvar */}
+            <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSavePhoto}>
+              Salvar foto
+            </GLPYButton>
+
+            {/* Cancelar */}
+            <button
+              onClick={() => setModal(null)}
+              style={{
+                display:    'block',
+                width:      '100%',
+                marginTop:  12,
+                background: 'none',
+                border:     'none',
+                cursor:     'pointer',
+                fontFamily: fontFamily.primary,
+                fontSize:   fontSize.small,
+                color:      lightColors.text.secondary,
+                padding:    '8px 0',
+              }}
+            >
+              Cancelar
+            </button>
+
+          </div>
+        </>
+      )}
+
     </GLPYScreen>
   );
 }

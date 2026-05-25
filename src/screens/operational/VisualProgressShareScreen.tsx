@@ -5,7 +5,7 @@
 // Fotos e dados vêm de glpy_body_photos, glpy_medidas_iniciais,
 // glpy_medidas_corporais e glpy_protocolo_ativo (localStorage).
 // Se dado real não existir, fallback seguro '—'.
-// Salvar imagem: html2canvas captura o story card; iOS abre em nova aba.
+// Salvar imagem: html2canvas captura o story card 9:16; iOS abre em nova aba.
 
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
@@ -45,12 +45,10 @@ function readBodyPhotos(): BodyPhoto[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    // migração: fotos sem role recebem 'progress'
     return parsed.map((p: BodyPhoto) => ({ ...p, role: p.role ?? 'progress' }));
   } catch { return []; }
 }
 
-// Peso atual — mesma cascata do useCurrentWeight hook
 function readCurrentWeight(): number | null {
   try {
     const latestRaw = localStorage.getItem('glpy_latest_weight');
@@ -68,7 +66,6 @@ function readCurrentWeight(): number | null {
   return null;
 }
 
-// Peso inicial — mesma cascata do HomePremiumV2 (weightStart)
 function readInitialWeight(): number | null {
   try {
     const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
@@ -78,6 +75,20 @@ function readInitialWeight(): number | null {
   try {
     const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
     const v = parseFloat(String(onb.pesoInicial ?? ''));
+    if (!isNaN(v) && v > 0) return v;
+  } catch {}
+  return null;
+}
+
+function readGoalWeight(): number | null {
+  try {
+    const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
+    const v = parseFloat(String(rs.goalWeight ?? rs.weightGoal ?? ''));
+    if (!isNaN(v) && v > 0) return v;
+  } catch {}
+  try {
+    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+    const v = parseFloat(String(onb.pesoMeta ?? onb.peso_meta ?? ''));
     if (!isNaN(v) && v > 0) return v;
   } catch {}
   return null;
@@ -106,35 +117,37 @@ const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set'
 
 function fmtMonthPT(dateStr: string): string {
   const [y, m] = dateStr.split('-');
-  const month = MONTHS_PT[parseInt(m, 10) - 1] ?? '—';
-  return `${month} ${y}`;
+  return `${MONTHS_PT[parseInt(m, 10) - 1] ?? '—'} ${y}`;
 }
 
 function calcDaysApart(d1: string, d2: string): number {
-  const t1 = new Date(d1).getTime();
-  const t2 = new Date(d2).getTime();
-  return Math.round(Math.abs(t2 - t1) / 86400000);
+  return Math.round(Math.abs(new Date(d1).getTime() - new Date(d2).getTime()) / 86400000);
 }
 
-// ── Story card dark tokens ────────────────────────────────────────────────────
+// ── Dark tokens ───────────────────────────────────────────────────────────────
 
-const S_BG         = '#0A1628';
-const S_PHOTO_A    = '#1a2e44';
-const S_PHOTO_B    = '#0d2030';
-const S_STRIP_BG   = '#1a2e44';
-const S_STRIP_CELL = '#0d1f35';
-const S_GREEN      = '#00C27A';
-const S_WHITE      = '#FFFFFF';
-const S_MUTED      = 'rgba(255,255,255,0.45)';
-const S_MUTED_LO   = 'rgba(255,255,255,0.20)';
+const S_BG      = '#0A1628';
+const S_PHOTO_A = '#111e30';
+const S_PHOTO_B = '#0c1a2c';
+const S_GREEN   = '#00C27A';
+const S_WHITE   = '#FFFFFF';
+const S_MUTED   = 'rgba(255,255,255,0.42)';
+const S_MUTED_LO= 'rgba(255,255,255,0.18)';
 
-// ── Share options — 4 canais em grid 2×2 ─────────────────────────────────────
+// ── Arc constants (270° gauge) ────────────────────────────────────────────────
+
+const ARC_R    = 38;
+const ARC_CIRC = 2 * Math.PI * ARC_R;           // ≈ 238.8
+const ARC_TRACK= (270 / 360) * ARC_CIRC;        // ≈ 179.1  (270° dash)
+const ARC_GAP  = ARC_CIRC - ARC_TRACK;          // ≈  59.7  (90° gap at bottom)
+
+// ── Share options ─────────────────────────────────────────────────────────────
 
 const SHARE_OPTIONS = [
-  { id: 'cell',      label: 'Célula GLPY', icon: <Users    size={16} strokeWidth={2} /> },
-  { id: 'whatsapp',  label: 'WhatsApp',    icon: <Share2   size={16} strokeWidth={2} /> },
-  { id: 'instagram', label: 'Instagram',   icon: <Share2   size={16} strokeWidth={2} /> },
-  { id: 'tiktok',    label: 'TikTok',      icon: <Share2   size={16} strokeWidth={2} /> },
+  { id: 'cell',      label: 'Célula GLPY', icon: <Users  size={16} strokeWidth={2} /> },
+  { id: 'whatsapp',  label: 'WhatsApp',    icon: <Share2 size={16} strokeWidth={2} /> },
+  { id: 'instagram', label: 'Instagram',   icon: <Share2 size={16} strokeWidth={2} /> },
+  { id: 'tiktok',    label: 'TikTok',      icon: <Share2 size={16} strokeWidth={2} /> },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -143,15 +156,13 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   const storyCardRef = useRef<HTMLDivElement>(null);
 
-  // ── Data from localStorage ─────────────────────────────────────────────────
+  // ── Data ──────────────────────────────────────────────────────────────────
 
   const photos = readBodyPhotos();
 
-  // Antes: primeira com role 'before', senão primeira foto
   const beforePhoto = photos.find(p => p.role === 'before')
     ?? (photos.length > 0 ? photos[0] : null);
 
-  // Depois: última com role 'after', senão última (requer 2+ fotos)
   const afterCandidates = photos.filter(p => p.role === 'after');
   const afterPhoto = afterCandidates.length > 0
     ? afterCandidates[afterCandidates.length - 1]
@@ -160,37 +171,30 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   const pesoAntesNum  = beforePhoto?.weight ?? null;
   const pesoDepoisNum = afterPhoto?.weight  ?? readCurrentWeight();
 
-  // Evolução: prioridade 1 — pesos diferentes entre fotos
-  //           prioridade 2 — jornada real: pesoInicial vs pesoAtual (mesma lógica da Home)
   const evolucaoKg = (() => {
-    if (pesoAntesNum != null && pesoDepoisNum != null && pesoAntesNum > pesoDepoisNum) {
-      const diff = pesoAntesNum - pesoDepoisNum;
-      return `−${diff.toFixed(1).replace('.', ',')} kg`;
-    }
-    const pesoInicial = readInitialWeight();
-    const pesoAtual   = readCurrentWeight();
-    if (pesoInicial != null && pesoAtual != null && pesoInicial > pesoAtual) {
-      const diff = pesoInicial - pesoAtual;
-      return `−${diff.toFixed(1).replace('.', ',')} kg`;
-    }
+    if (pesoAntesNum != null && pesoDepoisNum != null && pesoAntesNum > pesoDepoisNum)
+      return `−${(pesoAntesNum - pesoDepoisNum).toFixed(1).replace('.', ',')} kg`;
+    const pi = readInitialWeight(), pa = readCurrentWeight();
+    if (pi != null && pa != null && pi > pa)
+      return `−${(pi - pa).toFixed(1).replace('.', ',')} kg`;
     return '—';
   })();
 
-  // Antes/Depois display: peso da foto → fallback dados da jornada
   const displayPesoAntes  = pesoAntesNum  ?? readInitialWeight();
   const displayPesoDepois = pesoDepoisNum ?? null;
-
   const pesoAntesStr  = displayPesoAntes  != null ? String(Math.round(displayPesoAntes))  : '—';
   const pesoDepoisStr = displayPesoDepois != null ? String(Math.round(displayPesoDepois)) : '—';
 
   const cinturaAntes  = readWaistFromKey('glpy_medidas_iniciais');
   const cinturaDepois = readWaistFromKey('glpy_medidas_corporais');
+  const hasCintura    = cinturaAntes != null && cinturaDepois != null;
+  const cinturaAntesStr  = hasCintura ? String(Math.round(cinturaAntes!))  : '—';
+  const cinturaDepoisStr = hasCintura ? String(Math.round(cinturaDepois!)) : '—';
 
   const evolucaoCintura = (() => {
-    if (cinturaAntes == null || cinturaDepois == null) return '—';
-    const diff = cinturaAntes - cinturaDepois;
-    if (diff <= 0) return '—';
-    return `−${Math.round(diff)} cm`;
+    if (!hasCintura) return '—';
+    const d = cinturaAntes! - cinturaDepois!;
+    return d > 0 ? `−${Math.round(d)} cm` : '—';
   })();
 
   const dataAntes  = beforePhoto ? fmtMonthPT(beforePhoto.date) : '—';
@@ -204,544 +208,335 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   const protocoloNome = readProtocolo() ?? '—';
 
-  const cinturaAntesStr  = cinturaAntes  != null ? String(Math.round(cinturaAntes))  : '—';
-  const cinturaDepoisStr = cinturaDepois != null ? String(Math.round(cinturaDepois)) : '—';
+  // Arco de progresso (0..1) — para o gauge SVG
+  const arcProgress = (() => {
+    if (evolucaoKg === '—') return 0;
+    const inicial = readInitialWeight();
+    const atual   = readCurrentWeight();
+    const meta    = readGoalWeight();
+    if (inicial == null || atual == null) return 0;
+    const lost        = Math.max(0, inicial - atual);
+    const totalToLose = meta != null
+      ? Math.max(1, inicial - meta)
+      : Math.max(1, lost * 1.5);       // fallback: mostra ~66% se não há meta
+    return Math.min(0.94, lost / totalToLose);
+  })();
+
+  const arcFillDash = arcProgress * ARC_TRACK;
+  const arcFillGap  = ARC_CIRC - arcFillDash;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleShare(platform: string) {
-    console.log(`[GLPY] share_${platform}`);
-  }
+  function handleShare(platform: string) { console.log(`[GLPY] share_${platform}`); }
 
   async function handleSaveImage() {
     if (!storyCardRef.current) return;
     try {
       const canvas = await html2canvas(storyCardRef.current, {
-        scale:           2,
-        useCORS:         true,
-        backgroundColor: S_BG,
-        logging:         false,
+        scale: 2, useCORS: true, backgroundColor: S_BG, logging: false,
       });
       const dataUrl = canvas.toDataURL('image/png');
-      // iOS Safari não suporta download via <a>; abre em nova aba para salvar via long-press
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
       if (isIOS) {
-        const newTab = window.open();
-        if (newTab) {
-          newTab.document.write(
+        const t = window.open();
+        if (t) {
+          t.document.write(
             `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
             `<meta name="viewport" content="width=device-width,initial-scale=1">` +
             `<style>body{margin:0;background:#0A1628;display:flex;align-items:center;justify-content:center;min-height:100vh}` +
-            `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;text-align:center;position:fixed;bottom:24px;width:100%}</style></head>` +
+            `p{color:rgba(255,255,255,.50);font-family:sans-serif;font-size:13px;text-align:center;position:fixed;bottom:24px;width:100%;padding:0 16px;box-sizing:border-box}</style></head>` +
             `<body><img src="${dataUrl}" style="max-width:100%;display:block"/>` +
-            `<p>Pressione a imagem e toque em "Salvar" para guardar no seu dispositivo.</p></body></html>`
+            `<p>Pressione a imagem e toque em "Salvar".</p></body></html>`
           );
-          newTab.document.close();
+          t.document.close();
         }
       } else {
         const a = document.createElement('a');
-        a.href     = dataUrl;
-        a.download = 'minha-evolucao-glpy.png';
-        a.click();
+        a.href = dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
       }
-    } catch (err) {
-      console.error('[GLPY] Erro ao gerar imagem', err);
-    }
+    } catch (err) { console.error('[GLPY] Erro ao gerar imagem', err); }
   }
 
-  // ── Layout gap ────────────────────────────────────────────────────────────
+  // ── Shared style helpers ───────────────────────────────────────────────────
 
-  const sectionGap: React.CSSProperties = {
-    display:       'flex',
-    flexDirection: 'column',
-    gap:           gap.small,
-  };
+  const ff  = fontFamily.primary;
+  const overlayGrad = 'linear-gradient(to top, rgba(3,7,16,0.93) 0%, rgba(3,7,16,0.40) 52%, transparent 100%)';
+  const photoAbs: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' };
 
-  // ── Story card ────────────────────────────────────────────────────────────
-
-  const storyWrap: React.CSSProperties = {
-    background: S_BG,
-    position:   'relative',
-  };
-
-  const scTopStyle: React.CSSProperties = {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    padding:        '16px 18px 12px',
-  };
-
-  const protoWrapStyle: React.CSSProperties = {
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'flex-end',
-  };
-
-  const protoLineStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   10,
-    fontWeight: '600',
-    color:      S_MUTED,
-    lineHeight: 1.4,
-  };
-
-  const protoGreenStyle: React.CSSProperties = {
-    fontFamily:  fontFamily.primary,
-    fontSize:    11,
-    fontWeight:  '700',
-    color:       S_GREEN,
-    lineHeight:  1.4,
-    textAlign:   'right',
-  };
-
-  const scHeadlineStyle: React.CSSProperties = {
-    padding:   '0 18px 14px',
-    textAlign: 'center',
-  };
-
-  const scH1Style: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      22,
-    fontWeight:    '900',
-    color:         S_WHITE,
-    letterSpacing: '-0.8px',
-    marginBottom:  3,
-    lineHeight:    1.1,
-  };
-
-  const scTaglineStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   11,
-    fontWeight: '500',
-    color:      S_MUTED,
-  };
-
-  const photosGridStyle: React.CSSProperties = {
-    display:             'grid',
-    gridTemplateColumns: '1fr 16px 1fr',
-    alignItems:          'end',
-    padding:             '0 14px',
-  };
-
-  const photoBeforeStyle: React.CSSProperties = {
-    background:    S_PHOTO_A,
-    borderRadius:  '12px 12px 0 0',
-    overflow:      'hidden',
-    height:        180,
-    display:       'flex',
-    flexDirection: 'column',
-    justifyContent:'flex-end',
-    position:      'relative',
-  };
-
-  const photoAfterStyle: React.CSSProperties = {
-    background:    S_PHOTO_B,
-    borderRadius:  '12px 12px 0 0',
-    overflow:      'hidden',
-    height:        218,
-    display:       'flex',
-    flexDirection: 'column',
-    justifyContent:'flex-end',
-    position:      'relative',
-    border:        `2px solid ${S_GREEN}`,
-  };
-
-  const photoPlaceholderStyle: React.CSSProperties = {
-    position:       'absolute',
-    top:            0,
-    left:           0,
-    right:          0,
-    bottom:         0,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    flexDirection:  'column',
-    gap:            6,
-  };
-
-  const realPhotoStyle: React.CSSProperties = {
-    position:   'absolute',
-    inset:      0,
-    width:      '100%',
-    height:     '100%',
-    objectFit:  'cover',
-  };
-
-  const photoLabelRowStyle: React.CSSProperties = {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    padding:        '8px 10px 6px',
-    position:       'relative',
-    zIndex:         2,
-  };
-
-  const photoDateStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   9,
-    fontWeight: '500',
-    color:      'rgba(255,255,255,0.30)',
-  };
-
-  const arrowWrapStyle: React.CSSProperties = {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    paddingBottom:  76,
-  };
-
-  const arrowCircleStyle: React.CSSProperties = {
-    width:          34,
-    height:         34,
-    background:     S_GREEN,
-    borderRadius:   99,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    boxShadow:      `0 0 0 5px ${S_BG}`,
-  };
-
-  const statsStripStyle: React.CSSProperties = {
-    display:             'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gap:                 1,
-    background:          S_STRIP_BG,
-    marginTop:           0,
-  };
-
-  const statCellStyle: React.CSSProperties = {
-    background: S_STRIP_CELL,
-    padding:    '12px 8px',
-    textAlign:  'center',
-  };
-
-  const statValBaseStyle: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      15,
-    fontWeight:    '800',
-    letterSpacing: '-0.5px',
-    lineHeight:    1,
-    marginBottom:  3,
-    display:       'flex',
-    alignItems:    'center',
-    justifyContent:'center',
-    gap:           3,
-  };
-
-  const statLabelStyle: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      9,
-    fontWeight:    '600',
-    color:         'rgba(255,255,255,0.35)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  };
-
-  const scFooterStyle: React.CSSProperties = {
-    padding:    '14px 18px 16px',
-    textAlign:  'center',
-    borderTop:  '1px solid rgba(255,255,255,0.05)',
-  };
-
-  const fraseStyle: React.CSSProperties = {
-    fontFamily:   fontFamily.primary,
-    fontSize:     12,
-    fontWeight:   '600',
-    color:        S_MUTED,
-    fontStyle:    'italic',
-    marginBottom: 6,
-  };
-
-  const brandRowStyle: React.CSSProperties = {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            5,
-  };
-
-  const brandDotStyle: React.CSSProperties = {
-    width:        5,
-    height:       5,
-    background:   S_GREEN,
-    borderRadius: 99,
-  };
-
-  const brandTextStyle: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      10,
-    fontWeight:    '600',
-    color:         S_MUTED_LO,
-    letterSpacing: '0.05em',
-  };
-
-  // ── Resumo card ───────────────────────────────────────────────────────────
-
-  const resumoTitleStyle: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      12,
-    fontWeight:    '700',
-    color:         lightColors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    marginBottom:  12,
-  };
+  // ── Resumo card styles ─────────────────────────────────────────────────────
 
   const resumoRowStyle: React.CSSProperties = {
-    display:        'flex',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    paddingTop:     1,
-    paddingBottom:  1,
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 1, paddingBottom: 1,
   };
-
   const resumoKeyStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.small,
-    color:      lightColors.text.secondary,
-    display:    'flex',
-    alignItems: 'center',
-    gap:        6,
+    fontFamily: ff, fontSize: fontSize.small, color: lightColors.text.secondary, display: 'flex', alignItems: 'center', gap: 6,
   };
-
   const resumoValStyle: React.CSSProperties = {
-    fontFamily: fontFamily.primary,
-    fontSize:   fontSize.small,
-    fontWeight: fontWeight.h3,
-    color:      lightColors.text.navy,
+    fontFamily: ff, fontSize: fontSize.small, fontWeight: fontWeight.h3, color: lightColors.text.navy,
+  };
+  const resumoValGreen: React.CSSProperties = { ...resumoValStyle, color: lightColors.brand.greenDark };
+  const dividerStyle: React.CSSProperties = { height: 0.5, background: lightColors.border.soft, margin: '6px 0' };
+  const sectionTitle: React.CSSProperties = {
+    fontFamily: ff, fontSize: 12, fontWeight: '700', color: lightColors.text.secondary,
+    textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12,
   };
 
-  const resumoValGreenStyle: React.CSSProperties = {
-    ...resumoValStyle,
-    color: lightColors.brand.greenDark,
-  };
-
-  const resumoDividerStyle: React.CSSProperties = {
-    height:     0.5,
-    background: lightColors.border.soft,
-    margin:     '6px 0',
-  };
-
-  // ── Share card ────────────────────────────────────────────────────────────
-
-  const shareTitleStyle: React.CSSProperties = {
-    fontFamily:    fontFamily.primary,
-    fontSize:      12,
-    fontWeight:    '700',
-    color:         lightColors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    marginBottom:  12,
-  };
-
-  const shareGridStyle: React.CSSProperties = {
-    display:             'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap:                 gap.small,
-  };
+  // ── Share card styles ──────────────────────────────────────────────────────
 
   const shareBtnStyle: React.CSSProperties = {
-    display:      'flex',
-    alignItems:   'center',
-    gap:          8,
-    padding:      '10px 12px',
-    background:   lightColors.background.secondary,
-    border:       `0.5px solid ${lightColors.border.soft}`,
-    borderRadius: 14,
-    cursor:       'pointer',
-    fontFamily:   fontFamily.primary,
-    fontSize:     12,
-    fontWeight:   '600',
-    color:        lightColors.text.navy,
-    transition:   transition.default,
+    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+    background: lightColors.background.secondary, border: `0.5px solid ${lightColors.border.soft}`,
+    borderRadius: 14, cursor: 'pointer', fontFamily: ff, fontSize: 12, fontWeight: '600',
+    color: lightColors.text.navy, transition: transition.default,
   };
 
   return (
     <GLPYScreen variant="light">
       <GLPYHeader title="Minha evolução" onBack={onBack} />
 
-      <div style={sectionGap}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small }}>
 
-        {/* ── Story Card ────────────────────────────────────────────────────── */}
-        <GLPYCard
-          variant="light"
-          noPadding
-          style={{ border: `1.5px solid rgba(106,210,143,0.22)` }}
-        >
-          {/* ref apenas no conteúdo escuro — capturado pelo html2canvas */}
-          <div ref={storyCardRef} style={storyWrap}>
+        {/* ─── Story card 9:16 ────────────────────────────────────────────── */}
+        <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(0,194,122,0.18)', boxShadow: '0 8px 40px rgba(0,194,122,0.07)' }}>
+          <div
+            ref={storyCardRef}
+            style={{ background: S_BG, aspectRatio: '9 / 16', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          >
 
-            {/* Topo: logo + protocolo */}
-            <div style={scTopStyle}>
-              <img
-                src={logoGlpyDark}
-                alt="GLPY"
-                style={{ height: 26, objectFit: 'contain', display: 'block' }}
-              />
-              <div style={protoWrapStyle}>
-                <span style={protoLineStyle}>Meu protocolo</span>
-                <span style={protoGreenStyle}>{protocoloNome}</span>
+            {/* ── Header ──────────────────────────────────────────────── */}
+            <div style={{ flexShrink: 0, padding: '22px 20px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <img src={logoGlpyDark} alt="GLPY" style={{ height: 22, objectFit: 'contain', display: 'block' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 5, height: 5, background: S_GREEN, borderRadius: 99 }} />
+                  <span style={{ fontFamily: ff, fontSize: 10, fontWeight: '700', color: S_GREEN, letterSpacing: '0.02em' }}>
+                    {protocoloNome}
+                  </span>
+                </div>
               </div>
+              <div style={{ textAlign: 'center', marginBottom: 13 }}>
+                <div style={{ fontFamily: ff, fontSize: 22, fontWeight: '900', color: S_WHITE, letterSpacing: '-0.9px', lineHeight: 1.05, marginBottom: 5 }}>
+                  Meu Antes &amp; Depois
+                </div>
+                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.02em' }}>
+                  Mais saúde. Mais controle. Mais eu.
+                </div>
+              </div>
+              <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${S_GREEN}55, transparent)` }} />
             </div>
 
-            {/* Headline */}
-            <div style={scHeadlineStyle}>
-              <div style={scH1Style}>Meu Antes &amp; Depois</div>
-              <div style={scTaglineStyle}>Mais saúde. Mais controle. Mais eu.</div>
+            {/* ── Fotos ───────────────────────────────────────────────── */}
+            <div style={{ flex: 1, display: 'flex', minHeight: 0, padding: '10px 14px 0' }}>
+
+              {/* Antes */}
+              <div style={{ flex: 1, marginTop: 20, position: 'relative', overflow: 'hidden', borderRadius: '10px 10px 0 0', background: S_PHOTO_A }}>
+                {/* barra discreta */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.09)', zIndex: 1 }} />
+                {beforePhoto
+                  ? <img src={beforePhoto.imageDataUrl} alt="Antes" style={photoAbs} />
+                  : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                }
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '32px 10px 12px', zIndex: 1 }}>
+                  <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.40)', letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Antes</div>
+                  <div style={{ fontFamily: ff, fontSize: 8, color: 'rgba(255,255,255,0.22)', marginBottom: 5 }}>{dataAntes}</div>
+                  {pesoAntesStr !== '—' && (
+                    <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.75)' }}>{pesoAntesStr} kg</div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Separador: linha de evolução + selo de conquista ──── */}
+              <div style={{ width: 26, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, position: 'relative' }}>
+                {/* Linha vertical de evolução — conecta Depois → seta → Antes */}
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0, width: 1.5,
+                  background: `linear-gradient(to bottom, ${S_GREEN}55 0%, ${S_GREEN}40 40%, ${S_GREEN}40 60%, rgba(255,255,255,0.08) 100%)`,
+                }} />
+                <div style={{ flex: 1 }} />
+                {/* Selo de conquista — substituiu a seta simples */}
+                <div style={{
+                  width: 30, height: 30, flexShrink: 0,
+                  background: `radial-gradient(circle at center, #004d30 0%, #002419 100%)`,
+                  borderRadius: 99,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 0 2.5px ${S_BG}, 0 0 0 4.5px ${S_GREEN}, 0 0 20px rgba(0,194,122,0.55)`,
+                  position: 'relative', zIndex: 1,
+                }}>
+                  <ArrowRight size={13} color={S_WHITE} strokeWidth={2.5} />
+                </div>
+                <div style={{ flex: 1 }} />
+              </div>
+
+              {/* Depois — wrapper para glow externo + coluna interna */}
+              <div style={{ flex: 1, boxShadow: `0 0 26px rgba(0,194,122,0.32), 0 0 6px rgba(0,194,122,0.18)`, borderRadius: '10px 10px 0 0' }}>
+                <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '10px 10px 0 0', background: S_PHOTO_B, borderTop: `2.5px solid ${S_GREEN}`, borderLeft: `1.5px solid rgba(0,194,122,0.35)`, borderRight: `1.5px solid rgba(0,194,122,0.35)` }}>
+                  {/* glow cinematográfico interno */}
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 25%, rgba(0,194,122,0.12) 0%, transparent 60%)', zIndex: 1, pointerEvents: 'none' }} />
+                  {/* barra verde */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: S_GREEN, zIndex: 2 }} />
+
+                  {afterPhoto
+                    ? <img src={afterPhoto.imageDataUrl} alt="Depois" style={photoAbs} />
+                    : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_GREEN}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                      </div>
+                  }
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '32px 10px 12px', zIndex: 2 }}>
+                    <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: S_GREEN, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Depois</div>
+                    <div style={{ fontFamily: ff, fontSize: 8, color: 'rgba(255,255,255,0.22)', marginBottom: 5 }}>{dataDepois}</div>
+                    {pesoDepoisStr !== '—' && (
+                      <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE }}>{pesoDepoisStr} kg</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            {/* Fotos: grid 1fr 16px 1fr, align-items end */}
-            <div style={photosGridStyle}>
+            {/* ── Métricas ─────────────────────────────────────────────── */}
+            <div style={{ flexShrink: 0, padding: '16px 20px 12px', textAlign: 'center', position: 'relative' }}>
 
-              {/* Antes — 180px */}
-              <div style={photoBeforeStyle}>
-                {beforePhoto ? (
-                  <img src={beforePhoto.imageDataUrl} alt="Antes" style={realPhotoStyle} />
-                ) : (
-                  <div style={{ ...photoPlaceholderStyle, paddingBottom: 32 }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
+              {/* 1. Arco de progresso (SVG atrás do número) */}
+              {arcProgress > 0 && (
+                <svg
+                  width="96" height="96" viewBox="0 0 96 96"
+                  style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}
+                  aria-hidden="true"
+                >
+                  {/* trilha */}
+                  <circle cx="48" cy="48" r={ARC_R} fill="none"
+                    stroke="rgba(0,194,122,0.10)" strokeWidth="5"
+                    strokeDasharray={`${ARC_TRACK} ${ARC_GAP}`}
+                    strokeLinecap="round"
+                    transform="rotate(-135 48 48)"
+                  />
+                  {/* preenchimento proporcional ao progresso */}
+                  <circle cx="48" cy="48" r={ARC_R} fill="none"
+                    stroke={S_GREEN} strokeWidth="5"
+                    strokeDasharray={`${arcFillDash} ${arcFillGap}`}
+                    strokeLinecap="round" opacity={0.70}
+                    transform="rotate(-135 48 48)"
+                  />
+                  {/* ponto de topo (início do arco) */}
+                  {arcProgress > 0.05 && (
+                    <circle
+                      cx={48 + ARC_R * Math.cos((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
+                      cy={48 + ARC_R * Math.sin((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
+                      r="3.5" fill={S_GREEN} opacity={0.85}
+                    />
+                  )}
+                </svg>
+              )}
+
+              {/* Número principal */}
+              <div style={{ fontFamily: ff, fontSize: 30, fontWeight: '900', color: evolucaoKg !== '—' ? S_GREEN : S_MUTED, letterSpacing: '-1.2px', lineHeight: 1, position: 'relative', zIndex: 1 }}>
+                {evolucaoKg}
+              </div>
+              {evolucaoKg !== '—' && (
+                <div style={{ fontFamily: ff, fontSize: 10, color: S_MUTED, letterSpacing: '0.05em', marginTop: 2, position: 'relative', zIndex: 1 }}>
+                  eliminados
+                </div>
+              )}
+
+              {/* 5. Mini gráfico de queda */}
+              {evolucaoKg !== '—' && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, marginBottom: 6, position: 'relative', zIndex: 1 }}>
+                  <svg width="52" height="18" viewBox="0 0 52 18" aria-hidden="true">
+                    {/* área preenchida */}
+                    <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1 L52,18 L0,18 Z"
+                      fill={`${S_GREEN}15`} />
+                    {/* linha de queda */}
+                    <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1"
+                      fill="none" stroke={S_GREEN} strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round" opacity={0.70}
+                    />
+                    {/* ponto inicial (Antes) */}
+                    <circle cx="1" cy="16" r="2" fill="rgba(255,255,255,0.22)" />
+                    {/* ponto final (Depois) */}
+                    <circle cx="51" cy="1" r="2.5" fill={S_GREEN} opacity={0.85} />
+                  </svg>
+                </div>
+              )}
+
+              {/* Métricas secundárias */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginTop: evolucaoKg === '—' ? 10 : 2, position: 'relative', zIndex: 1 }}>
+                <div>
+                  <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Peso (kg)</div>
+                  <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
+                    <span>{pesoAntesStr}</span>
+                    {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />}
+                    <span>{pesoDepoisStr}</span>
+                  </div>
+                </div>
+                {hasCintura && (
+                  <div>
+                    <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Cintura (cm)</div>
+                    <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
+                      <span>{cinturaAntesStr}</span>
+                      <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />
+                      <span>{cinturaDepoisStr}</span>
+                    </div>
                   </div>
                 )}
-                <div style={photoLabelRowStyle}>
-                  <span style={{ fontFamily: fontFamily.primary, fontSize: 10, fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.50)' }}>Antes</span>
-                  <span style={photoDateStyle}>{dataAntes}</span>
-                </div>
-              </div>
-
-              {/* Seta com ring */}
-              <div style={arrowWrapStyle}>
-                <div style={arrowCircleStyle}>
-                  <ArrowRight size={15} color="#fff" strokeWidth={2.5} />
-                </div>
-              </div>
-
-              {/* Depois — 218px */}
-              <div style={photoAfterStyle}>
-                {afterPhoto ? (
-                  <img src={afterPhoto.imageDataUrl} alt="Depois" style={realPhotoStyle} />
-                ) : (
-                  <div style={photoPlaceholderStyle}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_GREEN}50`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  </div>
-                )}
-                <div style={photoLabelRowStyle}>
-                  <span style={{ fontFamily: fontFamily.primary, fontSize: 10, fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', color: S_GREEN }}>Depois</span>
-                  <span style={photoDateStyle}>{dataDepois}</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Stats strip — gap 1px como separador */}
-            <div style={statsStripStyle}>
-              <div style={statCellStyle}>
-                <div style={{ ...statValBaseStyle, color: S_GREEN }}>{evolucaoKg}</div>
-                <div style={statLabelStyle}>Evolução</div>
-              </div>
-              <div style={statCellStyle}>
-                <div style={{ ...statValBaseStyle, color: S_WHITE }}>
-                  {pesoAntesStr}
-                  {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && (
-                    <ArrowRight size={10} color={S_GREEN} strokeWidth={2.5} />
-                  )}
-                  {pesoDepoisStr}
-                </div>
-                <div style={statLabelStyle}>Peso (kg)</div>
-              </div>
-              <div style={statCellStyle}>
-                <div style={{ ...statValBaseStyle, color: S_WHITE }}>
-                  {cinturaAntesStr}
-                  {cinturaAntesStr !== '—' && cinturaDepoisStr !== '—' && (
-                    <ArrowRight size={10} color={S_GREEN} strokeWidth={2.5} />
-                  )}
-                  {cinturaDepoisStr}
-                </div>
-                <div style={statLabelStyle}>Cintura (cm)</div>
               </div>
             </div>
 
-            {/* Footer do story card */}
-            <div style={scFooterStyle}>
-              <div style={fraseStyle}>Disciplina hoje. Liberdade amanhã.</div>
-              <div style={brandRowStyle}>
-                <div style={brandDotStyle} />
-                <span style={brandTextStyle}>glpy.com.br</span>
-                <div style={brandDotStyle} />
+            {/* ── Rodapé ───────────────────────────────────────────────── */}
+            <div style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: '11px 20px 22px', textAlign: 'center' }}>
+              <div style={{ fontFamily: ff, fontSize: 11, fontWeight: '500', color: S_MUTED, fontStyle: 'italic', marginBottom: 7 }}>
+                Disciplina hoje. Liberdade amanhã.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99 }} />
+                <span style={{ fontFamily: ff, fontSize: 9, fontWeight: '600', color: S_MUTED_LO, letterSpacing: '0.07em' }}>glpy.com.br</span>
+                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99 }} />
               </div>
             </div>
 
           </div>
-        </GLPYCard>
+        </div>
 
-        {/* ── Resumo da evolução ─────────────────────────────────────────────── */}
+        {/* ─── Resumo ──────────────────────────────────────────────────────── */}
         <GLPYCard variant="light">
-          <div style={resumoTitleStyle}>Resumo da evolução</div>
+          <div style={sectionTitle}>Resumo da evolução</div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={resumoRowStyle}>
-              <span style={resumoKeyStyle}>
-                <TrendingUp size={15} color={lightColors.text.secondary} strokeWidth={2} />
-                Peso eliminado
-              </span>
-              <span style={resumoValGreenStyle}>{evolucaoKg}</span>
-            </div>
-            <div style={resumoDividerStyle} />
-            <div style={resumoRowStyle}>
-              <span style={resumoKeyStyle}>
-                <Ruler size={15} color={lightColors.text.secondary} strokeWidth={2} />
-                Cintura
-              </span>
-              <span style={resumoValGreenStyle}>{evolucaoCintura}</span>
-            </div>
-            <div style={resumoDividerStyle} />
-            <div style={resumoRowStyle}>
-              <span style={resumoKeyStyle}>
-                <CalendarDays size={15} color={lightColors.text.secondary} strokeWidth={2} />
-                Tempo
-              </span>
-              <span style={resumoValStyle}>{diasStr}</span>
-            </div>
-            <div style={resumoDividerStyle} />
-            <div style={resumoRowStyle}>
-              <span style={resumoKeyStyle}>
-                <Check size={15} color={lightColors.text.secondary} strokeWidth={2} />
-                Protocolo
-              </span>
-              <span style={resumoValStyle}>{protocoloNome}</span>
-            </div>
+            {[
+              { icon: <TrendingUp size={15} color={lightColors.text.secondary} strokeWidth={2} />, label: 'Peso eliminado', val: evolucaoKg,      green: true },
+              { icon: <Ruler       size={15} color={lightColors.text.secondary} strokeWidth={2} />, label: 'Cintura',        val: evolucaoCintura, green: true },
+              { icon: <CalendarDays size={15} color={lightColors.text.secondary} strokeWidth={2} />, label: 'Tempo',         val: diasStr,         green: false },
+              { icon: <Check       size={15} color={lightColors.text.secondary} strokeWidth={2} />, label: 'Protocolo',      val: protocoloNome,   green: false },
+            ].map((row, i) => (
+              <React.Fragment key={row.label}>
+                {i > 0 && <div style={dividerStyle} />}
+                <div style={resumoRowStyle}>
+                  <span style={resumoKeyStyle}>{row.icon}{row.label}</span>
+                  <span style={row.green ? resumoValGreen : resumoValStyle}>{row.val}</span>
+                </div>
+              </React.Fragment>
+            ))}
           </div>
         </GLPYCard>
 
-        {/* ── Compartilhar ──────────────────────────────────────────────────── */}
+        {/* ─── Compartilhar ────────────────────────────────────────────────── */}
         <GLPYCard variant="light">
-          <div style={shareTitleStyle}>Compartilhar</div>
-          <div style={shareGridStyle}>
+          <div style={sectionTitle}>Compartilhar</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.small }}>
             {SHARE_OPTIONS.map(opt => (
-              <div
-                key={opt.id}
-                style={shareBtnStyle}
-                onClick={() => handleShare(opt.id)}
-                role="button"
-                aria-label={opt.label}
-              >
-                {opt.icon}
-                <span>{opt.label}</span>
+              <div key={opt.id} style={shareBtnStyle} onClick={() => handleShare(opt.id)} role="button" aria-label={opt.label}>
+                {opt.icon}<span>{opt.label}</span>
               </div>
             ))}
           </div>
         </GLPYCard>
 
-        {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <GLPYButton
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleSaveImage}
-        >
+        {/* ─── CTA ─────────────────────────────────────────────────────────── */}
+        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSaveImage}>
           Salvar imagem
         </GLPYButton>
 
