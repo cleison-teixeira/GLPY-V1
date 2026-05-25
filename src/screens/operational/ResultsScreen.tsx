@@ -104,6 +104,22 @@ function readStreak(): number {
   } catch { return 0; }
 }
 
+interface BodyPhoto {
+  id:           string;
+  date:         string;
+  weight:       number | null;
+  imageDataUrl: string;
+}
+
+function readBodyPhotos(): BodyPhoto[] {
+  try {
+    const raw = localStorage.getItem('glpy_body_photos');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
 function fmt(v: number | null, decimals = 2): string {
   if (v === null) return '—';
   return v.toFixed(decimals).replace('.', ',');
@@ -112,11 +128,14 @@ function fmt(v: number | null, decimals = 2): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps) {
-  const onb      = readOnboarding();
-  const medidas  = readMedidas();
-  const hist     = readCheckinHistorico();
-  const atividade = readAtividadeHoje();
-  const streak   = readStreak();
+  const onb        = readOnboarding();
+  const medidas    = readMedidas();
+  const hist       = readCheckinHistorico();
+  const atividade  = readAtividadeHoje();
+  const streak     = readStreak();
+  const bodyPhotos = readBodyPhotos();
+  const bodyPhotoFirst = bodyPhotos.length > 0 ? bodyPhotos[0]                 : null;
+  const bodyPhotoLast  = bodyPhotos.length > 1 ? bodyPhotos[bodyPhotos.length - 1] : null;
 
   const pesoInicial: number | null = (() => {
     // Mesma cascata usada pela Home
@@ -465,32 +484,55 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
           </div>
 
           <div style={photoContainerStyle}>
-            <div style={{ ...beforeBoxStyle, cursor: 'pointer' }} onClick={() => onNavigate?.('foto')}>
-              <span style={photoLabelStyle}>Antes</span>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: lightColors.background.primary,
-                border: `1px solid ${lightColors.border.soft}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0',
-              }}>
-                <Camera size={16} color={lightColors.text.secondary} strokeWidth={2.25} />
-              </div>
-              <span style={photoWeightStyle}>{fmt(pesoInicial)} kg</span>
-            </div>
-            <div style={{ ...afterBoxStyle, cursor: 'pointer' }} onClick={() => onNavigate?.('foto')}>
-              <span style={photoLabelStyle}>Depois</span>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: '#FFF',
-                border: `1px solid ${lightColors.brand.green}33`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0',
-                boxShadow: `0 2px 8px ${lightColors.brand.green}14`,
-              }}>
-                <Camera size={16} color={lightColors.brand.greenDark} strokeWidth={2.25} />
-              </div>
-              <span style={{ ...photoWeightStyle, color: lightColors.brand.greenDark }}>
-                {fmt(pesoAtual)} kg
+            {/* Slot Antes */}
+            <div
+              style={{ ...beforeBoxStyle, cursor: 'pointer', ...(bodyPhotoFirst ? { position: 'relative', overflow: 'hidden', justifyContent: 'space-between', padding: 8 } : {}) }}
+              onClick={() => onNavigate?.('foto')}
+            >
+              <span style={{ ...photoLabelStyle, ...(bodyPhotoFirst ? { position: 'relative', zIndex: 1, background: 'rgba(10,22,40,0.55)', color: '#fff', padding: '1px 7px', borderRadius: 99 } : {}) }}>
+                Antes
               </span>
+              {bodyPhotoFirst ? (
+                <>
+                  <img src={bodyPhotoFirst.imageDataUrl} alt="Antes" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span style={{ ...photoWeightStyle, position: 'relative', zIndex: 1, background: 'rgba(10,22,40,0.55)', color: '#fff', padding: '2px 8px', borderRadius: 99 }}>
+                    {bodyPhotoFirst.weight ? `${bodyPhotoFirst.weight.toFixed(1).replace('.', ',')} kg` : '—'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: lightColors.background.primary, border: `1px solid ${lightColors.border.soft}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>
+                    <Camera size={16} color={lightColors.text.secondary} strokeWidth={2.25} />
+                  </div>
+                  <span style={photoWeightStyle}>{fmt(pesoInicial)} kg</span>
+                </>
+              )}
+            </div>
+            {/* Slot Depois */}
+            <div
+              style={{ ...afterBoxStyle, cursor: 'pointer', ...(bodyPhotoLast ? { position: 'relative', overflow: 'hidden', justifyContent: 'space-between', padding: 8 } : {}) }}
+              onClick={() => onNavigate?.('foto')}
+            >
+              <span style={{ ...photoLabelStyle, ...(bodyPhotoLast ? { position: 'relative', zIndex: 1, background: 'rgba(10,22,40,0.55)', color: '#fff', padding: '1px 7px', borderRadius: 99 } : {}) }}>
+                Depois
+              </span>
+              {bodyPhotoLast ? (
+                <>
+                  <img src={bodyPhotoLast.imageDataUrl} alt="Depois" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span style={{ ...photoWeightStyle, position: 'relative', zIndex: 1, background: 'rgba(10,22,40,0.55)', color: '#fff', padding: '2px 8px', borderRadius: 99 }}>
+                    {bodyPhotoLast.weight ? `${bodyPhotoLast.weight.toFixed(1).replace('.', ',')} kg` : '—'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FFF', border: `1px solid ${lightColors.brand.green}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0', boxShadow: `0 2px 8px ${lightColors.brand.green}14` }}>
+                    <Camera size={16} color={lightColors.brand.greenDark} strokeWidth={2.25} />
+                  </div>
+                  <span style={{ ...photoWeightStyle, color: lightColors.brand.greenDark }}>
+                    {fmt(pesoAtual)} kg
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

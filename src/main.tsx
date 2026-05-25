@@ -366,7 +366,7 @@ if (path === '/admin') {
   import('./screens/operational/VisualProgressShareScreen.tsx').then(({ default: VisualProgressShareScreen }) => {
     root.render(
       <StrictMode>
-        <VisualProgressShareScreen onBack={() => { window.location.href = '/'; }} />
+        <VisualProgressShareScreen onBack={() => { window.location.href = '/preview/photo-timeline'; }} />
       </StrictMode>,
     );
   });
@@ -416,6 +416,7 @@ if (path === '/admin') {
               dashboard: getHomePath(),
               hub: '/preview/hub',
               progress: '/preview/results',
+              foto: '/preview/photo-timeline',
             };
             const perfil = getHomePath();
             if (screen === 'perfil') {
