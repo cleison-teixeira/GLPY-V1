@@ -328,7 +328,7 @@ if (path === '/admin') {
               const n = parseFloat(s.replace(',', '.'));
               return (isNaN(n) || n <= 0) ? undefined : n;
             };
-            localStorage.setItem('glpy_medidas_corporais', JSON.stringify({
+            const medidas = {
               waist:       toNum(data.waist),
               hip:         toNum(data.hip),
               abdomen:     toNum(data.abdomen),
@@ -343,7 +343,11 @@ if (path === '/admin') {
               coxa:        toNum(data.thigh),
               panturrilha: toNum(data.calf),
               savedAt:     Date.now(),
-            }));
+            };
+            localStorage.setItem('glpy_medidas_corporais', JSON.stringify(medidas));
+            if (!localStorage.getItem('glpy_medidas_iniciais')) {
+              localStorage.setItem('glpy_medidas_iniciais', JSON.stringify(medidas));
+            }
             window.location.href = getHomePath();
           }}
         />

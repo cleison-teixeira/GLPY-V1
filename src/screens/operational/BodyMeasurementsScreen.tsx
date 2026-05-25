@@ -45,10 +45,21 @@ function loadSavedMeasures(): Record<string, unknown> {
   catch { return {}; }
 }
 
-// Converte número ou string com ponto para string com vírgula para exibição no input.
+// Converte número ou string para exibição no input com 2 casas decimais (pt-BR).
 function norm(v: unknown): string {
   if (v === undefined || v === null || v === '') return '';
-  return String(v).replace('.', ',');
+  const n = parseFloat(String(v).replace(',', '.'));
+  if (isNaN(n) || n <= 0) return String(v).replace('.', ',');
+  return formatDecimalBR(n);
+}
+
+// Formata string digitada pelo usuário para 2 casas decimais no onBlur/save.
+// Não altera strings vazias nem valores inválidos — evita travar digitação.
+function fmtInput(v: string): string {
+  if (!v.trim()) return v;
+  const n = parseBRNumber(v);
+  if (isNaN(n) || n <= 0) return v;
+  return formatDecimalBR(n);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -70,10 +81,17 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
 
   function handleSave() {
     if (saveState !== 'idle') return;
+    const fWaist   = fmtInput(waist);   setWaist(fWaist);
+    const fHip     = fmtInput(hip);     setHip(fHip);
+    const fAbdomen = fmtInput(abdomen); setAbdomen(fAbdomen);
+    const fChest   = fmtInput(chest);   setChest(fChest);
+    const fArm     = fmtInput(arm);     setArm(fArm);
+    const fThigh   = fmtInput(thigh);   setThigh(fThigh);
+    const fCalf    = fmtInput(calf);    setCalf(fCalf);
     setSaveState('saving');
     setTimeout(() => {
       setSaveState('saved');
-      setTimeout(() => onSave?.({ waist, hip, abdomen, chest, arm, thigh, calf }), 900);
+      setTimeout(() => onSave?.({ waist: fWaist, hip: fHip, abdomen: fAbdomen, chest: fChest, arm: fArm, thigh: fThigh, calf: fCalf }), 900);
     }, 500);
   }
 
@@ -225,6 +243,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={waist}
               onChange={setWaist}
+              onBlur={() => setWaist(fmtInput(waist))}
               label="Cintura"
               unit="cm"
               type="number"
@@ -234,6 +253,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={hip}
               onChange={setHip}
+              onBlur={() => setHip(fmtInput(hip))}
               label="Quadril"
               unit="cm"
               type="number"
@@ -243,6 +263,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={abdomen}
               onChange={setAbdomen}
+              onBlur={() => setAbdomen(fmtInput(abdomen))}
               label="Abdômen"
               unit="cm"
               type="number"
@@ -252,6 +273,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={chest}
               onChange={setChest}
+              onBlur={() => setChest(fmtInput(chest))}
               label="Peito"
               unit="cm"
               type="number"
@@ -261,6 +283,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={arm}
               onChange={setArm}
+              onBlur={() => setArm(fmtInput(arm))}
               label="Braço"
               unit="cm"
               type="number"
@@ -270,6 +293,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={thigh}
               onChange={setThigh}
+              onBlur={() => setThigh(fmtInput(thigh))}
               label="Coxa"
               unit="cm"
               type="number"
@@ -279,6 +303,7 @@ export default function BodyMeasurementsScreen({ onBack, onSave }: BodyMeasureme
             <GLPYInput
               value={calf}
               onChange={setCalf}
+              onBlur={() => setCalf(fmtInput(calf))}
               label="Panturrilha"
               unit="cm"
               type="number"

@@ -491,6 +491,11 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
     catch { return {}; }
   });
+
+  const [bodyMeasuresIniciais] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('glpy_medidas_iniciais') || '{}') ?? {}; }
+    catch { return {}; }
+  });
   const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
 
   // Atividade física registrada no dia atual
@@ -1320,33 +1325,61 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   {/* Left values column — stretch para preencher a altura da foto */}
                   <div className="col-span-8 grid grid-cols-2 gap-1.5 auto-rows-fr">
 
-                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.cintura || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
-                      </div>
-                    </div>
+                    {/* Card helper: renderiza variação vs medida inicial */}
+                    {(() => {
+                      function renderDelta(currentRaw: string, inicialVal: number | undefined) {
+                        const cur = parseBRNumber(currentRaw || '');
+                        if (isNaN(cur) || cur <= 0 || !inicialVal || inicialVal <= 0) return null;
+                        const delta = cur - inicialVal;
+                        if (delta === 0) return null;
+                        const abs = Math.abs(delta);
+                        const text = delta < 0
+                          ? `↓ ${formatDecimalBR(abs)} cm`
+                          : `+${formatDecimalBR(abs)} cm`;
+                        const color = delta < 0 ? '#00C27A' : '#64748B';
+                        return (
+                          <span style={{ color }} className="text-[9px] font-bold leading-none mt-0.5 block">
+                            {text}
+                          </span>
+                        );
+                      }
 
-                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.busto || bodyMeasures.chest || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
-                      </div>
-                    </div>
+                      return (
+                        <>
+                          <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
+                            <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Cintura</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.cintura || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
+                            </div>
+                            {renderDelta(bodyMeasures.cintura || '', bodyMeasuresIniciais.cintura)}
+                          </div>
 
-                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.coxa || bodyMeasures.thigh || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
-                      </div>
-                    </div>
+                          <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
+                            <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Busto</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.busto || bodyMeasures.chest || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
+                            </div>
+                            {renderDelta(bodyMeasures.busto || bodyMeasures.chest || '', bodyMeasuresIniciais.busto ?? bodyMeasuresIniciais.chest)}
+                          </div>
 
-                    <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Quadril</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.quadril || bodyMeasures.hip || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
-                      </div>
-                    </div>
+                          <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
+                            <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Coxa</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.coxa || bodyMeasures.thigh || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
+                            </div>
+                            {renderDelta(bodyMeasures.coxa || bodyMeasures.thigh || '', bodyMeasuresIniciais.coxa ?? bodyMeasuresIniciais.thigh)}
+                          </div>
+
+                          <div className="p-2 bg-slate-50/80 rounded-xl border border-slate-100 flex flex-col justify-between">
+                            <span className="text-[8px] text-[#3D5A70] font-bold block uppercase leading-none tracking-wide mb-1">Quadril</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[12px] font-extrabold text-[#0A1628] font-mono leading-none whitespace-nowrap">{(() => { const v = parseBRNumber(bodyMeasures.quadril || bodyMeasures.hip || ''); return (isNaN(v) || v <= 0) ? '—' : formatDecimalBR(v); })()} cm</span>
+                            </div>
+                            {renderDelta(bodyMeasures.quadril || bodyMeasures.hip || '', bodyMeasuresIniciais.quadril ?? bodyMeasuresIniciais.hip)}
+                          </div>
+                        </>
+                      );
+                    })()}
 
                   </div>
 

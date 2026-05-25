@@ -218,7 +218,11 @@ export default function App() {
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(data) => {
           const toNum = (s: string) => { const n = parseFloat(s.replace(',', '.')); return (isNaN(n) || n <= 0) ? undefined : n; };
-          localStorage.setItem('glpy_medidas_corporais', JSON.stringify({ waist: toNum(data.waist), hip: toNum(data.hip), abdomen: toNum(data.abdomen), chest: toNum(data.chest), arm: toNum(data.arm), thigh: toNum(data.thigh), calf: toNum(data.calf), cintura: toNum(data.waist), quadril: toNum(data.hip), busto: toNum(data.chest), braco: toNum(data.arm), coxa: toNum(data.thigh), panturrilha: toNum(data.calf), savedAt: Date.now() }));
+          const medidas = { waist: toNum(data.waist), hip: toNum(data.hip), abdomen: toNum(data.abdomen), chest: toNum(data.chest), arm: toNum(data.arm), thigh: toNum(data.thigh), calf: toNum(data.calf), cintura: toNum(data.waist), quadril: toNum(data.hip), busto: toNum(data.chest), braco: toNum(data.arm), coxa: toNum(data.thigh), panturrilha: toNum(data.calf), savedAt: Date.now() };
+          localStorage.setItem('glpy_medidas_corporais', JSON.stringify(medidas));
+          if (!localStorage.getItem('glpy_medidas_iniciais')) {
+            localStorage.setItem('glpy_medidas_iniciais', JSON.stringify(medidas));
+          }
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}
