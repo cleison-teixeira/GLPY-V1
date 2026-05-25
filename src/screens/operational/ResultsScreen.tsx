@@ -16,7 +16,7 @@ import { radius } from '../../theme/radius';
 
 interface ResultsScreenProps {
   onBack?: () => void;
-  onNavigate: (screen: string) => void;
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
@@ -95,15 +95,29 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
   const streak   = readStreak();
 
   const pesoInicial: number | null = (() => {
-    const v = parseFloat(String(onb.pesoInicial ?? onb.peso_inicial ?? ''));
-    return !isNaN(v) && v > 0 ? v : null;
+    // Mesma cascata usada pela Home
+    try {
+      const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
+      const rsW = parseFloat(String(rs.initialWeight ?? ''));
+      if (!isNaN(rsW) && rsW > 0) return rsW;
+    } catch {}
+    const v1 = parseFloat(String(onb.pesoInicial ?? onb.peso_inicial ?? ''));
+    if (!isNaN(v1) && v1 > 0) return v1;
+    // Fallback: peso_atual do onboarding (mesmo fallback da Home)
+    const v2 = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));
+    return !isNaN(v2) && v2 > 0 ? v2 : null;
   })();
 
   const pesoAtual: number | null = readCurrentWeight();
 
   const pesoMeta: number | null = (() => {
-    const v = parseFloat(String(onb.pesoMeta ?? onb.peso_meta ?? onb.targetWeight ?? ''));
-    return !isNaN(v) && v > 0 ? v : null;
+    // Mesma cascata usada pela Home: pesoMeta → peso_sonho → glpy_peso_sonho
+    const v1 = parseFloat(String(onb.pesoMeta ?? onb.peso_meta ?? onb.targetWeight ?? ''));
+    if (!isNaN(v1) && v1 > 0) return v1;
+    const v2 = parseFloat(String(onb.peso_sonho ?? ''));
+    if (!isNaN(v2) && v2 > 0) return v2;
+    const v3 = parseFloat(localStorage.getItem('glpy_peso_sonho') ?? '');
+    return !isNaN(v3) && v3 > 0 ? v3 : null;
   })();
 
   const pesoEliminado: number | null =
@@ -125,7 +139,7 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
 
   const cinturaVal: string | null = (() => {
     const v = parseFloat(String(medidas.cintura ?? medidas.waist ?? ''));
-    return !isNaN(v) && v > 0 ? `${v} cm` : null;
+    return !isNaN(v) && v > 0 ? `${fmt(v)} cm` : null;
   })();
 
   const checkins = Array.isArray(hist) ? hist.length : 0;
@@ -279,11 +293,11 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
 
   return (
     <>
-      <GLPYScreen variant="light">
-        <header className="sticky top-0 bg-white -mx-6 -mt-6 px-6 pt-6 pb-8 border-b border-[#E2EBE7] z-10 mb-5">
+      <GLPYScreen variant="light" style={{ backgroundColor: '#FFFFFF' }}>
+        <header className="sticky top-0 bg-white -mx-6 -mt-6 px-6 pt-6 pb-8 border-b border-[#E2EBE7] z-10 mb-8">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <button onClick={onBack} className="w-9 h-9 bg-[#F4F6F8] border border-[#E2EBE7] rounded-full flex items-center justify-center flex-shrink-0">
+              <button onClick={() => { try { sessionStorage.removeItem('glpy_restore_tab'); } catch {} onBack?.(); }} className="w-9 h-9 bg-[#F4F6F8] border border-[#E2EBE7] rounded-full flex items-center justify-center flex-shrink-0">
                 <ChevronLeft className="w-4 h-4 text-[#3D5A70]" />
               </button>
               <img src={glpyLogoLight} alt="GLPY" className="w-[84px] h-auto object-contain" />
@@ -501,7 +515,7 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
       </div>
     </GLPYScreen>
 
-    <BottomNav active="progress" onNavigate={onNavigate} />
+    <BottomNav active="progress" onNavigate={onNavigate ?? (() => {})} />
   </>
 );
 }

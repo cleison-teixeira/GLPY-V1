@@ -409,7 +409,23 @@ if (path === '/admin') {
   import('./screens/operational/ResultsScreen.tsx').then(({ default: ResultsScreen }) => {
     root.render(
       <StrictMode>
-        <ResultsScreen onBack={() => { window.location.href = getHomePath(); }} />
+        <ResultsScreen
+          onBack={() => { window.location.href = getHomePath(); }}
+          onNavigate={(screen: string) => {
+            const routes: Record<string, string> = {
+              dashboard: getHomePath(),
+              hub: '/preview/hub',
+              progress: '/preview/results',
+            };
+            const perfil = getHomePath();
+            if (screen === 'perfil') {
+              sessionStorage.setItem('glpy_restore_tab', 'perfil');
+              window.location.href = perfil;
+            } else {
+              window.location.href = routes[screen] ?? getHomePath();
+            }
+          }}
+        />
       </StrictMode>,
     );
   });
