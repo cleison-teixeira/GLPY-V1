@@ -354,7 +354,14 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   const userFrequencia = (() => {
     try {
       const direct = localStorage.getItem('glpy_frequencia')?.trim();
-      if (direct) return direct;
+      if (direct) {
+        if (direct === 'Personalizada') {
+          const dias = localStorage.getItem('glpy_frequencia_personalizada_dias')?.trim();
+          const n = parseInt(dias || '', 10);
+          if (!isNaN(n) && n > 0) return `A cada ${n} dias`;
+        }
+        return direct;
+      }
       const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
       if (onb.frequencia?.trim()) return String(onb.frequencia).trim();
       const tratamento = JSON.parse(localStorage.getItem('glpy_tratamento') || '{}');
