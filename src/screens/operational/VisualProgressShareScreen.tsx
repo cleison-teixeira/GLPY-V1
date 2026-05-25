@@ -128,8 +128,9 @@ function calcDaysApart(d1: string, d2: string): number {
 
 const S_BG      = '#0A1628';
 const S_PHOTO_A = '#111e30';
-const S_PHOTO_B = '#0c1a2c';
-const S_GREEN   = '#00C27A';
+const S_PHOTO_B = '#0e1628';
+const S_GREEN   = '#00C27A';   // usado só fora do story card (Resumo/share)
+const S_LILAC   = '#A78BFA';   // destaque principal do story card
 const S_WHITE   = '#FFFFFF';
 const S_MUTED   = 'rgba(255,255,255,0.42)';
 const S_MUTED_LO= 'rgba(255,255,255,0.18)';
@@ -297,7 +298,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
       <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small }}>
 
         {/* ─── Story card 9:16 ────────────────────────────────────────────── */}
-        <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(0,194,122,0.18)', boxShadow: '0 8px 40px rgba(0,194,122,0.07)' }}>
+        <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(167,139,250,0.18)', boxShadow: '0 8px 40px rgba(167,139,250,0.07)' }}>
           <div
             ref={storyCardRef}
             style={{ background: S_BG, aspectRatio: '9 / 16', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
@@ -308,8 +309,8 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <img src={logoGlpyDark} alt="GLPY" style={{ height: 22, objectFit: 'contain', display: 'block' }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 5, height: 5, background: S_GREEN, borderRadius: 99 }} />
-                  <span style={{ fontFamily: ff, fontSize: 10, fontWeight: '700', color: S_GREEN, letterSpacing: '0.02em' }}>
+                  <div style={{ width: 5, height: 5, background: S_LILAC, borderRadius: 99 }} />
+                  <span style={{ fontFamily: ff, fontSize: 10, fontWeight: '700', color: S_LILAC, letterSpacing: '0.02em' }}>
                     {protocoloNome}
                   </span>
                 </div>
@@ -322,16 +323,14 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   Mais saúde. Mais controle. Mais eu.
                 </div>
               </div>
-              <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${S_GREEN}55, transparent)` }} />
+              <div style={{ height: 1, background: `linear-gradient(to right, transparent, ${S_LILAC}55, transparent)` }} />
             </div>
 
             {/* ── Fotos ───────────────────────────────────────────────── */}
-            <div style={{ flex: 1, display: 'flex', minHeight: 0, padding: '10px 14px 0' }}>
+            <div style={{ flex: 1, display: 'flex', minHeight: 0, padding: '10px 14px 0', gap: 8 }}>
 
               {/* Antes */}
-              <div style={{ flex: 1, marginTop: 20, position: 'relative', overflow: 'hidden', borderRadius: '10px 10px 0 0', background: S_PHOTO_A }}>
-                {/* barra discreta */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.09)', zIndex: 1 }} />
+              <div style={{ flex: 1, marginTop: 20, position: 'relative', overflow: 'hidden', borderRadius: '16px 16px 0 0', background: S_PHOTO_A }}>
                 {beforePhoto
                   ? <img src={beforePhoto.imageDataUrl} alt="Antes" style={photoAbs} />
                   : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -349,46 +348,22 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 </div>
               </div>
 
-              {/* ── Separador: linha de evolução + selo de conquista ──── */}
-              <div style={{ width: 26, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, position: 'relative' }}>
-                {/* Linha vertical de evolução — conecta Depois → seta → Antes */}
-                <div style={{
-                  position: 'absolute', top: 0, bottom: 0, width: 1.5,
-                  background: `linear-gradient(to bottom, ${S_GREEN}55 0%, ${S_GREEN}40 40%, ${S_GREEN}40 60%, rgba(255,255,255,0.08) 100%)`,
-                }} />
-                <div style={{ flex: 1 }} />
-                {/* Selo de conquista — substituiu a seta simples */}
-                <div style={{
-                  width: 30, height: 30, flexShrink: 0,
-                  background: `radial-gradient(circle at center, #004d30 0%, #002419 100%)`,
-                  borderRadius: 99,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: `0 0 0 2.5px ${S_BG}, 0 0 0 4.5px ${S_GREEN}, 0 0 20px rgba(0,194,122,0.55)`,
-                  position: 'relative', zIndex: 1,
-                }}>
-                  <ArrowRight size={13} color={S_WHITE} strokeWidth={2.5} />
-                </div>
-                <div style={{ flex: 1 }} />
-              </div>
-
               {/* Depois — wrapper para glow externo + coluna interna */}
-              <div style={{ flex: 1, boxShadow: `0 0 26px rgba(0,194,122,0.32), 0 0 6px rgba(0,194,122,0.18)`, borderRadius: '10px 10px 0 0' }}>
-                <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '10px 10px 0 0', background: S_PHOTO_B, borderTop: `2.5px solid ${S_GREEN}`, borderLeft: `1.5px solid rgba(0,194,122,0.35)`, borderRight: `1.5px solid rgba(0,194,122,0.35)` }}>
-                  {/* glow cinematográfico interno */}
-                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 25%, rgba(0,194,122,0.12) 0%, transparent 60%)', zIndex: 1, pointerEvents: 'none' }} />
-                  {/* barra verde */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: S_GREEN, zIndex: 2 }} />
+              <div style={{ flex: 1, boxShadow: `0 0 18px rgba(167,139,250,0.20), 0 0 5px rgba(167,139,250,0.10)`, borderRadius: '16px 16px 0 0' }}>
+                <div style={{ height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '16px 16px 0 0', background: S_PHOTO_B, borderTop: `2px solid ${S_LILAC}`, borderLeft: `1px solid rgba(167,139,250,0.28)`, borderRight: `1px solid rgba(167,139,250,0.28)` }}>
+                  {/* glow suave interno */}
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 20%, rgba(167,139,250,0.10) 0%, transparent 65%)', zIndex: 1, pointerEvents: 'none' }} />
 
                   {afterPhoto
                     ? <img src={afterPhoto.imageDataUrl} alt="Depois" style={photoAbs} />
                     : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_GREEN}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={`${S_LILAC}40`} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
                       </div>
                   }
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: overlayGrad, padding: '32px 10px 12px', zIndex: 2 }}>
-                    <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: S_GREEN, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Depois</div>
+                    <div style={{ fontFamily: ff, fontSize: 9, fontWeight: '700', color: S_LILAC, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>Depois</div>
                     <div style={{ fontFamily: ff, fontSize: 8, color: 'rgba(255,255,255,0.22)', marginBottom: 5 }}>{dataDepois}</div>
                     {pesoDepoisStr !== '—' && (
                       <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE }}>{pesoDepoisStr} kg</div>
@@ -411,31 +386,31 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 >
                   {/* trilha */}
                   <circle cx="48" cy="48" r={ARC_R} fill="none"
-                    stroke="rgba(0,194,122,0.10)" strokeWidth="5"
+                    stroke="rgba(167,139,250,0.12)" strokeWidth="4"
                     strokeDasharray={`${ARC_TRACK} ${ARC_GAP}`}
                     strokeLinecap="round"
                     transform="rotate(-135 48 48)"
                   />
                   {/* preenchimento proporcional ao progresso */}
                   <circle cx="48" cy="48" r={ARC_R} fill="none"
-                    stroke={S_GREEN} strokeWidth="5"
+                    stroke={S_LILAC} strokeWidth="4"
                     strokeDasharray={`${arcFillDash} ${arcFillGap}`}
-                    strokeLinecap="round" opacity={0.70}
+                    strokeLinecap="round" opacity={0.55}
                     transform="rotate(-135 48 48)"
                   />
-                  {/* ponto de topo (início do arco) */}
+                  {/* ponto final do arco */}
                   {arcProgress > 0.05 && (
                     <circle
                       cx={48 + ARC_R * Math.cos((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
                       cy={48 + ARC_R * Math.sin((-135 + arcProgress * 270 - 90) * Math.PI / 180)}
-                      r="3.5" fill={S_GREEN} opacity={0.85}
+                      r="3" fill={S_LILAC} opacity={0.75}
                     />
                   )}
                 </svg>
               )}
 
               {/* Número principal */}
-              <div style={{ fontFamily: ff, fontSize: 30, fontWeight: '900', color: evolucaoKg !== '—' ? S_GREEN : S_MUTED, letterSpacing: '-1.2px', lineHeight: 1, position: 'relative', zIndex: 1 }}>
+              <div style={{ fontFamily: ff, fontSize: 30, fontWeight: '900', color: evolucaoKg !== '—' ? S_LILAC : S_MUTED, letterSpacing: '-1.2px', lineHeight: 1, position: 'relative', zIndex: 1 }}>
                 {evolucaoKg}
               </div>
               {evolucaoKg !== '—' && (
@@ -450,16 +425,16 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   <svg width="52" height="18" viewBox="0 0 52 18" aria-hidden="true">
                     {/* área preenchida */}
                     <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1 L52,18 L0,18 Z"
-                      fill={`${S_GREEN}15`} />
+                      fill={`${S_LILAC}18`} />
                     {/* linha de queda */}
                     <path d="M0,16 C6,14 12,12 18,10 C24,8 30,6 36,4 C42,2.5 48,2 52,1"
-                      fill="none" stroke={S_GREEN} strokeWidth="1.8"
-                      strokeLinecap="round" strokeLinejoin="round" opacity={0.70}
+                      fill="none" stroke={S_LILAC} strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round" opacity={0.65}
                     />
                     {/* ponto inicial (Antes) */}
                     <circle cx="1" cy="16" r="2" fill="rgba(255,255,255,0.22)" />
                     {/* ponto final (Depois) */}
-                    <circle cx="51" cy="1" r="2.5" fill={S_GREEN} opacity={0.85} />
+                    <circle cx="51" cy="1" r="2.5" fill={S_LILAC} opacity={0.80} />
                   </svg>
                 </div>
               )}
@@ -470,7 +445,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                   <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Peso (kg)</div>
                   <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
                     <span>{pesoAntesStr}</span>
-                    {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />}
+                    {pesoAntesStr !== '—' && pesoDepoisStr !== '—' && <ArrowRight size={9} color={S_LILAC} strokeWidth={2.5} />}
                     <span>{pesoDepoisStr}</span>
                   </div>
                 </div>
@@ -479,7 +454,7 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                     <div style={{ fontFamily: ff, fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.26)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Cintura (cm)</div>
                     <div style={{ fontFamily: ff, fontSize: 13, fontWeight: '800', color: S_WHITE, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
                       <span>{cinturaAntesStr}</span>
-                      <ArrowRight size={9} color={S_GREEN} strokeWidth={2.5} />
+                      <ArrowRight size={9} color={S_LILAC} strokeWidth={2.5} />
                       <span>{cinturaDepoisStr}</span>
                     </div>
                   </div>
@@ -493,9 +468,9 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
                 Disciplina hoje. Liberdade amanhã.
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99 }} />
+                <div style={{ width: 4, height: 4, background: S_LILAC, borderRadius: 99, opacity: 0.55 }} />
                 <span style={{ fontFamily: ff, fontSize: 9, fontWeight: '600', color: S_MUTED_LO, letterSpacing: '0.07em' }}>glpy.com.br</span>
-                <div style={{ width: 4, height: 4, background: S_GREEN, borderRadius: 99 }} />
+                <div style={{ width: 4, height: 4, background: S_LILAC, borderRadius: 99, opacity: 0.55 }} />
               </div>
             </div>
 
