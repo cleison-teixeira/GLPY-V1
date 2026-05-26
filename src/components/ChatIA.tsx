@@ -246,10 +246,14 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
   useEffect(() => {
     carregarLimitesIA(plano)
       .then(({ usadas, limite }) => {
-        setMsgsUsadas(usadas);
-        setLimiteIA(limite);
         const today = new Date().toISOString().slice(0, 10);
-        glpyStore.aiUsage.save({ date: today, used: usadas, limit: limite, updatedAt: new Date().toISOString() } as any);
+        const localParsed = glpyStore.aiUsage.get() as any;
+        const localUsed = (localParsed.date === today && typeof localParsed.used === 'number') ? localParsed.used : 0;
+        // Nunca regredir: usa o maior entre localStorage e Firestore (evita sobrescrever com 0 se incrementos ainda não chegaram ao Firestore)
+        const finalUsadas = Math.max(localUsed, usadas);
+        setMsgsUsadas(finalUsadas);
+        setLimiteIA(limite);
+        glpyStore.aiUsage.save({ date: today, used: finalUsadas, limit: limite, updatedAt: new Date().toISOString() } as any);
         window.dispatchEvent(new Event('local-storage-change'));
       })
       .catch(() => {});
