@@ -102,7 +102,8 @@ async function tryGeminiModel(
         }],
         generationConfig: {
           temperature:     0.2,
-          maxOutputTokens: 512,
+          maxOutputTokens: 1024,
+          thinkingConfig:  { thinkingBudget: 0 },
         },
       }),
     });
@@ -210,9 +211,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const rawText: string =
-    (geminiData as any)?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  // ── Selecionar a part correta, ignorando thinking parts ─────────────────
+  // gemini-2.5-flash pode retornar parts[0] com thought:true (raciocínio interno)
+  // e a resposta JSON real em parts[1] ou posterior.
+  const parts: any[] = (geminiData as any)?.candidates?.[0]?.content?.parts ?? [];
 
+  const textPart: any =
+    // 1ª prioridade: part não-thought com texto
+    parts.find((p: any) => !p.thought && typeof p.text === 'string' && p.text.trim().length > 0) ??
+    // 2ª prioridade: qualquer part contendo "detectedFoods" (fallback extremo)
+    parts.find((p: any) => typeof p.text === 'string' && p.text.includes('detectedFoods')) ??
+    null;
+
+  const rawText: string = textPart?.text ?? '';
+
+  const thoughtCount = parts.filter((p: any) => p.thought).length;
+  console.log(`[GeminiVision][${usedModel}] parts=${parts.length} thoughts=${thoughtCount} rawLen=${rawText.length}`);
   console.log(`[GeminiVision][${usedModel}] raw text: ${rawText.slice(0, 300).replace(/[\n\r]/g, ' ')}`);
 
   // Remove possíveis blocos markdown ```json ... ``` que o Gemini às vezes emite
@@ -223,9 +237,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     .trim();
 
   let parsed: unknown;
+  let parseFailed = false;
+
   try {
     parsed = JSON.parse(cleaned);
   } catch {
+    // Fallback: extrair objeto JSON de dentro do texto se houver preamble residual
+    const jsonMatch = cleaned.match(/\{[\s\S]*"detectedFoods"[\s\S]*\}/);
+    if (jsonMatch) {
+      try { parsed = JSON.parse(jsonMatch[0]); } catch { parseFailed = true; }
+    } else {
+      parseFailed = true;
+    }
+  }
+
+  if (parseFailed || parsed === undefined) {
     console.error(`[GeminiVision][${usedModel}] JSON parse falhou. Raw: ${rawText.slice(0, 200).replace(/[\n\r]/g, ' ')}`);
     res.status(200).json({
       success: false,
