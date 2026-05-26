@@ -5,6 +5,7 @@ import { dispararConfetti } from "../utils/confetti";
 import { playSound } from "../utils/sounds";
 import BottomNav from "./BottomNav";
 import { saveCheckin, saveGamification, salvarContextoIA } from "../services/firestore";
+import { glpyStore } from "../data/glpyStore";
 
 const SYMPTOM_OPTIONS = [
   { label: "Náusea", emoji: "🤢" },
@@ -125,7 +126,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
 
     // Salva contexto para a IA personalizar respostas
     const protAtivo = (() => {
-      try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; }
+      try { return glpyStore.protocol.getActive(); } catch { return null; }
     })();
     const diaProtocolo = (() => {
       if (!protAtivo?.id) return 1;
