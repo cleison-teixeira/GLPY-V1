@@ -1597,7 +1597,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
                   {/* Card 5: Foto do Prato */}
                   <div
-                    onClick={() => goTo('/preview/food-photo')}
+                    onClick={() => onNavigate ? onNavigate('fotoAnalise') : goTo('/preview/food-photo-analysis')}
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-pink-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
@@ -2259,7 +2259,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
               {/* 5 — Foto do prato */}
               <button
-                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('fotoPrato') : goTo('/preview/food-photo'); }}
+                onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('fotoAnalise') : goTo('/preview/food-photo-analysis'); }}
                 className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-pink-50 border border-pink-100/60 active:opacity-80 transition text-left"
               >
                 <div className="w-11 h-11 rounded-xl bg-white border border-pink-100/80 flex items-center justify-center shrink-0 shadow-sm">

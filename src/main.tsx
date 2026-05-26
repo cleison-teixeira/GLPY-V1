@@ -32,6 +32,7 @@ const PREVIEW_ROUTE_MAP: Record<string, string> = {
   ajusteMetabolico:        '/preview/protocolo9',
   transicaoParar:          '/preview/protocolo10',
   fotoPrato:               '/preview/food-photo',
+  fotoAnalise:             '/preview/food-photo-analysis',
   agua:                    '/preview/water',
   refeicao:                '/preview/food-log',
   injecao:                 '/preview/injection',
@@ -451,6 +452,17 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <FoodPhotoScreen onBack={() => { window.location.href = getHomePath(); }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/food-photo-analysis') {
+  import('./screens/operational/FoodPhotoAnalysisScreen.tsx').then(({ default: FoodPhotoAnalysisScreen }) => {
+    root.render(
+      <StrictMode>
+        <FoodPhotoAnalysisScreen
+          onBack={() => { window.location.href = getHomePath(); }}
+          onSave={() => { window.location.href = getHomePath(); }}
+        />
       </StrictMode>,
     );
   });

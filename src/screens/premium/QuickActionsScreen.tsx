@@ -7,9 +7,9 @@
 // Telas abertas por ela são telas operacionais Light Premium.
 
 import React from 'react';
-import { 
+import {
   Scale, Droplets, Utensils, Syringe, Activity, Smile, Flame, Ruler, Camera, CheckSquare, Sparkles, Lightbulb, Compass, User, TrendingDown, ChevronRight,
-  Brain, Settings, Pill, Users, ShoppingBag, BookOpen, LayoutGrid
+  Brain, Settings, Pill, Users, ShoppingBag, BookOpen, LayoutGrid, ScanLine
 } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard } from '../../components/ui';
@@ -417,6 +417,12 @@ export default function QuickActionsScreen({ onBack, onNavigate }: QuickActionsS
               subtext="Evolução"
               Icon={Camera}
               onClick={() => handleNavigate('/preview/photo-timeline', 'fotosEvolucao')}
+            />
+            <GridItem
+              label="Foto do prato"
+              subtext="Analise sua refeição pela imagem"
+              Icon={ScanLine}
+              onClick={() => handleNavigate('/preview/food-photo-analysis', 'fotoAnalise')}
             />
           </div>
         </div>
