@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Bell,
   Flame,
@@ -238,6 +238,49 @@ function NutritionGoalCard({
   );
 }
 
+// ── Profile photo helpers ─────────────────────────────────────────────────────
+
+function readProfilePhoto(): string | null {
+  try {
+    const raw = localStorage.getItem('glpy_profile_photo');
+    if (!raw) return null;
+    let base64 = '';
+    if (raw.trim().startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      base64 = parsed?.imageBase64 ?? '';
+    } else {
+      base64 = raw; // compatibilidade: string legada
+    }
+    if (!base64) return null;
+    return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
+
+async function compressProfilePhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 512;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('canvas unavailable')); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load failed')); };
+    img.src = url;
+  });
+}
+
 export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: string) => void } = {}) {
   // Mobile Frame States
   const [activeTab, setActiveTab] = useState<"inicio" | "protocolos" | "progresso" | "perfil">(() => {
@@ -268,6 +311,38 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
       window.removeEventListener('local-storage-change', handleUpdate);
     };
   }, []);
+
+  // ── Foto de perfil ────────────────────────────────────────────────────────
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(() => readProfilePhoto());
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function refreshPhoto() { setProfilePhoto(readProfilePhoto()); }
+    window.addEventListener('local-storage-change', refreshPhoto);
+    window.addEventListener('storage', refreshPhoto);
+    return () => {
+      window.removeEventListener('local-storage-change', refreshPhoto);
+      window.removeEventListener('storage', refreshPhoto);
+    };
+  }, []);
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressProfilePhoto(file);
+      const base64 = dataUrl.split(',')[1] ?? dataUrl;
+      localStorage.setItem('glpy_profile_photo', JSON.stringify({
+        imageBase64: base64,
+        updatedAt:   new Date().toISOString(),
+      }));
+      setProfilePhoto(dataUrl);
+      window.dispatchEvent(new Event('local-storage-change'));
+    } catch {
+      // foto não alterada em caso de erro
+    }
+    e.target.value = '';
+  }
 
   // Fase 1F.2: dados reais via hooks centralizados
   const currentWeightData = useCurrentWeight();
@@ -979,12 +1054,12 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     <Bell className="w-5 h-5 text-[#3D5A70]" />
                   </button>
                   
-                  <div 
-                    onClick={() => setActiveTab("perfil")} 
+                  <div
+                    onClick={() => setActiveTab("perfil")}
                     className="relative cursor-pointer transition active:scale-95 hover:opacity-90"
                   >
-                    <img 
-                      src={mockHomeData.user.avatarUrl}
+                    <img
+                      src={profilePhoto ?? mockHomeData.user.avatarUrl}
                       alt={userName}
                       className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                     />
@@ -1920,17 +1995,33 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
           {/* TAB: PERFIL */}
           {activeTab === "perfil" && (
             <div className="px-5 pt-3 space-y-4">
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
               <div className="mb-2">
                 <img src={glpyLogoSymbol} alt="GLPY" className="w-[84px] h-auto object-contain" />
               </div>
               <div className="text-center space-y-2 py-4">
-                <div className="relative inline-block mx-auto">
-                  <img 
-                    src={mockHomeData.user.avatarUrl}
-                    alt={userName}
-                    className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md mx-auto"
-                  />
-                  <span className="absolute bottom-1 right-1 w-4 h-4 bg-[#00C27A] rounded-full border-2 border-white" />
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    className="relative inline-block focus:outline-none active:scale-95 transition"
+                    aria-label="Alterar foto de perfil"
+                  >
+                    <img
+                      src={profilePhoto ?? mockHomeData.user.avatarUrl}
+                      alt={userName}
+                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
+                    />
+                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-[#00C27A] rounded-full border-2 border-white flex items-center justify-center">
+                      <Camera size={10} className="text-white" />
+                    </span>
+                  </button>
+                  <p className="text-[11px] text-slate-400">Toque para alterar</p>
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-[#0A1628]">{userName} Premium V2</h3>
@@ -2029,7 +2120,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               className="flex flex-col items-center justify-center w-12 h-12 transition"
             >
               <img
-                src={mockHomeData.user.avatarUrl}
+                src={profilePhoto ?? mockHomeData.user.avatarUrl}
                 alt="Perfil"
                 className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}
               />
