@@ -1,5 +1,6 @@
 // GLPY — FatSecret Platform API — Serverless Endpoint
 // BUG 15A: Proxy seguro para FatSecret API — credenciais nunca vão ao browser
+// BUG 15C.1: Corrigido parsing defensivo — verifica Content-Type antes de res.json()
 //
 // Rota Vercel: POST /api/fatsecret-food
 //
@@ -15,12 +16,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Tipos internos do endpoint (espelho de src/services/fatsecret/types.ts)
-// Duplicados aqui para manter o endpoint sem dependências do front-end
+// Tipos internos do endpoint
 // ──────────────────────────────────────────────────────────────────────────────
 
-type FatSecretMode = 'image' | 'search';
+type FatSecretMode     = 'image' | 'search';
 type FatSecretMealType = 'cafe' | 'almoco' | 'jantar' | 'lanche';
+type Stage             = 'token' | 'recognize' | 'search';
 
 interface RequestPayload {
   mode:          FatSecretMode;
@@ -31,16 +32,16 @@ interface RequestPayload {
 }
 
 interface FatSecretFoodItem {
-  name:               string;
-  brand?:             string;
+  name:                string;
+  brand?:              string;
   servingDescription?: string;
-  calories?:          number;
-  protein?:           number;
-  carbs?:             number;
-  fat?:               number;
-  fiber?:             number;
-  confidence?:        number;
-  externalId?:        string;
+  calories?:           number;
+  protein?:            number;
+  carbs?:              number;
+  fat?:                number;
+  fiber?:              number;
+  confidence?:         number;
+  externalId?:         string;
 }
 
 interface SuccessResponse {
@@ -53,17 +54,50 @@ interface SuccessResponse {
     carbs:    number;
     fat:      number;
   };
-  raw?: unknown;
 }
 
 interface ErrorResponse {
   success: false;
   error:   string;
+  debug?: {
+    stage:       Stage;
+    status:      number;
+    contentType: string;
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helper: lê resposta HTTP de forma segura, verificando Content-Type primeiro.
+// NUNCA chama res.json() sem confirmar que a resposta realmente é JSON.
+// ──────────────────────────────────────────────────────────────────────────────
+
+type SafeJsonResult<T> =
+  | { ok: true;  data: T }
+  | { ok: false; status: number; contentType: string; snippet: string };
+
+async function safeJson<T>(response: Response, stage: Stage): Promise<SafeJsonResult<T>> {
+  const contentType = response.headers.get('content-type') ?? '';
+  const isJson = contentType.includes('application/json') || contentType.includes('text/json');
+
+  if (!isJson) {
+    const body  = await response.text();
+    const snippet = body.slice(0, 150).replace(/[\n\r]/g, ' ');
+    console.error(`[FatSecret][${stage}] não-JSON ${response.status} ct="${contentType}" body="${snippet}"`);
+    return { ok: false, status: response.status, contentType, snippet };
+  }
+
+  try {
+    const data = await response.json() as T;
+    return { ok: true, data };
+  } catch (e) {
+    const snippet = String(e).slice(0, 100);
+    console.error(`[FatSecret][${stage}] json parse error: ${snippet}`);
+    return { ok: false, status: response.status, contentType, snippet };
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 // OAuth 2.0 — Client Credentials Flow
-// Ref: https://platform.fatsecret.com/api/Default.aspx?screen=rapirefoauthauth
 // ──────────────────────────────────────────────────────────────────────────────
 
 const FATSECRET_TOKEN_URL = 'https://oauth.fatsecret.com/connect/token';
@@ -76,14 +110,7 @@ interface OAuthTokenResponse {
   scope?:       string;
 }
 
-/**
- * Obtém token OAuth2 (Client Credentials).
- * ⚠️  Executado apenas no servidor — credenciais nunca chegam ao browser.
- */
-async function getOAuthToken(
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
+async function getOAuthToken(clientId: string, clientSecret: string): Promise<string> {
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   const res = await fetch(FATSECRET_TOKEN_URL, {
@@ -91,22 +118,29 @@ async function getOAuthToken(
     headers: {
       'Content-Type':  'application/x-www-form-urlencoded',
       'Authorization': `Basic ${credentials}`,
+      'Accept':        'application/json',
     },
     body: 'grant_type=client_credentials&scope=basic',
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error('[FatSecret] OAuth error:', errText);
-    throw new Error(`OAuth falhou (${res.status}): ${errText}`);
+    const snippet = errText.slice(0, 120).replace(/[\n\r]/g, ' ');
+    console.error(`[FatSecret][token] falha ${res.status}: ${snippet}`);
+    throw new Error(`Falha na autenticação com a FatSecret. Verifique as credenciais no Vercel. (${res.status})`);
   }
 
-  const data = await res.json() as OAuthTokenResponse;
-  return data.access_token;
+  const parsed = await safeJson<OAuthTokenResponse>(res, 'token');
+  if (!parsed.ok) {
+    throw new Error(`Falha na autenticação com a FatSecret. Verifique as credenciais no Vercel. (resposta não-JSON: ${parsed.contentType})`);
+  }
+
+  console.log(`[FatSecret][token] ok scope=${parsed.data.scope ?? 'basic'}`);
+  return parsed.data.access_token;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Parse seguro de número (todos os campos da FatSecret chegam como string)
+// Parse seguro de número (campos FatSecret chegam como string)
 // ──────────────────────────────────────────────────────────────────────────────
 
 function parseNum(v: string | number | undefined): number {
@@ -120,107 +154,58 @@ function toUndefinedIfZero(n: number): number | undefined {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// FatSecret Foods.Search — busca textual
-// Ref: https://platform.fatsecret.com/api/Default.aspx?screen=rapiref&method=foods.search
-// ──────────────────────────────────────────────────────────────────────────────
-
-async function searchFoodsByText(
-  token: string,
-  query: string
-): Promise<FatSecretFoodItem[]> {
-  // TODO [BUG 15A]: A API REST JSON da FatSecret usa query params com format=json
-  // Ref: https://platform.fatsecret.com/api/Default.aspx?screen=rapiref&method=foods.search
-  const params = new URLSearchParams({
-    method:       'foods.search',
-    search_expression: query,
-    format:       'json',
-    max_results:  '5',
-    page_number:  '0',
-    language:     'pt',
-    region:       'BR',
-  });
-
-  const res = await fetch(`${FATSECRET_API_URL}?${params.toString()}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error('[FatSecret] foods.search error:', errText);
-    throw new Error(`foods.search falhou (${res.status})`);
-  }
-
-  const data = await res.json() as Record<string, unknown>;
-
-  // TODO [BUG 15B]: mapear resultado real da API
-  // A estrutura retornada é: { foods: { food: Food | Food[], total_results, ... } }
-  // Por ora retorna array vazio seguro para não quebrar build
-  console.log('[FatSecret] foods.search raw:', JSON.stringify(data).slice(0, 200));
-
-  const rawFoods = (data as any)?.foods?.food;
-  if (!rawFoods) return [];
-
-  const foodArray: unknown[] = Array.isArray(rawFoods) ? rawFoods : [rawFoods];
-
-  return foodArray.slice(0, 5).map((f: any) => ({
-    name:       f.food_name ?? 'Alimento desconhecido',
-    brand:      f.brand_name ?? undefined,
-    externalId: f.food_id ?? undefined,
-    // Macros ficam na serving padrão — parsing completo em BUG 15B
-    calories:   undefined,
-    protein:    undefined,
-    carbs:      undefined,
-    fat:        undefined,
-  } satisfies FatSecretFoodItem));
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
 // FatSecret Food Image Recognition — análise por foto (Premium API)
-// Ref: https://platform.fatsecret.com/api/Default.aspx?screen=rapiref&method=food.recognize.v3
+// Retorna:
+//   FatSecretFoodItem[]  — reconhecimento ok (pode ser [] se não identificou)
+//   null                 — API não disponível no plano atual (XML ou erro de plano)
 // ──────────────────────────────────────────────────────────────────────────────
 
 async function recognizeFoodByImage(
   token: string,
   imageBase64: string
-): Promise<FatSecretFoodItem[]> {
-  // TODO [BUG 15A]: food.recognize.v3 requer plano Premium da FatSecret.
-  // Se o plano atual for Basic (foods.search only), usar searchFoodsByText
-  // com nome inferido por outro mecanismo (ex: Clarifai ou GLPY IA).
-  //
-  // Endpoint de reconhecimento:
-  // POST https://platform.fatsecret.com/rest/food/recognize/v3
-  // Body: { image_b64: "<base64>" }
-  // Header: Authorization: Bearer <token>
-
+): Promise<FatSecretFoodItem[] | null> {
   const recognizeUrl = 'https://platform.fatsecret.com/rest/food/recognize/v3';
 
-  const res = await fetch(recognizeUrl, {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ image_b64: imageBase64 }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error('[FatSecret] food.recognize error:', errText);
-    // Falha silenciosa no reconhecimento — retorna array vazio para o caller tratar
-    return [];
+  let res: Response;
+  try {
+    res = await fetch(recognizeUrl, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Accept':        'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ image_b64: imageBase64 }),
+    });
+  } catch (networkErr) {
+    console.error('[FatSecret][recognize] network error:', String(networkErr).slice(0, 100));
+    return null;
   }
 
-  const data = await res.json() as Record<string, unknown>;
-  console.log('[FatSecret] food.recognize raw:', JSON.stringify(data).slice(0, 200));
+  console.log(`[FatSecret][recognize] status=${res.status} ct="${res.headers.get('content-type') ?? ''}"`);
 
-  // TODO [BUG 15B]: mapear resultado real da API de reconhecimento
-  // Estrutura esperada: { food_response: [{ food_id, food_name, score, servings }] }
-  const foodResponse: unknown[] = (data as any)?.food_response ?? [];
+  if (!res.ok) {
+    // Non-2xx: pode ser 401, 403 (plano insuficiente) — lê como texto, retorna null
+    const errText = await res.text();
+    const snippet = errText.slice(0, 150).replace(/[\n\r]/g, ' ');
+    console.error(`[FatSecret][recognize] erro ${res.status}: ${snippet}`);
+    return null;
+  }
+
+  // 2xx: verificar Content-Type ANTES de chamar .json()
+  const parsed = await safeJson<Record<string, unknown>>(res, 'recognize');
+  if (!parsed.ok) {
+    // Resposta 2xx com body XML — plano não suporta reconhecimento por imagem
+    return null;
+  }
+
+  console.log('[FatSecret][recognize] raw:', JSON.stringify(parsed.data).slice(0, 200));
+
+  const foodResponse: unknown[] = (parsed.data as any)?.food_response ?? [];
 
   return (foodResponse as any[]).slice(0, 5).map((item: any) => {
     const serving = item?.servings?.serving;
     const s = Array.isArray(serving) ? serving[0] : serving;
-
     return {
       name:               item.food_name ?? 'Alimento desconhecido',
       servingDescription: s?.serving_description ?? undefined,
@@ -233,6 +218,58 @@ async function recognizeFoodByImage(
       externalId:         String(item.food_id ?? ''),
     } satisfies FatSecretFoodItem;
   });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FatSecret Foods.Search — busca textual
+// ──────────────────────────────────────────────────────────────────────────────
+
+async function searchFoodsByText(token: string, query: string): Promise<FatSecretFoodItem[]> {
+  const params = new URLSearchParams({
+    method:            'foods.search',
+    search_expression: query,
+    format:            'json',
+    max_results:       '5',
+    page_number:       '0',
+    language:          'pt',
+    region:            'BR',
+  });
+
+  const res = await fetch(`${FATSECRET_API_URL}?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept':        'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    const snippet = errText.slice(0, 120).replace(/[\n\r]/g, ' ');
+    console.error(`[FatSecret][search] erro ${res.status}: ${snippet}`);
+    throw new Error(`Busca de alimentos falhou (${res.status})`);
+  }
+
+  const parsed = await safeJson<Record<string, unknown>>(res, 'search');
+  if (!parsed.ok) {
+    throw new Error(`Busca de alimentos retornou formato inesperado (${parsed.contentType})`);
+  }
+
+  console.log('[FatSecret][search] raw:', JSON.stringify(parsed.data).slice(0, 200));
+
+  const rawFoods = (parsed.data as any)?.foods?.food;
+  if (!rawFoods) return [];
+
+  const foodArray: unknown[] = Array.isArray(rawFoods) ? rawFoods : [rawFoods];
+
+  return foodArray.slice(0, 5).map((f: any) => ({
+    name:       f.food_name ?? 'Alimento desconhecido',
+    brand:      f.brand_name ?? undefined,
+    externalId: f.food_id ?? undefined,
+    calories:   undefined,
+    protein:    undefined,
+    carbs:      undefined,
+    fat:        undefined,
+  } satisfies FatSecretFoodItem));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -255,18 +292,13 @@ function calcTotals(items: FatSecretFoodItem[]): SuccessResponse['totals'] {
 // Handler principal
 // ──────────────────────────────────────────────────────────────────────────────
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-): Promise<void> {
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
 
-  // ── Método
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, error: 'Método não permitido. Use POST.' } satisfies ErrorResponse);
     return;
   }
 
-  // ── Credenciais — server-side apenas
   const clientId     = process.env.FATSECRET_CLIENT_ID;
   const clientSecret = process.env.FATSECRET_CLIENT_SECRET;
 
@@ -279,31 +311,19 @@ export default async function handler(
     return;
   }
 
-  // ── Payload
   const body = req.body as Partial<RequestPayload>;
-  const { mode, imageBase64, query, mealType } = body;
+  const { mode, imageBase64, query } = body;
 
   if (!mode || (mode !== 'image' && mode !== 'search')) {
-    res.status(400).json({
-      success: false,
-      error:   "Campo 'mode' é obrigatório e deve ser 'image' ou 'search'.",
-    } satisfies ErrorResponse);
+    res.status(400).json({ success: false, error: "Campo 'mode' é obrigatório e deve ser 'image' ou 'search'." } satisfies ErrorResponse);
     return;
   }
-
   if (mode === 'image' && !imageBase64) {
-    res.status(400).json({
-      success: false,
-      error:   "Campo 'imageBase64' é obrigatório quando mode='image'.",
-    } satisfies ErrorResponse);
+    res.status(400).json({ success: false, error: "Campo 'imageBase64' é obrigatório quando mode='image'." } satisfies ErrorResponse);
     return;
   }
-
   if (mode === 'search' && !query) {
-    res.status(400).json({
-      success: false,
-      error:   "Campo 'query' é obrigatório quando mode='search'.",
-    } satisfies ErrorResponse);
+    res.status(400).json({ success: false, error: "Campo 'query' é obrigatório quando mode='search'." } satisfies ErrorResponse);
     return;
   }
 
@@ -313,58 +333,64 @@ export default async function handler(
     accessToken = await getOAuthToken(clientId, clientSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    res.status(502).json({
-      success: false,
-      error:   `Falha na autenticação FatSecret: ${message}`,
-    } satisfies ErrorResponse);
+    res.status(502).json({ success: false, error: message } satisfies ErrorResponse);
     return;
   }
 
   // ── Análise
   let items: FatSecretFoodItem[];
-  let rawData: unknown;
 
   try {
     if (mode === 'image') {
-      items = await recognizeFoodByImage(accessToken, imageBase64!);
+      const result = await recognizeFoodByImage(accessToken, imageBase64!);
 
-      // Fallback: se reconhecimento retornou vazio (plano Basic ou sem resultado),
-      // usa mock seguro para não quebrar o fluxo de desenvolvimento
-      if (items.length === 0) {
-        console.warn('[FatSecret] Reconhecimento vazio — usando mock de fallback para desenvolvimento');
-        // TODO [BUG 15B]: remover mock quando reconhecimento real estiver validado
-        items = [{
-          name:               'Prato identificado (pendente Premium API)',
-          servingDescription: '1 porção',
-          calories:           undefined,
-          protein:            undefined,
-          carbs:              undefined,
-          fat:                undefined,
-          confidence:         0,
-        }];
+      // null = API retornou XML / plano não suporta reconhecimento por imagem
+      if (result === null) {
+        res.status(200).json({
+          success: false,
+          error:   'Reconhecimento por imagem indisponível no plano atual da FatSecret.',
+          debug: {
+            stage:       'recognize' as Stage,
+            status:      0,
+            contentType: 'non-json',
+          },
+        } satisfies ErrorResponse);
+        return;
       }
+
+      // [] = API respondeu mas não identificou itens
+      if (result.length === 0) {
+        res.status(200).json({
+          success: false,
+          error:   'Nenhum alimento identificado na imagem. Tente uma foto mais próxima e com boa iluminação.',
+          debug: {
+            stage:       'recognize' as Stage,
+            status:      200,
+            contentType: 'application/json',
+          },
+        } satisfies ErrorResponse);
+        return;
+      }
+
+      items = result;
+
     } else {
       items = await searchFoodsByText(accessToken, query!);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error('[FatSecret][handler] erro análise:', message);
     res.status(502).json({
       success: false,
-      error:   `Falha na análise de alimento: ${message}`,
+      error:   `Falha na análise: ${message}`,
     } satisfies ErrorResponse);
     return;
   }
 
-  // ── Resposta
-  const totals = calcTotals(items);
-
-  const responseBody: SuccessResponse = {
+  res.status(200).json({
     success: true,
     source:  'fatsecret',
     items,
-    totals,
-    raw:     rawData,
-  };
-
-  res.status(200).json(responseBody);
+    totals:  calcTotals(items),
+  } satisfies SuccessResponse);
 }

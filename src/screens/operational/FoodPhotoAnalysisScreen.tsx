@@ -1,6 +1,7 @@
 // GLPY — Food Photo Analysis Screen
-// BUG 15C: Conectado ao FatSecret Platform API real via /api/fatsecret-food
-//          Não salva em glpy_refeicoes_hoje ainda — BUG 15D.
+// BUG 15C.1: Conectado ao Gemini Vision via /api/gemini-food-vision
+//            Detecta alimentos na imagem — macros virão da FatSecret no BUG 15D.
+//            Não salva em glpy_refeicoes_hoje ainda.
 //
 // Fluxo de estados:
 //   idle → captured → analyzing → results | error
@@ -12,52 +13,33 @@ import {
   RotateCcw, Coffee, Utensils, Moon, Apple, Sparkles, Zap, Check,
 } from 'lucide-react';
 
-import type {
-  FatSecretFoodItem,
-  FatSecretMealType,
-  NormalizedMealFromPhoto,
-} from '../../services/fatsecret';
-import { analyzePhotoAndNormalize } from '../../services/fatsecret';
+import {
+  detectFoodsFromPhoto,
+  type DetectedFood,
+} from '../../services/geminiFoodVision';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Phase = 'idle' | 'captured' | 'analyzing' | 'results' | 'error';
+type MealType = 'cafe' | 'almoco' | 'jantar' | 'lanche';
 
-type RealAnalysis = {
-  items:  FatSecretFoodItem[];
-  totals: { calories: number; protein: number; carbs: number; fat: number };
-  meal:   NormalizedMealFromPhoto;
+type GeminiAnalysis = {
+  foods:   DetectedFood[];
+  summary: string;
 };
 
 export interface FoodPhotoAnalysisScreenProps {
   onBack?: () => void;
-  /**
-   * Reservado para BUG 15D — persistência real em glpy_refeicoes_hoje.
-   * Por ora não é chamado ao confirmar.
-   */
-  onSave?: (data: NormalizedMealFromPhoto) => void;
+  /** Reservado para BUG 15D — persistência real em glpy_refeicoes_hoje. */
+  onSave?: () => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function calcTotals(items: FatSecretFoodItem[]): RealAnalysis['totals'] {
-  return {
-    calories: Math.round(items.reduce((s, i) => s + (i.calories ?? 0), 0)),
-    protein:  Math.round(items.reduce((s, i) => s + (i.protein  ?? 0), 0) * 10) / 10,
-    carbs:    Math.round(items.reduce((s, i) => s + (i.carbs    ?? 0), 0) * 10) / 10,
-    fat:      Math.round(items.reduce((s, i) => s + (i.fat      ?? 0), 0) * 10) / 10,
-  };
-}
-
-function fmtNum(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
-}
-
-function confidenceBadge(c?: number): string {
-  if (c === undefined) return '';
+function confidenceBadge(c: number): string {
   if (c >= 0.85) return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
   if (c >= 0.65) return 'bg-amber-50   text-amber-600   border border-amber-100';
-  return                    'bg-red-50    text-red-500     border border-red-100';
+  return                  'bg-red-50    text-red-500     border border-red-100';
 }
 
 function delay(ms: number): Promise<void> { return new Promise(r => setTimeout(r, ms)); }
@@ -90,7 +72,7 @@ async function compressImageToBase64(file: File): Promise<string> {
 
 // ── Meal options ──────────────────────────────────────────────────────────────
 
-const MEAL_OPTIONS: { id: FatSecretMealType; label: string; Icon: typeof Coffee }[] = [
+const MEAL_OPTIONS: { id: MealType; label: string; Icon: typeof Coffee }[] = [
   { id: 'cafe',   label: 'Café',   Icon: Coffee   },
   { id: 'almoco', label: 'Almoço', Icon: Utensils  },
   { id: 'jantar', label: 'Jantar', Icon: Moon      },
@@ -99,8 +81,8 @@ const MEAL_OPTIONS: { id: FatSecretMealType; label: string; Icon: typeof Coffee 
 
 const ANALYSIS_STEPS = [
   'Detectando alimentos no prato',
-  'Consultando base nutricional',
-  'Calculando macros e calorias',
+  'Identificando ingredientes prováveis',
+  'Verificando resultados',
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -109,8 +91,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
   const [phase,         setPhase]         = useState<Phase>('idle');
   const [imageUrl,      setImageUrl]      = useState<string | null>(null);
   const [imageBase64,   setImageBase64]   = useState<string | null>(null);
-  const [mealType,      setMealType]      = useState<FatSecretMealType>('almoco');
-  const [analysis,      setAnalysis]      = useState<RealAnalysis | null>(null);
+  const [mealType,      setMealType]      = useState<MealType>('almoco');
+  const [analysis,      setAnalysis]      = useState<GeminiAnalysis | null>(null);
   const [analyzingStep, setStep]          = useState(0);
   const [errorMessage,  setErrorMessage]  = useState<string | null>(null);
   const [savedFeedback, setSavedFeedback] = useState(false);
@@ -133,7 +115,6 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
         setImageUrl(`data:image/jpeg;base64,${b64}`);
       })
       .catch(() => {
-        // Canvas falhou — usa FileReader como fallback
         const reader = new FileReader();
         reader.onloadend = () => {
           const dataUrl = reader.result as string;
@@ -144,7 +125,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       });
   }
 
-  // ── FatSecret analysis ────────────────────────────────────────────────────
+  // ── Gemini analysis ───────────────────────────────────────────────────────
 
   async function runAnalysis() {
     if (!imageBase64) return;
@@ -153,8 +134,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setErrorMessage(null);
     setSavedFeedback(false);
 
-    // Dispara a chamada real imediatamente em paralelo com a animação
-    const apiPromise = analyzePhotoAndNormalize(imageBase64, mealType);
+    const apiPromise = detectFoodsFromPhoto(imageBase64);
 
     for (let i = 1; i <= ANALYSIS_STEPS.length; i++) {
       await delay(800 + i * 120);
@@ -169,11 +149,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       return;
     }
 
-    setAnalysis({
-      items:  result.meal.items,
-      totals: calcTotals(result.meal.items),
-      meal:   result.meal,
-    });
+    setAnalysis({ foods: result.detectedFoods, summary: result.summary });
     setPhase('results');
   }
 
@@ -193,16 +169,6 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
   function handleSave() {
     setSavedFeedback(true);
-  }
-
-  // ── Sub-component: Macro pill ─────────────────────────────────────────────
-
-  function MacroPill({ label, value, unit = '', color }: { label: string; value: number; unit?: string; color: string }) {
-    return (
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${color}`}>
-        {label}: {fmtNum(value)}{unit}
-      </span>
-    );
   }
 
   // ── Sub-component: Meal type selector ────────────────────────────────────
@@ -251,8 +217,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
             <p className="text-xs text-text-muted">
               {phase === 'idle'      && 'Tire uma foto para analisar'}
               {phase === 'captured'  && 'Foto selecionada — pronto para analisar'}
-              {phase === 'analyzing' && 'Consultando FatSecret...'}
-              {phase === 'results'   && 'Análise concluída'}
+              {phase === 'analyzing' && 'Consultando Gemini Vision...'}
+              {phase === 'results'   && 'Alimentos identificados'}
               {phase === 'error'     && 'Erro na análise'}
             </p>
           </div>
@@ -289,7 +255,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   <p className="font-bold text-base text-[#0A1628]">Foto do Prato</p>
                   <p className="text-xs text-text-muted leading-relaxed mt-1">
                     Tire uma foto da sua refeição. O GLPY identifica os alimentos
-                    e calcula os macros automaticamente.
+                    automaticamente com Inteligência Artificial.
                   </p>
                 </div>
               </div>
@@ -324,7 +290,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
               <div className="flex items-center justify-center gap-1.5 pt-1">
                 <Zap size={10} className="text-text-muted" />
-                <span className="text-[11px] text-text-muted">Powered by FatSecret Platform API</span>
+                <span className="text-[11px] text-text-muted">Powered by Gemini Vision</span>
               </div>
             </motion.div>
           )}
@@ -373,7 +339,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                     <Loader2 size={28} className="text-white animate-spin" />
                   </div>
                   <p className="text-white font-bold text-sm">Analisando refeição...</p>
-                  <p className="text-white/60 text-xs">Consultando FatSecret</p>
+                  <p className="text-white/60 text-xs">Gemini Vision</p>
                 </div>
                 <motion.div
                   className="absolute left-0 right-0 h-0.5 bg-primary"
@@ -465,14 +431,19 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wide mb-0.5">Identificado</p>
                     <p className="font-bold text-sm text-[#0A1628] leading-snug">
-                      {analysis.items.slice(0, 2).map(i => i.name).join(' + ')}
-                      {analysis.items.length > 2 && (
-                        <span className="text-text-muted font-normal"> +{analysis.items.length - 2}</span>
+                      {analysis.foods.slice(0, 2).map(f => f.name).join(' + ')}
+                      {analysis.foods.length > 2 && (
+                        <span className="text-text-muted font-normal"> +{analysis.foods.length - 2}</span>
                       )}
                     </p>
-                    <p className="text-[10px] text-text-muted mt-0.5">{analysis.items.length} alimento(s) detectado(s)</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">{analysis.foods.length} alimento(s) detectado(s)</p>
                   </div>
                 </div>
+                {analysis.summary && (
+                  <div className="px-3.5 pb-3.5">
+                    <p className="text-[11px] text-text-muted leading-relaxed italic">"{analysis.summary}"</p>
+                  </div>
+                )}
               </div>
 
               {/* Food items list */}
@@ -481,7 +452,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   Alimentos identificados
                 </p>
                 <div className="space-y-2">
-                  {analysis.items.map((item, i) => (
+                  {analysis.foods.map((food, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: -8 }}
@@ -489,58 +460,28 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                       transition={{ delay: i * 0.08, duration: 0.2 }}
                       className="bg-[#F8FAF9] rounded-xl p-3 border border-[#E8EFEc]"
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-[#0A1628] leading-tight">{item.name}</p>
-                          {item.servingDescription && (
-                            <p className="text-[10px] text-text-muted mt-0.5">{item.servingDescription}</p>
-                          )}
+                          <p className="font-semibold text-sm text-[#0A1628] leading-tight">{food.name}</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">{food.portionGuess}</p>
                         </div>
-                        {item.confidence !== undefined && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${confidenceBadge(item.confidence)}`}>
-                            {Math.round(item.confidence * 100)}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {item.calories != null && <MacroPill label="Kcal"  value={Math.round(item.calories)} color="text-red-500    bg-red-50    border-red-100"    />}
-                        {item.protein  != null && <MacroPill label="Prot"  value={item.protein}  unit="g"   color="text-primary   bg-primary/8 border-primary/15"  />}
-                        {item.carbs    != null && <MacroPill label="Carbs" value={item.carbs}    unit="g"   color="text-amber-600 bg-amber-50  border-amber-100"    />}
-                        {item.fat      != null && <MacroPill label="Gord"  value={item.fat}      unit="g"   color="text-violet-600 bg-violet-50 border-violet-100"  />}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${confidenceBadge(food.confidence)}`}>
+                          {Math.round(food.confidence * 100)}%
+                        </span>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               </div>
 
-              {/* Totals */}
-              <div className="bg-white border border-border rounded-2xl p-4 shadow-sm">
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-3">Total da refeição</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { label: 'Kcal',  value: analysis.totals.calories,          colorText: 'text-red-500',    colorBg: 'bg-red-50'    },
-                    { label: 'Prot',  value: analysis.totals.protein,  unit: 'g', colorText: 'text-primary',    colorBg: 'bg-primary/8' },
-                    { label: 'Carbs', value: analysis.totals.carbs,    unit: 'g', colorText: 'text-amber-600',  colorBg: 'bg-amber-50'  },
-                    { label: 'Gord',  value: analysis.totals.fat,      unit: 'g', colorText: 'text-violet-600', colorBg: 'bg-violet-50' },
-                  ].map(m => (
-                    <div key={m.label} className={`${m.colorBg} rounded-xl p-2.5 text-center border border-border`}>
-                      <p className={`font-black text-lg ${m.colorText} leading-none`}>
-                        {fmtNum(m.value)}{m.unit ?? ''}
-                      </p>
-                      <p className="text-[10px] text-text-muted mt-0.5">{m.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Meal type (editável em results) */}
+              {/* Meal type */}
               <MealTypeSelector />
 
-              {/* Estimate disclaimer */}
+              {/* Info sobre próximos passos */}
               <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
                 <AlertTriangle size={13} className="text-blue-400 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  A análise por foto é uma estimativa. Confirme os alimentos antes de salvar.
+                  Alimentos identificados pela IA. Os macros e calorias serão calculados em breve.
                 </p>
               </div>
 
