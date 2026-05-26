@@ -43,7 +43,7 @@ export interface FoodPhotoAnalysisScreenProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtNum(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+  return Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ',');
 }
 
 function confidenceBadge(c: number): string {
@@ -579,23 +579,30 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                     </p>
                   </div>
 
-                  {/* Macro grid */}
-                  <div className="grid grid-cols-4 gap-2 mb-3">
-                    {[
-                      { label: 'Calorias',     val: selectedFsItem.calories, round: true,  color: 'text-red-500',    bg: 'bg-red-50',    unit: 'kcal' },
-                      { label: 'Proteínas',    val: selectedFsItem.protein,  round: false, color: 'text-primary',    bg: 'bg-primary/8', unit: 'g' },
-                      { label: 'Carboidratos', val: selectedFsItem.carbs,    round: false, color: 'text-amber-600',  bg: 'bg-amber-50',  unit: 'g' },
-                      { label: 'Gorduras',     val: selectedFsItem.fat,      round: false, color: 'text-violet-600', bg: 'bg-violet-50', unit: 'g' },
-                    ].map(m => (
-                      <div key={m.label} className={`${m.bg} rounded-xl p-2.5 text-center border border-border`}>
-                        <p className={`font-black text-lg ${m.color} leading-none`}>
-                          {m.val != null
-                            ? (m.round ? Math.round(m.val) : fmtNum(m.val)) + (m.unit ?? '')
-                            : '—'}
-                        </p>
-                        <p className="text-[10px] text-text-muted mt-0.5">{m.label}</p>
-                      </div>
-                    ))}
+                  {/* Macro layout: Calorias full-width + 3 colunas */}
+                  <div className="space-y-2 mb-3">
+                    {/* Calorias — card largo */}
+                    <div className="bg-red-50 rounded-xl p-4 text-center border border-border">
+                      <p className="font-black text-2xl text-red-500 leading-none">
+                        {selectedFsItem.calories != null ? `${Math.round(selectedFsItem.calories)} kcal` : '—'}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-1.5">Calorias</p>
+                    </div>
+                    {/* Proteínas / Carboidratos / Gorduras */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Proteínas',    val: selectedFsItem.protein, color: 'text-primary',    bg: 'bg-primary/8' },
+                        { label: 'Carboidratos', val: selectedFsItem.carbs,   color: 'text-amber-600',  bg: 'bg-amber-50'  },
+                        { label: 'Gorduras',     val: selectedFsItem.fat,     color: 'text-violet-600', bg: 'bg-violet-50' },
+                      ].map(m => (
+                        <div key={m.label} className={`${m.bg} rounded-xl p-2.5 text-center border border-border`}>
+                          <p className={`font-black text-base ${m.color} leading-none`}>
+                            {m.val != null ? `${fmtNum(m.val)} g` : '—'}
+                          </p>
+                          <p className="text-[10px] text-text-muted mt-0.5">{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Switch result */}
