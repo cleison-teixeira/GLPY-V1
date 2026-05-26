@@ -157,7 +157,7 @@ export async function carregarProgressoProtocolo(protocoloId: string): Promise<{
 // ─────────────────────────────────────────────
 // Limites de uso da IA — users/{uid}/limites/ia
 // ─────────────────────────────────────────────
-const LIMITES_POR_PLANO: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
+const LIMITES_POR_PLANO: Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
 export async function carregarLimitesIA(plano: string): Promise<{
   usadas: number;
