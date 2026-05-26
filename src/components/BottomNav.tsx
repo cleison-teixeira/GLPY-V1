@@ -55,7 +55,9 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
     try { return (localStorage.getItem("glpy_sexo") || "").trim(); } catch { return ""; }
   })();
 
-  const ringClass = active === "perfil" ? "ring-2 ring-[#00C27A]" : "opacity-60";
+  // foto: nunca reduz opacity; SVG fallback: reduz quando inativo
+  const imgRingClass = active === "perfil" ? "ring-2 ring-[#00C27A]" : "";
+  const svgRingClass = active === "perfil" ? "ring-2 ring-[#00C27A]" : "opacity-60";
 
   return (
     <>
@@ -94,34 +96,26 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
               <img
                 src={profileImage}
                 alt="Perfil"
-                className={`w-5 h-5 rounded-full object-cover ${ringClass}`}
+                className={`w-5 h-5 rounded-full object-cover ${imgRingClass}`}
               />
             ) : sexo === "Feminino" ? (
-              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${ringClass}`}>
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${svgRingClass}`}>
                 <circle cx="16" cy="16" r="16" fill="#00C27A"/>
-                {/* hair — arched, frames face */}
                 <path d="M9.5 13C9.5 8 12.5 6 16 6C19.5 6 22.5 8 22.5 13C22 7.5 19.5 5.5 16 5.5C12.5 5.5 10 7.5 9.5 13Z" fill="white"/>
-                {/* head */}
                 <circle cx="16" cy="13.5" r="5" fill="white"/>
-                {/* shoulders — narrower */}
                 <path d="M6 28C6 22 10.5 19 16 19C21.5 19 26 22 26 28" fill="white"/>
               </svg>
             ) : sexo === "Masculino" ? (
-              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${ringClass}`}>
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${svgRingClass}`}>
                 <circle cx="16" cy="16" r="16" fill="#00C27A"/>
-                {/* hair — flat/short top */}
                 <path d="M10 12C10 8 12.5 6 16 6C19.5 6 22 8 22 12L22 9.5C22 7 19.5 5.5 16 5.5C12.5 5.5 10 7 10 9.5Z" fill="white" opacity="0.85"/>
-                {/* head */}
                 <circle cx="16" cy="13.5" r="5.5" fill="white"/>
-                {/* shoulders — wider */}
                 <path d="M4 28C4 21.5 9.5 18.5 16 18.5C22.5 18.5 28 21.5 28 28" fill="white"/>
               </svg>
             ) : (
-              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${ringClass}`}>
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className={`rounded-full ${svgRingClass}`}>
                 <circle cx="16" cy="16" r="16" fill="#00C27A"/>
-                {/* head */}
                 <circle cx="16" cy="13" r="5.5" fill="white"/>
-                {/* shoulders — neutral width */}
                 <path d="M5 28C5 21.5 10 18.5 16 18.5C22 18.5 27 21.5 27 28" fill="white"/>
               </svg>
             )}

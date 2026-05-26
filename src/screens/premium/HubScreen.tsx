@@ -337,7 +337,7 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
             className="flex flex-col items-center justify-center w-12 h-12 transition text-slate-400 hover:text-slate-600"
           >
             {hubProfileImage ? (
-              <img src={hubProfileImage} alt="Perfil" className="w-5 h-5 rounded-full object-cover opacity-60" />
+              <img src={hubProfileImage} alt="Perfil" className="w-5 h-5 rounded-full object-cover" />
             ) : hubSexo === "Feminino" ? (
               <svg width="20" height="20" viewBox="0 0 32 32" fill="none" className="rounded-full opacity-60">
                 <circle cx="16" cy="16" r="16" fill="#00C27A"/>
