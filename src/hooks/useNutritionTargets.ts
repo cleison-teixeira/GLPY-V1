@@ -5,28 +5,11 @@ import {
 } from '../core/glpyDailyTargets';
 import { useCurrentWeight } from './useCurrentWeight';
 import { useUserOnboarding } from './useUserOnboarding';
+import { glpyStore } from '../data/glpyStore';
 
 function readTodayActivityCalories(): number {
   try {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const todayRaw = localStorage.getItem('glpy_today_activity');
-    if (todayRaw) {
-      const entries: Array<{ kcalBurned?: number; date?: string }> = JSON.parse(todayRaw);
-      if (Array.isArray(entries) && entries.length > 0) {
-        const todayEntries = entries.filter(e => e.date === todayKey);
-        if (todayEntries.length > 0) {
-          return todayEntries.reduce((sum, e) => sum + (e.kcalBurned ?? 0), 0);
-        }
-      }
-    }
-    // legacy fallback: ActivityScreen still writes here
-    const legacy = JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}');
-    if (legacy?.calories && typeof legacy.calories === 'number' && legacy.calories > 0) {
-      if (legacy.savedAt) {
-        const savedDate = new Date(legacy.savedAt).toISOString().slice(0, 10);
-        if (savedDate === todayKey) return legacy.calories;
-      }
-    }
+    return glpyStore.activity.getToday()?.activityCaloriesBurned ?? 0;
   } catch {}
   return 0;
 }

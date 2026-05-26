@@ -243,9 +243,48 @@ const emotion = {
 
 // ── 5. activity ───────────────────────────────────────────────────────────────
 
+function normalizeActivityCalories(obj: Record<string, unknown>): number {
+  for (const field of ['activityCaloriesBurned', 'kcalBurned', 'calories', 'kcal', 'burnedCalories', 'estimatedCalories']) {
+    const v = parseFloat(String(obj[field] ?? ''));
+    if (!isNaN(v) && v > 0) return v;
+  }
+  return 0;
+}
+
 const activity = {
   getToday(): GlpyActivity | null {
-    return readJSON<GlpyActivity | null>(KEYS.atividadeHoje, null);
+    const today = todayKey();
+
+    // Single-object format (glpy_atividade_hoje — legacy ActivityScreen write)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const single = readJSON<any>(KEYS.atividadeHoje, null);
+    let singleCals = 0;
+    let singleIsToday = false;
+    if (single && typeof single === 'object') {
+      const entryDate = single.savedAt
+        ? new Date(single.savedAt).toISOString().slice(0, 10)
+        : (single.date ?? '');
+      if (entryDate === today) {
+        singleIsToday = true;
+        singleCals = normalizeActivityCalories(single as Record<string, unknown>);
+      }
+    }
+
+    // Array format (glpy_today_activity — glpyLocalIntelligence saveActivityEntry write)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const arr = readJSON<any>(KEYS.todayActivity, null);
+    let arrCals = 0;
+    if (Array.isArray(arr) && arr.length > 0) {
+      arrCals = arr
+        .filter((e: Record<string, unknown>) => e.date === today)
+        .reduce((sum: number, e: Record<string, unknown>) => sum + normalizeActivityCalories(e), 0);
+    }
+
+    if (!singleIsToday && arrCals === 0) return null;
+
+    const activityCaloriesBurned = arrCals > 0 ? arrCals : singleCals;
+    const base = singleIsToday ? single : {};
+    return { ...base, activityCaloriesBurned } as GlpyActivity;
   },
 
   saveToday(value: GlpyActivity): void {
