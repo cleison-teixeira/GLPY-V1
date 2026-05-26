@@ -119,6 +119,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
   const [analyzingStep,       setStep]                 = useState(0);
   const [errorMessage,        setErrorMessage]         = useState<string | null>(null);
   const [savedFeedback,       setSavedFeedback]        = useState(false);
+  const [saveError,           setSaveError]            = useState<string | null>(null);
   const [fatSecretItems,      setFatSecretItems]       = useState<FatSecretFoodItem[] | null>(null);
   const [fatSecretError,      setFatSecretError]       = useState(false);
   const [selectedFsIdx,       setSelectedFsIdx]        = useState(0);
@@ -139,6 +140,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setPhase('captured');
     setAnalysis(null);
     setSavedFeedback(false);
+    setSaveError(null);
     setErrorMessage(null);
     setFatSecretItems(null);
     setFatSecretError(false);
@@ -308,22 +310,30 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setIsManualSearching(false);
     setDeepSeekState('idle');
     setDeepSeekAnalysis(null);
+    setSaveError(null);
   }
 
   function handleSave() {
     if (savedFeedback || !analysis) return;
+
+    if (!hasMacros) {
+      setSaveError('Não foi possível salvar porque a nutrição ainda não foi estimada.');
+      return;
+    }
+
+    setSaveError(null);
 
     const entry = {
       mealType:        MEAL_TYPE_MAP[mealType],
       description:     analysis.foods.map(f => f.name).join(', '),
       photoAdded:      true,
       savedAt:         Date.now(),
-      calories:        selectedFsItem?.calories  ?? undefined,
-      protein:         selectedFsItem?.protein   ?? undefined,
-      carbs:           selectedFsItem?.carbs     ?? undefined,
-      fat:             selectedFsItem?.fat        ?? undefined,
+      calories:        selectedFsItem!.calories ?? 0,
+      protein:         selectedFsItem!.protein  ?? 0,
+      carbs:           selectedFsItem!.carbs    ?? 0,
+      fat:             selectedFsItem!.fat      ?? 0,
       source:          'FoodPhotoAnalysisScreen',
-      nutritionSource: selectedFsItem ? 'FatSecret' : 'none',
+      nutritionSource: 'FatSecret',
       analysisSource:  'gemini_fatsecret_deepseek',
       detectedFoods:   analysis.foods,
       glp1Analysis:    deepseekAnalysis ?? undefined,
@@ -916,6 +926,12 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
               {/* Action buttons */}
               <div className="space-y-2 pt-1">
+                {saveError && !savedFeedback && (
+                  <div className="w-full bg-amber-50 border border-amber-100 rounded-xl py-3 px-4 flex items-start gap-2">
+                    <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-700 leading-snug">{saveError}</p>
+                  </div>
+                )}
                 {savedFeedback ? (
                   <div className="w-full bg-emerald-50 border border-emerald-100 rounded-2xl py-4 px-5 flex items-center gap-3">
                     <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
