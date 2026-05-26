@@ -347,28 +347,20 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
   // Onboarding guard: true se o usuário completou o onboarding com dados reais
   const hasValidProfile = (() => {
-    try {
-      const raw = localStorage.getItem('glpy_onboarding');
-      if (!raw) return false;
-      const onb = JSON.parse(raw);
-      const peso = parseFloat(String(onb.peso_atual ?? onb.pesoAtual ?? ''));
-      const alt  = parseFloat(String(onb.altura ?? ''));
-      return !isNaN(peso) && peso > 0 && !isNaN(alt) && alt > 0;
-    } catch { return false; }
+    const p = glpyStore.profile.get();
+    const peso = p.currentWeight;
+    const alt  = p.height;
+    return !!peso && peso > 0 && !!alt && alt > 0;
   })();
 
   // Medidas corporais reais: true somente se existir pelo menos um valor válido salvo
   const hasRealBodyMeasurements = (() => {
-    try {
-      const raw = localStorage.getItem('glpy_medidas_corporais');
-      if (!raw) return false;
-      const m = JSON.parse(raw);
-      if (!m || typeof m !== 'object') return false;
-      return ['cintura', 'busto', 'coxa', 'panturrilha', 'quadril', 'braco'].some(k => {
-        const v = parseFloat(String(m[k] ?? ''));
-        return !isNaN(v) && v > 0;
-      });
-    } catch { return false; }
+    const m = glpyStore.bodyMeasurements.get();
+    if (!m) return false;
+    return ['cintura', 'busto', 'coxa', 'panturrilha', 'quadril', 'braco'].some(k => {
+      const v = parseFloat(String(m[k] ?? ''));
+      return !isNaN(v) && v > 0;
+    });
   })();
 
   // Protocolo real: true somente se o usuário realmente iniciou um protocolo
@@ -389,19 +381,17 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   const weightCurrent = currentWeightData.weight;
   
   const weightGoal = (() => {
-    try {
-      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-      const onbMeta = parseFloat(String(onb.pesoMeta ?? ''));
-      if (!isNaN(onbMeta) && onbMeta > 0) return onbMeta;
-      const onbSonho = parseFloat(String(onb.peso_sonho ?? ''));
-      if (!isNaN(onbSonho) && onbSonho > 0) return onbSonho;
-    } catch {}
+    const p = glpyStore.profile.get();
+    const onb = p.onboarding ?? {};
+    const onbMeta = parseFloat(String(onb.pesoMeta ?? ''));
+    if (!isNaN(onbMeta) && onbMeta > 0) return onbMeta;
+    const onbSonho = parseFloat(String(onb.peso_sonho ?? ''));
+    if (!isNaN(onbSonho) && onbSonho > 0) return onbSonho;
 
     const directMeta = onboarding.pesoMeta;
     if (directMeta > 0) return directMeta;
 
-    const fromKey = parseFloat(localStorage.getItem('glpy_peso_sonho') ?? '');
-    if (!isNaN(fromKey) && fromKey > 0) return fromKey;
+    if (p.goalWeight && p.goalWeight > 0) return p.goalWeight;
 
     return 60.0; // Fallback mock final
   })();
@@ -427,7 +417,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
         }
         return direct;
       }
-      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      const onb = glpyStore.profile.get().onboarding ?? {};
       if (onb.frequencia?.trim()) return String(onb.frequencia).trim();
       const tratamento = JSON.parse(localStorage.getItem('glpy_tratamento') || '{}');
       if (tratamento.frequencia?.trim()) return String(tratamento.frequencia).trim();
@@ -444,32 +434,22 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
   // Interactive UI state proxies
   const [waterAmount, setWaterAmount] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem('glpy_agua_hoje');
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw);
-      const today = new Date().toISOString().slice(0, 10);
-      if (parsed && typeof parsed === 'object' && parsed.date === today) {
-        return parseFloat(String(parsed.amount)) || 0;
-      }
-      return 0;
-    } catch { return 0; }
+    const w = glpyStore.water.getToday();
+    if (!w) return 0;
+    const today = new Date().toISOString().slice(0, 10);
+    return w.date === today ? (parseFloat(String(w.amount)) || 0) : 0;
   });
 
   // Re-sync waterAmount when localStorage changes (e.g., after saving in WaterScreen)
   useEffect(() => {
     const syncWater = () => {
-      try {
-        const raw = localStorage.getItem('glpy_agua_hoje');
-        if (!raw) { setWaterAmount(0); return; }
-        const parsed = JSON.parse(raw);
-        const today = new Date().toISOString().slice(0, 10);
-        if (parsed && typeof parsed === 'object' && parsed.date === today) {
-          setWaterAmount(parseFloat(String(parsed.amount)) || 0);
-        } else {
-          setWaterAmount(0);
-        }
-      } catch {}
+      const w = glpyStore.water.getToday();
+      const today = new Date().toISOString().slice(0, 10);
+      if (w && w.date === today) {
+        setWaterAmount(parseFloat(String(w.amount)) || 0);
+      } else {
+        setWaterAmount(0);
+      }
     };
     window.addEventListener('local-storage-change', syncWater);
     window.addEventListener('storage', syncWater);
@@ -482,9 +462,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   // Streak de consecutividade real calculada dinamicamente
   const streakDays = (() => {
     try {
-      const raw = localStorage.getItem('glpy_checkin_historico');
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw);
+      const parsed = glpyStore.checkin.getHistory();
       if (!Array.isArray(parsed) || parsed.length === 0) return 0;
       
       const dates = parsed.map(item => {
@@ -532,36 +510,24 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   // Validação dinâmica se check-in foi realizado hoje
   const isCheckInDone = (() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    try {
-      const rawHoje = localStorage.getItem('glpy_checkin_hoje');
-      if (rawHoje) {
-        const parsed = JSON.parse(rawHoje);
-        if (parsed && (parsed === todayStr || parsed.date === todayStr)) {
-          return true;
-        }
-      }
-    } catch {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hoje = glpyStore.checkin.getToday() as any;
+    if (hoje && (hoje === todayStr || hoje.date === todayStr)) return true;
 
-    try {
-      const rawHist = localStorage.getItem('glpy_checkin_historico');
-      if (rawHist) {
-        const parsedHist = JSON.parse(rawHist);
-        if (Array.isArray(parsedHist)) {
-          return parsedHist.some(item => {
-            if (typeof item === 'string') return item === todayStr;
-            if (item && typeof item === 'object') return item.date === todayStr;
-            return false;
-          });
-        }
-      }
-    } catch {}
+    const hist = glpyStore.checkin.getHistory();
+    if (Array.isArray(hist)) {
+      return hist.some(item => {
+        if (typeof item === 'string') return item === todayStr;
+        if (item && typeof item === 'object') return item.date === todayStr;
+        return false;
+      });
+    }
 
     return false;
   })();
 
   const [bodyMeasures] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_medidas_corporais') || '{}') ?? {}; }
-    catch { return {}; }
+    return (glpyStore.bodyMeasurements.get() as unknown as Record<string, string>) ?? {};
   });
 
   const [bodyMeasuresIniciais] = useState<Record<string, number>>(() => {
@@ -572,38 +538,20 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
   // Atividade física registrada no dia atual
   const [todayActivity, setTodayActivity] = useState<any>(() => {
-    try {
-      const raw = localStorage.getItem('glpy_atividade_hoje');
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      const today = new Date().toISOString().split('T')[0];
-      const entryDate = parsed.savedAt ? new Date(parsed.savedAt).toISOString().split('T')[0] : '';
-      if (entryDate === today) {
-        return parsed;
-      }
-    } catch {}
-    return null;
+    const act = glpyStore.activity.getToday();
+    if (!act) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const entryDate = act.savedAt ? new Date(act.savedAt).toISOString().split('T')[0] : '';
+    return entryDate === today ? act : null;
   });
 
   useEffect(() => {
     const handleUpdateActivity = () => {
-      try {
-        const raw = localStorage.getItem('glpy_atividade_hoje');
-        if (!raw) {
-          setTodayActivity(null);
-          return;
-        }
-        const parsed = JSON.parse(raw);
-        const today = new Date().toISOString().split('T')[0];
-        const entryDate = parsed.savedAt ? new Date(parsed.savedAt).toISOString().split('T')[0] : '';
-        if (entryDate === today) {
-          setTodayActivity(parsed);
-        } else {
-          setTodayActivity(null);
-        }
-      } catch {
-        setTodayActivity(null);
-      }
+      const act = glpyStore.activity.getToday();
+      if (!act) { setTodayActivity(null); return; }
+      const today = new Date().toISOString().split('T')[0];
+      const entryDate = act.savedAt ? new Date(act.savedAt).toISOString().split('T')[0] : '';
+      setTodayActivity(entryDate === today ? act : null);
     };
     window.addEventListener('storage', handleUpdateActivity);
     window.addEventListener('local-storage-change', handleUpdateActivity);
@@ -642,13 +590,14 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
       if (!isNaN(rsWeight) && rsWeight > 0) return rsWeight;
     } catch {}
 
-    try {
-      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+    {
+      const p = glpyStore.profile.get();
+      const onb = p.onboarding ?? {};
       const onbInitial = parseFloat(String(onb.pesoInicial ?? ''));
       if (!isNaN(onbInitial) && onbInitial > 0) return onbInitial;
       const onbAtual = parseFloat(String(onb.peso_atual ?? ''));
       if (!isNaN(onbAtual) && onbAtual > 0) return onbAtual;
-    } catch {}
+    }
 
     const directOnb = onboarding.pesoInicial;
     if (directOnb > 0) return directOnb;

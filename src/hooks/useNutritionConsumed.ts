@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { glpyStore } from '../data/glpyStore';
 
 export interface NutritionConsumed {
   consumedCalories: number;
@@ -38,12 +39,8 @@ function isToday(e: any, todayKey: string): boolean {
 
 function readTodayConsumed(): NutritionConsumed {
   try {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const raw = localStorage.getItem('glpy_refeicoes_hoje');
-    if (!raw) return zero();
-    const entries = JSON.parse(raw);
-    if (!Array.isArray(entries) || entries.length === 0) return zero();
-    const todayEntries = entries.filter(e => isToday(e, todayKey));
+    const todayEntries = glpyStore.meals.getToday();
+    if (!Array.isArray(todayEntries) || todayEntries.length === 0) return zero();
     return {
       consumedCalories: todayEntries.reduce((s, e) => {
         const m = normalizeMacros(e);
