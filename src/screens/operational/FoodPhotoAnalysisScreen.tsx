@@ -30,6 +30,8 @@ import {
   type DeepSeekFoodAnalysis,
 } from '../../services/deepseekFoodAnalysis';
 
+import { glpyStore } from '../../data/glpyStore';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Phase = 'idle' | 'captured' | 'analyzing' | 'results' | 'error';
@@ -363,15 +365,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       glp1Analysis:    deepseekAnalysis ?? undefined,
     };
 
-    try {
-      const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
-      if (!Array.isArray(existing)) throw new Error('invalid');
-      existing.push(entry);
-      localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
-    } catch {
-      localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([entry]));
-    }
-
+    glpyStore.meals.saveMeal(entry);
     window.dispatchEvent(new Event('local-storage-change'));
     setSavedFeedback(true);
   }

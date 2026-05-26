@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
+import { glpyStore } from './data/glpyStore';
 import './index.css';
 
 const root = createRoot(document.getElementById('root')!);
@@ -230,13 +231,8 @@ if (path === '/admin') {
         <FoodLogScreen
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
-            try {
-              const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
-              existing.push({ ...data, savedAt: Date.now() });
-              localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
-            } catch {
-              localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
-            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            glpyStore.meals.saveMeal({ ...data, savedAt: Date.now() } as any);
             window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = getHomePath();
           }}

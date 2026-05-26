@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { Camera, Coffee, Utensils, Moon, Apple, Lightbulb, Check, Flame } from 'lucide-react';
 
+import { glpyStore } from '../../data/glpyStore';
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -84,12 +85,12 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
   const [carbs,       setCarbs]       = useState('');
   const [fat,         setFat]         = useState('');
   const [todayMeals,  setTodayMeals]  = useState<MealEntry[]>(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]'); }
+    try { return glpyStore.meals.getAll() as unknown as MealEntry[]; }
     catch { return []; }
   });
 
   function reloadTodayMeals() {
-    try { setTodayMeals(JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]')); }
+    try { setTodayMeals(glpyStore.meals.getAll() as unknown as MealEntry[]); }
     catch { /* keep current */ }
   }
 
@@ -128,14 +129,8 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
         createdAt:   new Date(now).toISOString(),
         date:        todayDate,
       };
-      try {
-        const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
-        if (!Array.isArray(existing)) throw new Error('invalid');
-        existing.push(canonicalEntry);
-        localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
-      } catch {
-        localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([canonicalEntry]));
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      glpyStore.meals.saveMeal(canonicalEntry as any);
       window.dispatchEvent(new Event('local-storage-change'));
       setSaveState('saved');
       reloadTodayMeals();
