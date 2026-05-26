@@ -10,6 +10,7 @@
 // SideEffectsScreen será criada futuramente para registrar sintomas/efeitos após aplicação.
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
@@ -60,23 +61,53 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
   const nextInj = calculateNextInjection();
 
   function handleEditConfig(_field: string) {
-    window.location.href = '/preview/treatment-settings';
+    window.location.href = '/preview/treatment-settings?from=injection';
   }
 
   function handleSymptoms() {
-    window.location.href = '/preview/side-effects';
+    window.location.href = '/preview/side-effects?from=injection&reset=true';
   }
 
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveState,           setSaveState]           = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [noSymptomsModalOpen, setNoSymptomsModalOpen] = useState(false);
 
-  function handleSave() {
-    if (saveState !== 'idle') return;
+  function todayISO(): string { return new Date().toISOString().slice(0, 10); }
+
+  function hasTodaySymptoms(): boolean {
+    try {
+      const raw = localStorage.getItem('glpy_injection_effects_today');
+      if (!raw) return false;
+      return JSON.parse(raw)?.date === todayISO();
+    } catch { return false; }
+  }
+
+  function registerNoSymptoms(): void {
+    const today = todayISO();
+    const record = { date: today, symptoms: [], intensity: 'none', noSymptoms: true, savedAt: new Date().toISOString() };
+    localStorage.setItem('glpy_injection_effects_today', JSON.stringify(record));
+    try {
+      const raw      = localStorage.getItem('glpy_injection_effects_history');
+      const history  = raw ? JSON.parse(raw) : [];
+      const filtered = Array.isArray(history) ? history.filter((e: any) => e.date !== today) : [];
+      filtered.push({ id: `effects_${today}_${Date.now()}`, ...record });
+      localStorage.setItem('glpy_injection_effects_history', JSON.stringify(filtered));
+    } catch {}
+    window.dispatchEvent(new Event('local-storage-change'));
+  }
+
+  function doActualSave() {
     setSaveState('saving');
     localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ site: selectedSite, savedAt: Date.now() }));
     setTimeout(() => {
       setSaveState('saved');
       setTimeout(() => onSave?.({ medication, dose, frequency, site: selectedSite }), 900);
     }, 500);
+  }
+
+  function handleSave() {
+    if (saveState !== 'idle') return;
+    if (!hasTodaySymptoms()) { setNoSymptomsModalOpen(true); return; }
+    doActualSave();
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
@@ -380,8 +411,98 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
           {saveState === 'saving' ? 'Salvando...' : saveState === 'saved' ? 'Aplicação salva ✓' : 'Registrar aplicação'}
         </GLPYButton>
 
+        {noSymptomsModalOpen && createPortal(
+          <SymptomsGuardModal
+            onRegisterSymptoms={() => {
+              setNoSymptomsModalOpen(false);
+              window.location.href = '/preview/side-effects?from=injection&reset=true';
+            }}
+            onNoSymptoms={() => {
+              setNoSymptomsModalOpen(false);
+              registerNoSymptoms();
+              doActualSave();
+            }}
+            onClose={() => setNoSymptomsModalOpen(false)}
+          />,
+          document.body
+        )}
+
       </div>
     </GLPYScreen>
+  );
+}
+
+// ── SymptomsGuardModal (local) ────────────────────────────────────────────────
+
+interface SymptomsGuardModalProps {
+  onRegisterSymptoms: () => void;
+  onNoSymptoms:       () => void;
+  onClose:            () => void;
+}
+
+function SymptomsGuardModal({ onRegisterSymptoms, onNoSymptoms, onClose }: SymptomsGuardModalProps) {
+  const backdropStyle: React.CSSProperties = {
+    position:   'fixed',
+    top:        0,
+    left:       0,
+    right:      0,
+    bottom:     0,
+    background: 'rgba(22,33,62,0.35)',
+    zIndex:     100,
+  };
+
+  const panelStyle: React.CSSProperties = {
+    position:      'fixed',
+    bottom:        0,
+    left:          '50%',
+    transform:     'translateX(-50%)',
+    width:         '100%',
+    maxWidth:      430,
+    borderRadius:  '24px 24px 0 0',
+    background:    lightColors.background.card,
+    boxShadow:     '0 -8px 40px rgba(0,0,0,0.12)',
+    zIndex:        200,
+    padding:       `20px ${padding.screen}px 36px`,
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           gap.medium,
+  };
+
+  return (
+    <>
+      <div style={backdropStyle} onClick={onClose} aria-hidden="true" />
+      <div style={panelStyle}>
+        <div style={{ width: 40, height: 4, borderRadius: 99, background: lightColors.border.soft, margin: '0 auto' }} />
+        <div>
+          <p style={{
+            fontFamily:   fontFamily.primary,
+            fontSize:     fontSize.bodyLarge,
+            fontWeight:   fontWeight.h1,
+            color:        lightColors.text.navy,
+            lineHeight:   1.3,
+            marginBottom: 8,
+          }}>
+            Você sentiu algum efeito após a aplicação?
+          </p>
+          <p style={{
+            fontFamily: fontFamily.primary,
+            fontSize:   fontSize.small,
+            color:      lightColors.text.secondary,
+            lineHeight: 1.5,
+          }}>
+            Registrar sintomas ajuda a acompanhar seus padrões ao longo da jornada.
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small }}>
+          <GLPYButton variant="primary"   size="md" fullWidth onClick={onRegisterSymptoms}>
+            Registrar sintomas
+          </GLPYButton>
+          <GLPYButton variant="secondary" size="md" fullWidth onClick={onNoSymptoms}>
+            Não senti sintomas
+          </GLPYButton>
+        </div>
+      </div>
+    </>
   );
 }
 

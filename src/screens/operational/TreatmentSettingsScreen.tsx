@@ -74,6 +74,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
   const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');
+  const [fromInjection]                               = useState(() => new URLSearchParams(window.location.search).get('from') === 'injection');
 
   const normalizedDose = dose.trim().replace(',', '.');
   const doseNum        = parseFloat(normalizedDose);
@@ -136,7 +137,13 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
 
     setTimeout(() => {
       setSaveState('saved');
-      setTimeout(() => onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose: doseNorm }), 900);
+      setTimeout(() => {
+        if (fromInjection) {
+          window.location.href = '/preview/injection';
+        } else {
+          onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose: doseNorm });
+        }
+      }, 900);
     }, 500);
   }
 
@@ -228,7 +235,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   return (
     <>
       <GLPYScreen variant="light">
-        <GLPYHeader title="Configurações do Tratamento" onBack={onBack} />
+        <GLPYHeader title="Configurações do Tratamento" onBack={fromInjection ? () => { window.location.href = '/preview/injection'; } : onBack} />
 
         <div style={sectionGap}>
 

@@ -61,14 +61,18 @@ function todayISO(): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenProps) {
+  const fromInjection = new URLSearchParams(window.location.search).get('from') === 'injection';
+  const resetMode     = new URLSearchParams(window.location.search).get('reset') === 'true';
+
   const [selectedSymptoms,  setSelectedSymptoms]  = useState<string[]>([]);
-  const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('Leve');
+  const [selectedIntensity, setSelectedIntensity] = useState<Intensity | ''>(() => resetMode ? '' : 'Leve');
   const [note,              setNote]              = useState('');
   const [modalOpen,         setModalOpen]         = useState(false);
   const [saved,             setSaved]             = useState(false);
 
-  // Load today's saved record on mount
+  // Load today's saved record on mount — skip in reset mode (new registration)
   useEffect(() => {
+    if (resetMode) return;
     try {
       const raw = localStorage.getItem(KEY_TODAY);
       if (!raw) return;
@@ -122,7 +126,9 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
     setSaved(true);
     onSave?.({ symptoms: selectedSymptoms, intensity: selectedIntensity, note });
     setTimeout(() => {
-      if (typeof onBack === 'function') {
+      if (fromInjection) {
+        window.location.href = '/preview/injection';
+      } else if (typeof onBack === 'function') {
         onBack();
       } else {
         window.history.back();
@@ -253,7 +259,7 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
   return (
     <>
       <GLPYScreen variant="light">
-        <GLPYHeader title="Efeitos após aplicação" onBack={onBack} />
+        <GLPYHeader title="Efeitos após aplicação" onBack={fromInjection ? () => { window.location.href = '/preview/injection'; } : onBack} />
 
         <div style={sectionGap}>
 

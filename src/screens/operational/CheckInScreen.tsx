@@ -86,13 +86,26 @@ function buildResumoItems(todayStr: string) {
     } catch { return { value: 'Pendente', done: false }; }
   })();
 
+  const sintomas = (() => {
+    try {
+      const raw = localStorage.getItem('glpy_injection_effects_today');
+      if (!raw) return { value: 'Pendente', done: false };
+      const rec = JSON.parse(raw);
+      if (rec?.date !== todayStr) return { value: 'Pendente', done: false };
+      if (rec.noSymptoms) return { value: 'Nenhum sintoma', done: true };
+      const count = Array.isArray(rec.symptoms) ? rec.symptoms.length : 0;
+      if (count === 0) return { value: 'Registrado', done: true };
+      return { value: count === 1 ? rec.symptoms[0] : `${count} sintomas`, done: true };
+    } catch { return { value: 'Pendente', done: false }; }
+  })();
+
   return [
     { id: 'agua',      label: 'Água',          ...agua,      Icon: Droplets    },
     { id: 'refeicao',  label: 'Refeições',     ...refeicao,  Icon: Utensils    },
     { id: 'aplicacao', label: 'Aplicação',     ...aplicacao, Icon: Syringe     },
     { id: 'emocao',    label: 'Emoção',        ...emocao,    Icon: Smile       },
     { id: 'atividade', label: 'Atividade',     ...atividade, Icon: Flame       },
-    { id: 'sintomas',  label: 'Sintomas',      value: 'Pendente', done: false,  Icon: AlertCircle },
+    { id: 'sintomas',  label: 'Sintomas',      ...sintomas,  Icon: AlertCircle },
     { id: 'foto',      label: 'Foto corporal', value: 'Pendente', done: false,  Icon: Camera      },
   ];
 }
