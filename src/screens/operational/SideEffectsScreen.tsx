@@ -118,10 +118,16 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
     // Notify other components that listen to local-storage-change
     window.dispatchEvent(new Event('local-storage-change'));
 
-    // Feedback + external callback
+    // Feedback + navigate back after short delay
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
     onSave?.({ symptoms: selectedSymptoms, intensity: selectedIntensity, note });
+    setTimeout(() => {
+      if (typeof onBack === 'function') {
+        onBack();
+      } else {
+        window.history.back();
+      }
+    }, 800);
   }
 
   // ── Shared styles ──────────────────────────────────────────────────────────
