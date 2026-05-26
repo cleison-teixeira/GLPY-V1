@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { glpyStore } from '../data/glpyStore';
 
 export interface CurrentWeightData {
   weight: number;
@@ -10,9 +11,8 @@ const FALLBACK_WEIGHT = 72.6;
 
 function readCurrentWeight(): CurrentWeightData {
   try {
-    const latestRaw = localStorage.getItem('glpy_latest_weight');
-    if (latestRaw) {
-      const latest: Record<string, unknown> = JSON.parse(latestRaw);
+    const latest = glpyStore.progress.getLatestWeight() as Record<string, unknown> | null;
+    if (latest) {
       const w = typeof latest.weight === 'number' ? latest.weight : NaN;
       if (!isNaN(w) && w > 20 && w < 300) {
         return {

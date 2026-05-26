@@ -45,9 +45,7 @@ interface BodyPhoto {
 
 function readBodyPhotos(): BodyPhoto[] {
   try {
-    const raw = localStorage.getItem('glpy_body_photos');
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = glpyStore.progress.getBodyPhotos();
     if (!Array.isArray(parsed)) return [];
     return parsed.map((p: BodyPhoto) => ({ ...p, role: p.role ?? 'progress' }));
   } catch { return []; }
@@ -55,9 +53,8 @@ function readBodyPhotos(): BodyPhoto[] {
 
 function readCurrentWeight(): number | null {
   try {
-    const latestRaw = localStorage.getItem('glpy_latest_weight');
-    if (latestRaw) {
-      const latest = JSON.parse(latestRaw);
+    const latest = glpyStore.progress.getLatestWeight();
+    if (latest) {
       const w = typeof latest.weight === 'number' ? latest.weight : parseFloat(String(latest.weight ?? ''));
       if (!isNaN(w) && w > 20 && w < 300) return w;
     }
@@ -72,7 +69,7 @@ function readCurrentWeight(): number | null {
 
 function readInitialWeight(): number | null {
   try {
-    const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
+    const rs = glpyStore.progress.getResultsSummary();
     const v = parseFloat(String(rs.initialWeight ?? ''));
     if (!isNaN(v) && v > 0) return v;
   } catch {}
@@ -181,7 +178,12 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
   const pesoAntesStr  = displayPesoAntes  != null ? fmtBR(displayPesoAntes)  : '—';
   const pesoDepoisStr = displayPesoDepois != null ? fmtBR(displayPesoDepois) : '—';
 
-  const cinturaAntes  = readWaistFromKey('glpy_medidas_iniciais');
+  const cinturaAntes  = (() => {
+    const m = glpyStore.progress.getInitialMeasurements();
+    if (!m) return null;
+    const v = parseFloat(String(m?.cintura ?? m?.waist ?? ''));
+    return !isNaN(v) && v > 0 ? v : null;
+  })();
   const cinturaDepois = readWaistFromKey('glpy_medidas_corporais');
   const hasCintura    = cinturaAntes != null && cinturaDepois != null;
   const cinturaAntesStr  = hasCintura ? fmtBR(cinturaAntes!)  : '—';

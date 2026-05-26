@@ -11,6 +11,7 @@ import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
+import { glpyStore } from '../../data/glpyStore';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -51,16 +52,21 @@ function readAtividadeHoje() {
 
 function readCurrentWeight(): number | null {
   // Priority: most recent save from saveWeightEntry
-  for (const key of ['glpy_latest_weight', 'glpy_current_weight']) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
-        if (!isNaN(v) && v > 0) return v;
-      }
-    } catch {}
-  }
+  try {
+    const latest = glpyStore.progress.getLatestWeight();
+    if (latest) {
+      const v = parseFloat(String(latest?.weight ?? latest ?? ''));
+      if (!isNaN(v) && v > 0) return v;
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem('glpy_current_weight');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const v = parseFloat(String(parsed?.weight ?? parsed ?? ''));
+      if (!isNaN(v) && v > 0) return v;
+    }
+  } catch {}
   // Legacy string key
   try {
     const v = parseFloat(localStorage.getItem('glpy_peso_atual') ?? '');
@@ -113,9 +119,7 @@ interface BodyPhoto {
 
 function readBodyPhotos(): BodyPhoto[] {
   try {
-    const raw = localStorage.getItem('glpy_body_photos');
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = glpyStore.progress.getBodyPhotos();
     return Array.isArray(parsed) ? parsed : [];
   } catch { return []; }
 }
@@ -140,7 +144,7 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
   const pesoInicial: number | null = (() => {
     // Mesma cascata usada pela Home
     try {
-      const rs = JSON.parse(localStorage.getItem('glpy_results_summary') || '{}');
+      const rs = glpyStore.progress.getResultsSummary();
       const rsW = parseFloat(String(rs.initialWeight ?? ''));
       if (!isNaN(rsW) && rsW > 0) return rsW;
     } catch {}

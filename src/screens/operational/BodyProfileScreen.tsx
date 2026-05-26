@@ -14,6 +14,7 @@ import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { saveWeightEntry } from '../../core/glpyLocalIntelligence';
+import { glpyStore } from '../../data/glpyStore';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ export default function BodyProfileScreen({ onBack }: BodyProfileScreenProps) {
   // Read current values from localStorage
   const [pesoAtualInput,   setPesoAtualInput]   = useState(() => {
     try {
-      const lw = JSON.parse(localStorage.getItem('glpy_latest_weight') || 'null');
+      const lw = glpyStore.progress.getLatestWeight();
       if (lw?.weight) return fmtNum(lw.weight);
     } catch {}
     return fmtNum(localStorage.getItem('glpy_peso_atual') ?? onb.peso_atual ?? onb.pesoAtual ?? '');

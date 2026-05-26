@@ -66,6 +66,10 @@ const KEYS = {
   streak:                       'glpy_streak',
   nivel:                        'glpy_nivel',
   quizCocriacaoXpClaimed:       'glpy_quiz_cocriacao_xp_claimed',
+  bodyPhotos:                   'glpy_body_photos',
+  resultsSummary:               'glpy_results_summary',
+  latestWeight:                 'glpy_latest_weight',
+  medidasIniciais:              'glpy_medidas_iniciais',
 } as const;
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -455,6 +459,20 @@ const gamification = {
   },
 };
 
+// ── 12. progress ──────────────────────────────────────────────────────────────
+
+const progress = {
+  getBodyPhotos(): any[]                      { return readJSON<any[]>(KEYS.bodyPhotos, []); },
+  saveBodyPhotos(value: any[]): void          { writeJSON(KEYS.bodyPhotos, value); },
+  addBodyPhoto(photo: any): void              { writeJSON(KEYS.bodyPhotos, [...progress.getBodyPhotos(), photo]); },
+  getResultsSummary(): Record<string, any>    { return readJSON<Record<string, any>>(KEYS.resultsSummary, {}); },
+  saveResultsSummary(value: Record<string, any>): void { writeJSON(KEYS.resultsSummary, value); },
+  getLatestWeight(): any                      { return readJSON<any>(KEYS.latestWeight, null); },
+  saveLatestWeight(value: any): void          { writeJSON(KEYS.latestWeight, value); },
+  getInitialMeasurements(): Record<string, any> | null { return readJSON<Record<string, any> | null>(KEYS.medidasIniciais, null); },
+  saveInitialMeasurements(value: Record<string, any>): void { writeJSON(KEYS.medidasIniciais, value); },
+};
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const glpyStore = {
@@ -469,4 +487,5 @@ export const glpyStore = {
   aiUsage,
   protocol,
   gamification,
+  progress,
 };

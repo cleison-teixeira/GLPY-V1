@@ -16,6 +16,7 @@ import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { lightShadows } from '../../theme/shadows';
+import { glpyStore } from '../../data/glpyStore';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -47,9 +48,7 @@ interface ModalState {
 
 function readPhotos(): BodyPhoto[] {
   try {
-    const raw = localStorage.getItem('glpy_body_photos');
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = glpyStore.progress.getBodyPhotos();
     if (!Array.isArray(parsed)) return [];
     // migração: fotos sem role recebem 'progress'
     return parsed.map((p: BodyPhoto) => ({ ...p, role: p.role ?? 'progress' }));
@@ -127,7 +126,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     };
     const existing = readPhotos();
     const updated  = [...existing, newPhoto];
-    localStorage.setItem('glpy_body_photos', JSON.stringify(updated));
+    glpyStore.progress.saveBodyPhotos(updated);
     window.dispatchEvent(new Event('local-storage-change'));
     setPhotos(updated);
     setModal(null);
