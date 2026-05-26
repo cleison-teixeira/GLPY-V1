@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { HeartPulse, Gauge, PenLine, Lightbulb, ChevronRight, Check } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { glpyStore } from '../../data/glpyStore';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -49,10 +50,7 @@ const SYMPTOM_OPTIONS = [
 
 const INTENSITY_OPTIONS: Intensity[] = ['Leve', 'Moderada', 'Forte'];
 
-// ── localStorage keys ────────────────────────────────────────────────────────
-
-const KEY_TODAY   = 'glpy_injection_effects_today';
-const KEY_HISTORY = 'glpy_injection_effects_history';
+// ── Helpers de storage ───────────────────────────────────────────────────────
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -74,9 +72,8 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
   useEffect(() => {
     if (resetMode) return;
     try {
-      const raw = localStorage.getItem(KEY_TODAY);
-      if (!raw) return;
-      const rec = JSON.parse(raw);
+      const rec = glpyStore.treatment.getEfeitosHoje();
+      if (!rec) return;
       if (rec.date !== todayISO()) return; // stale — different day
       if (Array.isArray(rec.symptoms))       setSelectedSymptoms(rec.symptoms);
       if (rec.intensity)                     setSelectedIntensity(rec.intensity as Intensity);
@@ -108,15 +105,14 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
     };
 
     // Persist today's record
-    localStorage.setItem(KEY_TODAY, JSON.stringify(record));
+    glpyStore.treatment.saveEfeitosHoje(record);
 
     // Upsert history — replace entry for today if already exists, no duplicates
     try {
-      const raw = localStorage.getItem(KEY_HISTORY);
-      const history: Array<{ id: string; date: string }> = raw ? JSON.parse(raw) : [];
-      const withoutToday = Array.isArray(history) ? history.filter(e => e.date !== today) : [];
+      const history = glpyStore.treatment.getEfeitosHistorico();
+      const withoutToday = Array.isArray(history) ? history.filter((e: any) => e.date !== today) : [];
       withoutToday.push({ id: `effects_${today}_${Date.now()}`, ...record });
-      localStorage.setItem(KEY_HISTORY, JSON.stringify(withoutToday));
+      glpyStore.treatment.saveEfeitosHistorico(withoutToday);
     } catch {}
 
     // Notify other components that listen to local-storage-change

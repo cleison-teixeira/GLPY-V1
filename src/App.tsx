@@ -221,7 +221,7 @@ export default function App() {
       case 'aplicacao':    return <InjectionScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(data) => {
-          localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ ...data, savedAt: Date.now() }));
+          glpyStore.treatment.saveUltimaInjecao({ ...data, savedAt: Date.now() });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}

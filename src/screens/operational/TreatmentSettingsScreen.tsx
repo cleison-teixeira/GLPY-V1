@@ -37,6 +37,7 @@ interface TreatmentSettingsScreenProps {
 }
 
 import { GLPY_MEDICATION_OPTIONS } from '../../data/glpyMedicationOptions';
+import { glpyStore } from '../../data/glpyStore';
 
 // Remove sufixo " mg" se presente, converte separador e formata com 2 casas decimais.
 // Evita "2,5 mg mg" quando o valor salvo inclui a unidade.
@@ -67,10 +68,10 @@ const FREQUENCY_OPTIONS = [
 type TreatSaveState = 'idle' | 'saving' | 'saved';
 
 export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' }: TreatmentSettingsScreenProps) {
-  const [selectedMedication,  setSelectedMedication]  = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro®');
-  const [selectedFrequency,   setSelectedFrequency]   = useState(() => localStorage.getItem('glpy_frequencia')  || 'Semanal');
+  const [selectedMedication,  setSelectedMedication]  = useState(() => glpyStore.treatment.getMedication());
+  const [selectedFrequency,   setSelectedFrequency]   = useState(() => glpyStore.treatment.getFrequencia());
   const [customFrequencyDays, setCustomFrequencyDays] = useState('7');
-  const [dose,                setDose]                = useState(() => normalizeDose(localStorage.getItem('glpy_dose')) || '2,50');
+  const [dose,                setDose]                = useState(() => normalizeDose(glpyStore.treatment.getDose()) || '2,50');
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
   const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');
@@ -115,15 +116,14 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
 
     setSaveState('saving');
 
-    // Salva diretamente no localStorage para garantir reatividade imediata na Home,
-    // independente do callback onSave do componente pai (App.tsx ou main.tsx).
-    localStorage.setItem('glpy_medicamento', selectedMedication);
-    localStorage.setItem('glpy_frequencia',  selectedFrequency);
+    // Salva via glpyStore para garantir reatividade imediata na Home.
+    glpyStore.treatment.saveMedication(selectedMedication);
+    glpyStore.treatment.saveFrequencia(selectedFrequency);
     if (selectedFrequency === 'Personalizada') {
-      localStorage.setItem('glpy_frequencia_personalizada_dias', customFrequencyDays);
+      glpyStore.treatment.saveFrequenciaPersonalizadaDias(customFrequencyDays);
     }
     if (!isNaN(parsedDose) && parsedDose > 0) {
-      localStorage.setItem('glpy_dose', String(parsedDose));
+      glpyStore.treatment.saveDose(String(parsedDose));
     }
     try {
       const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');

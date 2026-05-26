@@ -2,15 +2,16 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { ChevronLeft, CheckCircle, Utensils } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { glpyStore } from "../data/glpyStore";
 
 export default function AlertaInjecao({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const hoje = new Date().toISOString().split('T')[0];
   const [registrado, setRegistrado] = useState(
-    localStorage.getItem("glpy_ultima_aplicacao") === hoje
+    glpyStore.treatment.getUltimaAplicacao() === hoje
   );
 
   const registrar = () => {
-    localStorage.setItem("glpy_ultima_aplicacao", hoje);
+    glpyStore.treatment.saveUltimaAplicacao(hoje);
     setRegistrado(true);
   };
 

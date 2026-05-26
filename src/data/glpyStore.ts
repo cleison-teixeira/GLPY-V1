@@ -12,6 +12,7 @@ import {
   readJSON,
   writeJSON,
   readString,
+  writeString,
   removeKey,
   emitStorageChange,
 } from './localStorageAdapter';
@@ -51,8 +52,16 @@ const KEYS = {
   checkinHistorico:    'glpy_checkin_historico',
   aiUsage:             'glpy_ai_usage',
   medidasCorporais:    'glpy_medidas_corporais',
-  protocoloAtivo:      'glpy_protocolo_ativo',
-  activeProtocol:      'glpy_active_protocol',
+  protocoloAtivo:               'glpy_protocolo_ativo',
+  activeProtocol:               'glpy_active_protocol',
+  frequencia:                   'glpy_frequencia',
+  dose:                         'glpy_dose',
+  frequenciaPersonalizadaDias:  'glpy_frequencia_personalizada_dias',
+  injecaoUltima:                'glpy_injecao_ultima',
+  injecaoLocais:                'glpy_injecao_locais',
+  ultimaAplicacao:              'glpy_ultima_aplicacao',
+  injectionEffectsToday:        'glpy_injection_effects_today',
+  injectionEffectsHistory:      'glpy_injection_effects_history',
 } as const;
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -327,14 +336,45 @@ const bodyMeasurements = {
 
 // ── 8. treatment ──────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const treatment = {
-  get(): GlpyTreatment | null {
-    return readJSON<GlpyTreatment | null>(KEYS.medicamento, null);
-  },
+  // Configurações do tratamento (plain strings)
+  getMedication(): string                      { return readString(KEYS.medicamento, 'Mounjaro®'); },
+  saveMedication(v: string): void              { writeString(KEYS.medicamento, v); },
+  getDose(): string                            { return readString(KEYS.dose, '2,5 mg'); },
+  saveDose(v: string): void                    { writeString(KEYS.dose, v); },
+  getFrequencia(): string                      { return readString(KEYS.frequencia, 'Semanal'); },
+  saveFrequencia(v: string): void              { writeString(KEYS.frequencia, v); },
+  getFrequenciaPersonalizadaDias(): string     { return readString(KEYS.frequenciaPersonalizadaDias, '7'); },
+  saveFrequenciaPersonalizadaDias(v: string): void { writeString(KEYS.frequenciaPersonalizadaDias, v); },
 
-  save(value: GlpyTreatment): void {
-    writeJSON(KEYS.medicamento, value);
-  },
+  // Última injeção (JSON)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getUltimaInjecao(): any                      { return readJSON<any>(KEYS.injecaoUltima, null); },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  saveUltimaInjecao(v: any): void              { writeJSON(KEYS.injecaoUltima, v); },
+
+  // Locais de injeção (JSON array)
+  getLocaisInjecao(): string[]                 { return readJSON<string[]>(KEYS.injecaoLocais, []); },
+  saveLocaisInjecao(v: string[]): void         { writeJSON(KEYS.injecaoLocais, v); },
+
+  // Última aplicação — date string (AlertaInjecao)
+  getUltimaAplicacao(): string                 { return readString(KEYS.ultimaAplicacao, ''); },
+  saveUltimaAplicacao(v: string): void         { writeString(KEYS.ultimaAplicacao, v); },
+
+  // Efeitos colaterais (JSON)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getEfeitosHoje(): any                        { return readJSON<any>(KEYS.injectionEffectsToday, null); },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  saveEfeitosHoje(v: any): void                { writeJSON(KEYS.injectionEffectsToday, v); },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getEfeitosHistorico(): any[]                 { return readJSON<any[]>(KEYS.injectionEffectsHistory, []); },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  saveEfeitosHistorico(v: any[]): void         { writeJSON(KEYS.injectionEffectsHistory, v); },
+
+  // Legado — mantido por compatibilidade (não usado externamente)
+  get(): GlpyTreatment | null                  { return readJSON<GlpyTreatment | null>(KEYS.medicamento, null); },
+  save(value: GlpyTreatment): void             { writeJSON(KEYS.medicamento, value); },
 };
 
 // ── 9. aiUsage ────────────────────────────────────────────────────────────────

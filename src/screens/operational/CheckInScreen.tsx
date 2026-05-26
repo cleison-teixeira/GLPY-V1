@@ -59,7 +59,7 @@ function buildResumoItems(todayStr: string) {
 
   const aplicacao = (() => {
     try {
-      const p = JSON.parse(localStorage.getItem('glpy_injecao_ultima') || 'null');
+      const p = glpyStore.treatment.getUltimaInjecao();
       const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
       return isToday ? { value: 'Registrada', done: true } : { value: 'Pendente', done: false };
     } catch { return { value: 'Pendente', done: false }; }
@@ -87,9 +87,8 @@ function buildResumoItems(todayStr: string) {
 
   const sintomas = (() => {
     try {
-      const raw = localStorage.getItem('glpy_injection_effects_today');
-      if (!raw) return { value: 'Pendente', done: false };
-      const rec = JSON.parse(raw);
+      const rec = glpyStore.treatment.getEfeitosHoje();
+      if (!rec) return { value: 'Pendente', done: false };
       if (rec?.date !== todayStr) return { value: 'Pendente', done: false };
       if (rec.noSymptoms) return { value: 'Nenhum sintoma', done: true };
       const count = Array.isArray(rec.symptoms) ? rec.symptoms.length : 0;

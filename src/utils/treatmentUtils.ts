@@ -3,6 +3,8 @@
  * Lógica centralizada para cálculo de datas e frequências da medicação.
  */
 
+import { glpyStore } from '../data/glpyStore';
+
 export interface NextInjectionInfo {
   hasHistory: boolean;
   nextDateFormatted: string; // ex: "Qui, 21 mai"
@@ -38,19 +40,17 @@ export function calculateNextInjection(): NextInjectionInfo {
   };
 
   try {
-    const lastInjectionRaw = localStorage.getItem('glpy_injecao_ultima');
-    if (!lastInjectionRaw) {
+    const lastInjection = glpyStore.treatment.getUltimaInjecao();
+    if (!lastInjection) {
       return defaultInfo;
     }
-
-    const lastInjection = JSON.parse(lastInjectionRaw);
     const savedAt = lastInjection.savedAt;
     if (!savedAt) {
       return defaultInfo;
     }
 
     // Determinar frequência
-    const frequency = localStorage.getItem('glpy_frequencia') || 'Semanal';
+    const frequency = glpyStore.treatment.getFrequencia();
     let interval = 7; // Padrão semanal
 
     if (frequency === 'Diária') {
@@ -64,10 +64,7 @@ export function calculateNextInjection(): NextInjectionInfo {
     } else if (frequency === 'Mensal') {
       interval = 30;
     } else if (frequency === 'Personalizada') {
-      const customDaysRaw = 
-        localStorage.getItem('glpy_frequencia_personalizada_dias') || 
-        localStorage.getItem('customFrequencyDays') || 
-        '7';
+      const customDaysRaw = glpyStore.treatment.getFrequenciaPersonalizadaDias() || '7';
       const parsedDays = parseInt(customDaysRaw, 10);
       interval = isNaN(parsedDays) || parsedDays <= 0 ? 7 : parsedDays;
     }

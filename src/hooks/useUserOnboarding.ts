@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { glpyStore } from '../data/glpyStore';
 
 export interface UserOnboardingData {
   nome: string;
@@ -94,14 +95,14 @@ function readOnboarding(): UserOnboardingData {
       objetivo: String(onb.objetivo ?? ''),
       modo: String(onb.modo ?? FALLBACK.modo),
       medicamento:
-        localStorage.getItem('glpy_medicamento')?.trim() ||
+        glpyStore.treatment.getMedication().trim() ||
         String(onb.medicamento ?? ''),
       dose:
-        localStorage.getItem('glpy_dose')?.trim() ||
+        glpyStore.treatment.getDose().trim() ||
         String(onb.dose ?? '').trim() ||
         FALLBACK.dose,
       frequencia:
-        localStorage.getItem('glpy_frequencia')?.trim() ||
+        glpyStore.treatment.getFrequencia().trim() ||
         String(onb.frequencia ?? ''),
       sexo: sexo || null,
       idade,

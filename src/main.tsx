@@ -247,7 +247,7 @@ if (path === '/admin') {
         <InjectionScreen
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
-            localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ ...data, savedAt: Date.now() }));
+            glpyStore.treatment.saveUltimaInjecao({ ...data, savedAt: Date.now() });
             window.location.href = getHomePath();
           }}
         />
@@ -261,13 +261,13 @@ if (path === '/admin') {
         <TreatmentSettingsScreen
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
-            localStorage.setItem('glpy_medicamento', data.medication);
-            localStorage.setItem('glpy_frequencia',  data.frequency);
+            glpyStore.treatment.saveMedication(data.medication);
+            glpyStore.treatment.saveFrequencia(data.frequency);
             const parsedDose = parseFloat(
               (data.dose || '').replace(',', '.').replace(/[^0-9.]/g, '')
             );
             if (!isNaN(parsedDose) && parsedDose > 0) {
-              localStorage.setItem('glpy_dose', String(parsedDose));
+              glpyStore.treatment.saveDose(String(parsedDose));
             }
             try {
               const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');

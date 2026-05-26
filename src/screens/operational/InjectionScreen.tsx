@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom';
 import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { glpyStore } from '../../data/glpyStore';
 import { calculateNextInjection } from '../../utils/treatmentUtils';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -50,13 +51,13 @@ const SITE_OPTIONS: SiteOption[] = [
 export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps) {
   const [selectedSite, setSelectedSite] = useState<InjectionSite>(() => {
     try {
-      const s = JSON.parse(localStorage.getItem('glpy_injecao_ultima') || '{}').site;
+      const s = glpyStore.treatment.getUltimaInjecao()?.site;
       return (['abdomen', 'thigh', 'arm'] as InjectionSite[]).includes(s) ? s : 'abdomen';
     } catch { return 'abdomen'; }
   });
-  const [medication] = useState(() => localStorage.getItem('glpy_medicamento') || 'Mounjaro®');
-  const [dose]       = useState(() => localStorage.getItem('glpy_dose')        || '2,5 mg');
-  const [frequency]  = useState(() => localStorage.getItem('glpy_frequencia')  || 'Semanal');
+  const [medication] = useState(() => glpyStore.treatment.getMedication());
+  const [dose]       = useState(() => glpyStore.treatment.getDose());
+  const [frequency]  = useState(() => glpyStore.treatment.getFrequencia());
 
   const nextInj = calculateNextInjection();
 
@@ -75,29 +76,28 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
 
   function hasTodaySymptoms(): boolean {
     try {
-      const raw = localStorage.getItem('glpy_injection_effects_today');
-      if (!raw) return false;
-      return JSON.parse(raw)?.date === todayISO();
+      const rec = glpyStore.treatment.getEfeitosHoje();
+      if (!rec) return false;
+      return rec.date === todayISO();
     } catch { return false; }
   }
 
   function registerNoSymptoms(): void {
     const today = todayISO();
     const record = { date: today, symptoms: [], intensity: 'none', noSymptoms: true, savedAt: new Date().toISOString() };
-    localStorage.setItem('glpy_injection_effects_today', JSON.stringify(record));
+    glpyStore.treatment.saveEfeitosHoje(record);
     try {
-      const raw      = localStorage.getItem('glpy_injection_effects_history');
-      const history  = raw ? JSON.parse(raw) : [];
+      const history  = glpyStore.treatment.getEfeitosHistorico();
       const filtered = Array.isArray(history) ? history.filter((e: any) => e.date !== today) : [];
       filtered.push({ id: `effects_${today}_${Date.now()}`, ...record });
-      localStorage.setItem('glpy_injection_effects_history', JSON.stringify(filtered));
+      glpyStore.treatment.saveEfeitosHistorico(filtered);
     } catch {}
     window.dispatchEvent(new Event('local-storage-change'));
   }
 
   function doActualSave() {
     setSaveState('saving');
-    localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ site: selectedSite, savedAt: Date.now() }));
+    glpyStore.treatment.saveUltimaInjecao({ site: selectedSite, savedAt: Date.now() });
     setTimeout(() => {
       setSaveState('saved');
       setTimeout(() => onSave?.({ medication, dose, frequency, site: selectedSite }), 900);
