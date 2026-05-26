@@ -27,8 +27,8 @@ const PLANOS = [
     recursos: [
       '✅ Protocolos 1 e 2 (14 dias)',
       '✅ Check-in diário com GLPY.IA',
-      '✅ 10 mensagens/mês para a IA',
-      '✅ 3 análises de prato por foto/mês',
+      '✅ 30 mensagens/mês para a IA',
+      '✅ 5 análises de prato por foto/mês',
       '✅ Dashboard com macros personalizados',
       '✅ Streak e sistema de XP',
     ],

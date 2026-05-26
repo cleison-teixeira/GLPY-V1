@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Camera, ChevronLeft, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, X } from "lucide-react";
 import BottomNav from "./BottomNav";
 
-const LIMITES: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
+const LIMITES: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
 
 function getFotosHoje(): number {
   const hoje = new Date().toISOString().slice(0, 10);

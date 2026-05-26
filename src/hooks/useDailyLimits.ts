@@ -8,8 +8,8 @@ export interface DailyLimitsData {
   iaLimite: number;
 }
 
-const LIMITES_FOTO: Record<string, number> = { starter: 3, plus: 6, pro: 9, top: Infinity };
-const LIMITES_IA:   Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
+const LIMITES_FOTO: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
+const LIMITES_IA:   Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
 function getTodayKey(): string {
   return new Date().toISOString().slice(0, 10);

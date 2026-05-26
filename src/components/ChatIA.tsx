@@ -10,7 +10,7 @@ import {
   type GLPYTargetsInput, type GLPYDailyConsumed,
 } from "../core/glpyDailyTargets";
 
-const LIMITES_INICIAIS: Record<string, number> = { starter: 10, plus: 20, pro: 30, top: 999 };
+const LIMITES_INICIAIS: Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
 type Message = { id: number; sender: 'ia' | 'user'; text: string; };
 
