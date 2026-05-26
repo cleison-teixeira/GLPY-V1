@@ -221,6 +221,30 @@ async function recognizeFoodByImage(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Extrai macros do campo food_description da API foods.search
+// Formato típico: "Per 100g - Calories: 130kcal | Fat: 2.00g | Carbs: 27.00g | Prot: 2.70g"
+// ──────────────────────────────────────────────────────────────────────────────
+
+function parseFoodDescription(desc: string): {
+  calories?: number; protein?: number; carbs?: number; fat?: number; servingDescription?: string;
+} {
+  if (!desc) return {};
+  const servingMatch = desc.match(/^Per\s+([^-|]+?)(?:\s*-|\s*\|)/i);
+  const servingDescription = servingMatch ? servingMatch[1].trim() : undefined;
+  const cal   = desc.match(/Calories?:\s*([\d.]+)/i);
+  const fat   = desc.match(/Fat:\s*([\d.]+)/i);
+  const carbs = desc.match(/Carbs?:\s*([\d.]+)/i);
+  const prot  = desc.match(/Prot(?:ein|e[ií]na)?:\s*([\d.]+)/i);
+  return {
+    servingDescription,
+    calories: cal   ? parseFloat(cal[1])   : undefined,
+    fat:      fat   ? parseFloat(fat[1])   : undefined,
+    carbs:    carbs ? parseFloat(carbs[1]) : undefined,
+    protein:  prot  ? parseFloat(prot[1])  : undefined,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // FatSecret Foods.Search — busca textual
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -261,15 +285,19 @@ async function searchFoodsByText(token: string, query: string): Promise<FatSecre
 
   const foodArray: unknown[] = Array.isArray(rawFoods) ? rawFoods : [rawFoods];
 
-  return foodArray.slice(0, 5).map((f: any) => ({
-    name:       f.food_name ?? 'Alimento desconhecido',
-    brand:      f.brand_name ?? undefined,
-    externalId: f.food_id ?? undefined,
-    calories:   undefined,
-    protein:    undefined,
-    carbs:      undefined,
-    fat:        undefined,
-  } satisfies FatSecretFoodItem));
+  return foodArray.slice(0, 5).map((f: any) => {
+    const nutrition = f.food_description ? parseFoodDescription(String(f.food_description)) : {};
+    return {
+      name:               f.food_name ?? 'Alimento desconhecido',
+      brand:              f.brand_name ?? undefined,
+      externalId:         f.food_id ?? undefined,
+      servingDescription: nutrition.servingDescription,
+      calories:           nutrition.calories,
+      protein:            nutrition.protein,
+      carbs:              nutrition.carbs,
+      fat:                nutrition.fat,
+    } satisfies FatSecretFoodItem;
+  });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

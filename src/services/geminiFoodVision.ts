@@ -15,8 +15,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface DetectedFood {
-  /** Nome do alimento em português */
+  /** Nome do alimento em português — usado na exibição */
   name:         string;
+  /** Termo em inglês otimizado para busca nutricional (FatSecret) */
+  searchQuery?: string;
   /** Confiança do Gemini (0.0 – 1.0) */
   confidence:   number;
   /** Estimativa de porção: "porção média", "1 fatia" etc. */

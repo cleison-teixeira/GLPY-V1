@@ -24,6 +24,7 @@ interface RequestPayload {
 
 interface DetectedFood {
   name:         string;
+  searchQuery?: string;
   confidence:   number;
   portionGuess: string;
 }
@@ -59,16 +60,18 @@ Responda somente em JSON válido, sem markdown, sem blocos de código.
 Identifique os alimentos mais prováveis no prato.
 Não invente macros.
 Não dê diagnóstico médico.
-Use nomes de alimentos em português do Brasil.
+Use nomes de alimentos em português do Brasil no campo "name".
+No campo "searchQuery", use o nome do alimento em inglês simples, otimizado para busca em base nutricional (ex: "egg", "strawberry yogurt", "instant noodles", "grilled chicken", "white rice").
 Se não tiver certeza, retorne sugestões prováveis com confidence baixo.
 O campo confidence deve ser um número entre 0.0 e 1.0.
 Formato de resposta obrigatório:
 {
   "detectedFoods": [
     {
-      "name": "nome do alimento",
-      "confidence": 0.82,
-      "portionGuess": "porção média"
+      "name": "Iogurte de Morango",
+      "searchQuery": "strawberry yogurt",
+      "confidence": 0.95,
+      "portionGuess": "garrafa grande"
     }
   ],
   "summary": "Resumo do prato em uma frase."
@@ -245,6 +248,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const detectedFoods: DetectedFood[] = rawFoods.slice(0, 8).map((f: any) => ({
     name:         String(f?.name ?? 'Alimento desconhecido'),
+    searchQuery:  f?.searchQuery ? String(f.searchQuery) : undefined,
     confidence:   typeof f?.confidence === 'number'
                     ? Math.min(1, Math.max(0, f.confidence))
                     : 0.5,
