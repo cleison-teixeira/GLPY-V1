@@ -234,10 +234,8 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
-      const raw = localStorage.getItem('glpy_ai_usage');
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw);
-      if (parsed.month !== currentMonth) return 0;
+      const parsed = glpyStore.aiUsage.get();
+      if (!parsed.month || parsed.month !== currentMonth) return 0;
       return typeof parsed.used === 'number' ? parsed.used : 0;
     } catch { return 0; }
   });
@@ -251,7 +249,7 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
         setMsgsUsadas(usadas);
         setLimiteIA(limite);
         const currentMonth = new Date().toISOString().slice(0, 7);
-        localStorage.setItem('glpy_ai_usage', JSON.stringify({ month: currentMonth, used: usadas, limit: limite, updatedAt: new Date().toISOString() }));
+        glpyStore.aiUsage.save({ month: currentMonth, used: usadas, limit: limite, updatedAt: new Date().toISOString() });
         window.dispatchEvent(new Event('local-storage-change'));
       })
       .catch(() => {});
@@ -318,7 +316,7 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
       setMsgsUsadas(novas);
       incrementarMsgIA().catch(() => {});
       const currentMonth = new Date().toISOString().slice(0, 7);
-      localStorage.setItem('glpy_ai_usage', JSON.stringify({ month: currentMonth, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() }));
+      glpyStore.aiUsage.save({ month: currentMonth, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() });
       window.dispatchEvent(new Event('local-storage-change'));
     } catch (error) {
       console.error("[ChatIA] DeepSeek fetch error:", {

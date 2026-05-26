@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { glpyStore } from '../data/glpyStore';
 
 export interface DailyLimitsData {
   fotosUsadas: number;
@@ -20,10 +21,8 @@ function getCurrentMonth(): string {
 
 function readIAUsage(iaLimite: number): number {
   try {
-    const raw = localStorage.getItem('glpy_ai_usage');
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (parsed.month !== getCurrentMonth()) return 0;
+    const parsed = glpyStore.aiUsage.get();
+    if (!parsed.month || parsed.month !== getCurrentMonth()) return 0;
     const used = typeof parsed.used === 'number' ? parsed.used : 0;
     return Math.min(used, iaLimite);
   } catch { return 0; }
