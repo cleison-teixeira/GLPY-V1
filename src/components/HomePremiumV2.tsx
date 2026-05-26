@@ -405,6 +405,12 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     return (isNaN(n) || n <= 0) ? '—' : formatUnit(n, 'mg', 2);
   })();
   const userMedicamento  = onboarding.medicamento || mockHomeData.performance.glp1.name;
+  const userMedicacaoDisplay = (() => {
+    const med  = glpyStore.treatment.getMedication();
+    const dose = glpyStore.treatment.getDose();
+    if (med && dose) return `${med} ${dose}`;
+    return med || 'Não informado';
+  })();
   // Cascata de frequência: lê diretamente do localStorage para garantir atualização mesmo sem evento reativo
   const userFrequencia = (() => {
     try {
@@ -1963,7 +1969,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   <p className="text-[11px] text-slate-400">Toque para alterar</p>
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#0A1628]">{userName} Premium V2</h3>
+                  <h3 className="text-base font-extrabold text-[#0A1628]">{userName}</h3>
                   <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">Membro Premium Fundador</p>
                 </div>
               </div>
@@ -1978,7 +1984,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Medicação Atual</span>
-                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">Ozempic 1,0mg</span>
+                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">{userMedicacaoDisplay}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">

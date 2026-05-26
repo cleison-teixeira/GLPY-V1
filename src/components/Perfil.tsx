@@ -240,7 +240,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
   };
 
   const glpyUser = JSON.parse(localStorage.getItem("glpy_user") || "{}");
-  const nomeCompleto = (glpyUser.displayName as string) || "Usuário GLPY";
+  const nomeCompleto = glpyStore.profile.get().name || (glpyUser.displayName as string) || "Usuário GLPY";
   const emailUsuario = (glpyUser.email as string) || "";
   const primeiroNome = nomeCompleto.split(" ")[0];
 
@@ -280,6 +280,13 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     { emoji: "🏆", name: "Mestre GLP-1", unlocked: false },
   ];
 
+  const tratamentoDesc = (() => {
+    const med  = glpyStore.treatment.getMedication();
+    const dose = glpyStore.treatment.getDose();
+    if (med && dose) return `${med} ${dose}`;
+    return med || 'Não informado';
+  })();
+
   const menuItems = [
     {
       icon: CreditCard,
@@ -291,7 +298,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     {
       icon: Syringe,
       label: "Meu Tratamento",
-      desc: "Mounjaro 5mg · Semana 6",
+      desc: tratamentoDesc,
       color: "bg-sky-50 text-sky-600",
       action: () => onNavigate('injecao')
     },
