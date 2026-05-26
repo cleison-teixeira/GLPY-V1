@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Sparkles, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
-import glpyLogoLight from '@/assets/logos/logo-light.png';
 import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, type ContextoIA } from "../services/firestore";
 import { buildGLPYContextForAI, getGLPYIntelligenceContext } from "../core/glpyLocalIntelligence";
 import {
@@ -262,8 +261,15 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
     carregarContextoIA().then(setCtxIA).catch(() => {});
   }, []);
 
+  // BUG 14C — Reset scroll horizontal ao montar o componente
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    window.scrollTo({ left: 0, top: window.scrollY });
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }, [messages]);
 
   const sendMessage = async (text: string) => {
@@ -328,37 +334,35 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
     }
   };
 
+  const limitReached = msgsUsadas >= limiteIA;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col pb-24 max-w-[430px] mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]">
+    <div className="h-[100dvh] w-full max-w-full min-w-0 bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col overflow-hidden overflow-x-hidden md:max-w-[430px] md:mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]">
 
-      {/* Header */}
-      <header className="sticky top-0 bg-white px-5 pt-6 pb-5 border-b border-[#E2EBE7] z-10">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <button onClick={() => { const returnTo = sessionStorage.getItem('glpy_return_to'); sessionStorage.removeItem('glpy_return_to'); onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard'); }} className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0">
-              <ChevronLeft className="w-4 h-4 text-text-muted" />
-            </button>
-            <img src={glpyLogoLight} alt="GLPY" className="w-[84px] h-auto object-contain" />
-          </div>
-
-          <div className="relative flex-shrink-0">
-            <div className="w-11 h-11 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center shadow-sm">
-              <Sparkles className="w-5 h-5 text-violet-600 stroke-[2.2]" />
-            </div>
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#00C27A] rounded-full border-2 border-white animate-pulse" />
-          </div>
+      {/* Header compacto */}
+      <header className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-[#E2EBE7] z-10">
+        <button
+          onClick={() => { const returnTo = sessionStorage.getItem('glpy_return_to'); sessionStorage.removeItem('glpy_return_to'); onNavigate(returnTo === 'hub' ? 'hub' : 'dashboard'); }}
+          className="w-9 h-9 bg-[#F4F6F8] border border-border rounded-full flex items-center justify-center flex-shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4 text-text-muted" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-[#0A1628] text-base leading-tight">GLPY IA</p>
+          <p className="text-xs text-[#3D5A70]">
+            Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
+          </p>
         </div>
-
-        <h1 className="text-3xl font-black text-[#0A1628] tracking-tight">
-          GLPY IA
-        </h1>
-        <p className="text-sm text-[#3D5A70] mt-1">
-          Online ·{limiteIA !== Infinity ? ` ${msgsUsadas}/${limiteIA} msgs` : ' Ilimitado'}
-        </p>
+        <div className="relative flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-violet-600 stroke-[2.2]" />
+          </div>
+          <div className="absolute top-0 right-0 w-2 h-2 bg-[#00C27A] rounded-full border-2 border-white animate-pulse" />
+        </div>
       </header>
 
-      {/* Mensagens */}
-      <div className="flex-grow p-4 space-y-4 overflow-y-auto">
+      {/* Mensagens — área scrollável independente */}
+      <div className="flex-1 min-h-0 w-full max-w-full min-w-0 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-4 space-y-4 box-border">
         <AnimatePresence initial={false}>
           {messages.map(msg => (
             <motion.div
@@ -366,14 +370,14 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex w-full max-w-full min-w-0 box-border ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`p-3.5 rounded-2xl max-w-[82%] ${
+              <div className={`p-3.5 rounded-2xl min-w-0 box-border ${
                 msg.sender === 'user'
-                  ? 'bg-primary text-white rounded-tr-sm'
-                  : 'bg-white border border-border text-text-main rounded-tl-sm shadow-sm'
+                  ? 'max-w-[84%] bg-primary text-white rounded-tr-sm'
+                  : 'max-w-[88%] bg-white border border-border text-text-main rounded-tl-sm shadow-sm'
               }`}>
-                <p className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere]">{msg.text}</p>
               </div>
             </motion.div>
           ))}
@@ -393,62 +397,80 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Replies */}
-      <div className="px-4 pb-3 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
-        {QUICK_REPLIES.map(reply => (
-          <button
-            key={reply}
-            onClick={() => sendMessage(reply)}
-            className="px-3 py-1.5 bg-white border border-border rounded-full text-xs font-medium hover:border-primary hover:text-primary transition flex-shrink-0"
-          >
-            {reply}
-          </button>
-        ))}
-      </div>
+      {/* Área inferior — fixa, não scrollável */}
+      <div className="flex-shrink-0">
 
-      {/* Banner de limite atingido */}
-      {msgsUsadas >= limiteIA && (
-        <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-3">
-          <div className="flex-grow min-w-0">
-            <p className="text-sm font-bold text-amber-800 leading-snug">
-              Você usou {msgsUsadas}/{limiteIA} mensagens do mês.
-            </p>
-            <p className="text-xs text-amber-600 mt-0.5">Faça upgrade para continuar.</p>
+        {/* Quick Replies — apenas no início, some após primeira mensagem ou se limite atingido */}
+        {messages.length <= 1 && !limitReached && (
+          <div className="w-full max-w-full box-border overflow-x-auto overflow-y-hidden py-2">
+            <div className="flex gap-2 px-4 w-max">
+              {QUICK_REPLIES.map(reply => (
+                <button
+                  key={reply}
+                  onClick={() => sendMessage(reply)}
+                  className="px-3 py-1.5 bg-white border border-border rounded-full text-xs font-medium hover:border-primary hover:text-primary transition flex-shrink-0 whitespace-nowrap"
+                >
+                  {reply}
+                </button>
+              ))}
+            </div>
           </div>
-          <button
-            onClick={() => onNavigate('planos')}
-            className="flex-shrink-0 bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl"
-          >
-            Ver planos
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Input */}
-      <div className="sticky bottom-16 px-4 py-3 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="relative">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-            onFocus={() => {
-              setKeyboardOpen(true);
-              setTimeout(() => inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
-            }}
-            onBlur={() => setTimeout(() => setKeyboardOpen(false), 150)}
-            placeholder="Pergunte qualquer coisa..."
-            className="w-full py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-sm focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto"
-          />
-          <button
-            onClick={() => sendMessage(input)}
-            disabled={loading || !input.trim()}
-            style={{ top: '50%', transform: 'translateY(-50%)' }}
-            className="absolute right-2 w-9 h-9 flex items-center justify-center bg-primary text-white rounded-[10px] transition disabled:opacity-40"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        {/* Banner de limite atingido */}
+        {limitReached && (
+          <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-3">
+            <div className="flex-grow min-w-0">
+              <p className="text-sm font-bold text-amber-800 leading-snug">
+                Você usou {msgsUsadas}/{limiteIA} mensagens do mês.
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">Faça upgrade para continuar.</p>
+            </div>
+            <button
+              onClick={() => onNavigate('planos')}
+              className="flex-shrink-0 bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl"
+            >
+              Ver planos
+            </button>
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="w-full max-w-full min-w-0 box-border px-4 pt-3 pb-3 bg-background/95 backdrop-blur-sm border-t border-border overflow-hidden">
+          <div className="relative w-full max-w-full min-w-0 box-border flex items-center">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+              onFocus={() => {
+                setKeyboardOpen(true);
+                window.scrollTo({ left: 0, top: window.scrollY });
+                document.documentElement.scrollLeft = 0;
+                document.body.scrollLeft = 0;
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
+              }}
+              onBlur={() => setTimeout(() => setKeyboardOpen(false), 150)}
+              disabled={limitReached}
+              placeholder={limitReached ? 'Limite mensal atingido' : 'Pergunte qualquer coisa...'}
+              className="flex-1 min-w-0 w-full box-border py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-base focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={loading || !input.trim() || limitReached}
+              style={{ top: '50%', transform: 'translateY(-50%)' }}
+              className="absolute right-2 flex-shrink-0 w-9 h-9 flex items-center justify-center bg-primary text-white rounded-[10px] transition disabled:opacity-40"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        {/* Espaço reservado para o BottomNav fixo + safe-area */}
+        {!keyboardOpen && (
+          <div style={{ height: 'calc(72px + env(safe-area-inset-bottom, 0px))' }} aria-hidden="true" />
+        )}
+
       </div>
 
       {!keyboardOpen && <BottomNav active="hub" onNavigate={onNavigate} />}
