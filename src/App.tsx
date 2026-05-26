@@ -55,6 +55,7 @@ import InjectionScreen from './screens/operational/InjectionScreen';
 import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
 import FoodPhotoAnalysisScreen from './screens/operational/FoodPhotoAnalysisScreen';
 import { resolveSafeReturn } from './utils/navigationReturn';
+import { glpyStore } from './data/glpyStore';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
@@ -191,7 +192,7 @@ export default function App() {
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(amount) => {
           const today = new Date().toISOString().slice(0, 10);
-          localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today, updatedAt: new Date().toISOString() }));
+          glpyStore.water.saveToday({ amount, date: today, updatedAt: new Date().toISOString() });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}
@@ -199,9 +200,7 @@ export default function App() {
       case 'emocao':       return <EmotionScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(data) => {
-          const today = new Date().toISOString().slice(0, 10);
-          localStorage.setItem('glpy_emocao_hoje', JSON.stringify({ ...data, savedAt: Date.now() }));
-          localStorage.setItem('glpy_today_emotion', JSON.stringify({ emotion: data.mood, emotionalEnergy: data.energy, notes: data.note ?? '', date: today, savedAt: new Date().toISOString() }));
+          glpyStore.emotion.saveToday({ ...data, savedAt: Date.now() });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}

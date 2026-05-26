@@ -12,6 +12,7 @@ import {
   Star, ListChecks, Smile, TrendingUp, Lightbulb, Check, CheckCircle2,
   Droplets, Utensils, Syringe, AlertCircle, Flame, Camera,
 } from 'lucide-react';
+import { glpyStore } from '../../data/glpyStore';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -37,14 +38,10 @@ function buildResumoItems(todayStr: string) {
 
   const agua = (() => {
     try {
-      const raw = localStorage.getItem('glpy_agua_hoje');
-      if (!raw) return { value: 'Pendente', done: false };
-      const p = JSON.parse(raw);
-      if (p && typeof p === 'object' && p.date === todayStr) {
-        const amount = parseFloat(String(p.amount)) || 0;
-        return { value: `${fmtL(amount)} L de ${fmtL(2.6)} L`, done: amount >= 2.6 };
-      }
-      return { value: 'Pendente', done: false };
+      const p = glpyStore.water.getToday();
+      if (!p || p.date !== todayStr) return { value: 'Pendente', done: false };
+      const amount = parseFloat(String(p.amount)) || 0;
+      return { value: `${fmtL(amount)} L de ${fmtL(2.6)} L`, done: amount >= 2.6 };
     } catch { return { value: 'Pendente', done: false }; }
   })();
 
@@ -70,7 +67,8 @@ function buildResumoItems(todayStr: string) {
 
   const emocao = (() => {
     try {
-      const p = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || 'null');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = glpyStore.emotion.getToday() as any;
       const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
       if (!isToday) return { value: 'Pendente', done: false };
       return { value: typeof p?.mood === 'string' ? p.mood : 'Registrada', done: true };
@@ -79,7 +77,8 @@ function buildResumoItems(todayStr: string) {
 
   const atividade = (() => {
     try {
-      const p = JSON.parse(localStorage.getItem('glpy_atividade_hoje') || 'null');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = glpyStore.activity.getToday() as any;
       const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
       if (!isToday) return { value: 'Pendente', done: false };
       return { value: p?.duration ? `${p.duration} min` : 'Registrada', done: true };
@@ -121,8 +120,8 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
   const [selectedDayFeeling, setSelectedDayFeeling] = useState<DayFeeling>(() => {
     try {
-      const raw = localStorage.getItem('glpy_checkin_hoje');
-      const parsed = JSON.parse(raw || '{}');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = glpyStore.checkin.getToday() as any;
       const f = parsed?.dayFeeling;
       if (f === 'Leve' || f === 'Normal' || f === 'Difícil') return f as DayFeeling;
     } catch {}
@@ -132,9 +131,8 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
   const realStreak = (() => {
     try {
-      const raw = localStorage.getItem('glpy_checkin_historico');
-      if (!raw) return 0;
-      const parsed = JSON.parse(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = glpyStore.checkin.getHistory() as any[];
       if (!Array.isArray(parsed) || parsed.length === 0) return 0;
       const dates = parsed.map((item: any) => {
         if (typeof item === 'string') return item;
@@ -161,9 +159,8 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   const alreadyDoneToday = (() => {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
-      const raw = localStorage.getItem('glpy_checkin_hoje');
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = glpyStore.checkin.getToday() as any;
       return parsed?.date === todayStr;
     } catch { return false; }
   })();
@@ -173,10 +170,11 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
     setCheckInState('saving');
     const today = new Date().toISOString().split('T')[0];
     const newEntry = { date: today, dayFeeling: selectedDayFeeling, savedAt: Date.now() };
-    localStorage.setItem('glpy_checkin_hoje', JSON.stringify(newEntry));
+    glpyStore.checkin.saveToday(newEntry);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let hist: any[] = [];
-    try { hist = JSON.parse(localStorage.getItem('glpy_checkin_historico') || '[]'); }
+    try { hist = [...glpyStore.checkin.getHistory()]; }
     catch { hist = []; }
     if (!Array.isArray(hist)) hist = [];
 
@@ -190,7 +188,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
     } else {
       hist.push(newEntry);
     }
-    localStorage.setItem('glpy_checkin_historico', JSON.stringify(hist));
+    glpyStore.checkin.saveHistory(hist);
     window.dispatchEvent(new Event('local-storage-change'));
 
     setTimeout(() => {

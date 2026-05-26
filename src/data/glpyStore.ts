@@ -289,7 +289,7 @@ const activity = {
 
   saveToday(value: GlpyActivity): void {
     writeJSON(KEYS.atividadeHoje, value);
-    writeJSON(KEYS.todayActivity, value);
+    // glpy_today_activity é gerenciado pelo saveActivityEntry (array) — não sobrescrever aqui
   },
 };
 

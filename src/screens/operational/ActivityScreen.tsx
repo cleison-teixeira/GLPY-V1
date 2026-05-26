@@ -17,6 +17,7 @@ import {
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton, GLPYInput } from '../../components/ui';
 import { saveActivityEntry } from '../../core/glpyLocalIntelligence';
+import { glpyStore } from '../../data/glpyStore';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -71,13 +72,15 @@ type ActivitySaveState = 'idle' | 'saving' | 'saved';
 export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedActivity, setSelectedActivity] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').activity || 'caminhada'; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { return (glpyStore.activity.getToday() as any)?.activity || 'caminhada'; }
     catch { return 'caminhada'; }
   });
   const [activityModalOpen, setActivityModalOpen] = useState(false);
 
   const [selectedDuration, setSelectedDuration] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').duration || '30'; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { return (glpyStore.activity.getToday() as any)?.duration || '30'; }
     catch { return '30'; }
   });
   const [durationModalOpen,  setDurationModalOpen]  = useState(false);
@@ -85,13 +88,15 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
   const [customDuration,     setCustomDuration]      = useState('30');
 
   const [selectedIntensity, setSelectedIntensity] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').intensity || 'Moderada'; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { return (glpyStore.activity.getToday() as any)?.intensity || 'Moderada'; }
     catch { return 'Moderada'; }
   });
   const [intensityModalOpen, setIntensityModalOpen] = useState(false);
 
   const [note, setNote] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_atividade_hoje') || '{}').note || ''; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { return (glpyStore.activity.getToday() as any)?.note || ''; }
     catch { return ''; }
   });
   const [saveState, setSaveState] = useState<ActivitySaveState>('idle');
@@ -148,7 +153,7 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       note,
       savedAt: Date.now(),
     };
-    localStorage.setItem('glpy_atividade_hoje', JSON.stringify(legacyEntry));
+    glpyStore.activity.saveToday(legacyEntry);
     try {
       saveActivityEntry({
         type: selectedActivity,

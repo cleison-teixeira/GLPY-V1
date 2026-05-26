@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { Smile, Zap, PenLine, Lightbulb, ChevronRight, Check } from 'lucide-react';
+import { glpyStore } from '../../data/glpyStore';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -49,18 +50,20 @@ interface EmotionScreenProps {
 export default function EmotionScreen({ onBack, onSave }: EmotionScreenProps) {
   const [selectedMood, setSelectedMood] = useState<Mood>(() => {
     try {
-      const d = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}');
-      return (MOOD_OPTIONS as readonly string[]).includes(d.mood) ? (d.mood as Mood) : 'Bem';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = glpyStore.emotion.getToday() as any;
+      return d?.mood && (MOOD_OPTIONS as readonly string[]).includes(d.mood) ? (d.mood as Mood) : 'Bem';
     } catch { return 'Bem'; }
   });
   const [selectedEnergy, setSelectedEnergy] = useState<Energy>(() => {
     try {
-      const d = JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}');
-      return (['Baixa', 'Média', 'Alta'] as string[]).includes(d.energy) ? (d.energy as Energy) : 'Média';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = glpyStore.emotion.getToday() as any;
+      return d?.energy && (['Baixa', 'Média', 'Alta'] as string[]).includes(d.energy) ? (d.energy as Energy) : 'Média';
     } catch { return 'Média'; }
   });
   const [note, setNote] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_emocao_hoje') || '{}').note || ''; }
+    try { return (glpyStore.emotion.getToday() as any)?.note || ''; }
     catch { return ''; }
   });
   const [moodModalOpen, setMoodModalOpen] = useState(false);

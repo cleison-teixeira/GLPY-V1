@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Droplets, Lightbulb } from 'lucide-react';
 
+import { glpyStore } from '../../data/glpyStore';
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -41,18 +42,11 @@ type WaterSaveState = 'idle' | 'saving' | 'saved';
 
 function readTodayWater(): number {
   try {
-    const raw = localStorage.getItem('glpy_agua_hoje');
-    if (!raw) return 0;
+    const w = glpyStore.water.getToday();
+    if (!w) return 0;
     const today = new Date().toISOString().slice(0, 10);
-    // formato canônico: { amount, date }
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      if (parsed.date === today) return parseFloat(String(parsed.amount)) || 0;
-      return 0; // dia diferente — zera
-    }
-    // legado: número puro como string
-    const v = parseFloat(String(parsed));
-    return isNaN(v) ? 0 : v;
+    if (w.date !== today) return 0;
+    return parseFloat(String(w.amount)) || 0;
   } catch { return 0; }
 }
 
@@ -69,7 +63,7 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
     setWaterAmount(prev => {
       const next = parseFloat(Math.min(prev + amount, 99).toFixed(2));
       const today = new Date().toISOString().slice(0, 10);
-      localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: next, date: today, updatedAt: new Date().toISOString() }));
+      glpyStore.water.saveToday({ amount: next, date: today, updatedAt: new Date().toISOString() });
       window.dispatchEvent(new Event('local-storage-change'));
       return next;
     });

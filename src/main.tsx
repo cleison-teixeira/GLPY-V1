@@ -216,7 +216,7 @@ if (path === '/admin') {
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(amount) => {
             const today = new Date().toISOString().slice(0, 10);
-            localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount, date: today, updatedAt: new Date().toISOString() }));
+            glpyStore.water.saveToday({ amount, date: today, updatedAt: new Date().toISOString() });
             window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = getHomePath();
           }}
@@ -298,15 +298,7 @@ if (path === '/admin') {
         <EmotionScreen
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(data) => {
-            const today = new Date().toISOString().slice(0, 10);
-            localStorage.setItem('glpy_emocao_hoje', JSON.stringify({ ...data, savedAt: Date.now() }));
-            localStorage.setItem('glpy_today_emotion', JSON.stringify({
-              emotion: data.mood,
-              emotionalEnergy: data.energy,
-              notes: data.note ?? '',
-              date: today,
-              savedAt: new Date().toISOString(),
-            }));
+            glpyStore.emotion.saveToday({ ...data, savedAt: Date.now() });
             window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = getHomePath();
           }}
