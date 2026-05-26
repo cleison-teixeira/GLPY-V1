@@ -43,7 +43,7 @@ interface ErrorResponse {
 // Constantes
 // ──────────────────────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash-001';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const VISION_PROMPT = `Analise a foto de uma refeição.
