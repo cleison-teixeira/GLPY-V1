@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { glpyStore } from '../data/glpyStore';
 
 export interface ActiveProtocolData {
   name: string;
@@ -16,7 +17,7 @@ function readActiveProtocol(): ActiveProtocolData {
   try {
     const rawDayToday   = localStorage.getItem('glpy_protocol_day_today');
     const rawContext    = localStorage.getItem('glpy_protocol_context');
-    const rawAtivo      = localStorage.getItem('glpy_protocolo_ativo');
+    const rawAtivo      = (() => { const v = glpyStore.protocol.getActive(); return v ? JSON.stringify(v) : null; })();
     const rawCurrentDay = localStorage.getItem('glpy_current_protocol_day');
 
     let name      = '';

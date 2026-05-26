@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, Play, ShoppingBag, Award, CheckCircle2, Circle } from "lucide-react";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import BottomNav from "./BottomNav";
+import { glpyStore } from "../data/glpyStore";
 
 const MISSIONS = [
   { id: 1, title: "Zero açúcar líquido", desc: "Suco, refri, isotônico — fora por hoje", icon: "🚫" },
@@ -20,9 +21,7 @@ const HUNGER_RESPONSES: Record<string, string> = {
 type Progresso = { diaAtual: number; diasConcluidos: number[]; dataInicio: string };
 
 export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const protocoloAtivo = (() => {
-    try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}"); } catch { return {}; }
-  })();
+  const protocoloAtivo = glpyStore.protocol.getActive() ?? {};
   const protocoloId = protocoloAtivo.id || "default";
   const protocoloNome = protocoloAtivo.nome || "Protocolo";
   const totalDias: number = protocoloAtivo.totalDias || 7;

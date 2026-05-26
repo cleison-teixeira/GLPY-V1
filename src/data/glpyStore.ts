@@ -369,6 +369,11 @@ const protocol = {
     writeJSON(KEYS.activeProtocol,  value);
     writeJSON(KEYS.protocoloAtivo,  value);
   },
+
+  removeActive(): void {
+    removeKey(KEYS.activeProtocol);
+    removeKey(KEYS.protocoloAtivo);
+  },
 };
 
 // ── Export ────────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { Shield, Sparkles, Users, ChefHat, Camera, ChevronRight } from "lucide-react";
 import { useActiveProtocol } from "../hooks/useActiveProtocol";
+import { glpyStore } from "../data/glpyStore";
 
 const PROTOCOL_SCREEN_MAP: Record<string, string> = {
   'Sobrevivendo às Canetas': 'sobrevivendoCanetas',
@@ -54,7 +55,7 @@ function hasActiveProtocol(): boolean {
     return (
       !!localStorage.getItem('glpy_protocol_day_today') ||
       !!localStorage.getItem('glpy_protocol_context') ||
-      !!localStorage.getItem('glpy_protocolo_ativo')
+      !!glpyStore.protocol.getActive()
     );
   } catch { return false; }
 }

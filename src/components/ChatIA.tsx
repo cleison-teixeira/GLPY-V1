@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { glpyStore } from "../data/glpyStore";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Sparkles, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
@@ -31,7 +32,7 @@ function getFullUserContext(): string {
     const sections: string[] = ["PERFIL COMPLETO DO USUÁRIO:"];
 
     // 1. Protocolo ativo + missões
-    const ativo = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null");
+    const ativo = glpyStore.protocol.getActive();
     if (ativo?.id && ativo?.nome) {
       const progresso = JSON.parse(localStorage.getItem(`glpy_protocolo_${ativo.id}_progresso`) || "null");
       const diasFeitos = progresso?.diasConcluidos?.length ?? 0;
@@ -154,7 +155,7 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
   // limpa chave legada de modo inicial; contexto é reconstruído por mensagem em buildEnrichedGLPYContext()
   localStorage.removeItem("glpy_chat_initial_mode");
 
-  const _ativo = (() => { try { return JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "null"); } catch { return null; } })();
+  const _ativo = (() => { try { return glpyStore.protocol.getActive(); } catch { return null; } })();
   const _fome = (() => { try { const c = JSON.parse(localStorage.getItem("glpy_ultimo_checkin") || "null"); return c?.fome ?? null; } catch { return null; } })();
   const _diaAtual = (() => {
     if (!_ativo?.id) return 1;

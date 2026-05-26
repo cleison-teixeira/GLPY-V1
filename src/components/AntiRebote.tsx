@@ -7,6 +7,7 @@ import { playSound } from "../utils/sounds";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
+import { glpyStore } from "../data/glpyStore";
 
 // ─── CÁLCULO DE METAS PERSONALIZADAS ───────────────────────────────────────
 function calcMetas(peso: number, altura: number) {
@@ -450,7 +451,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     } catch {}
 
     if (diaAtual === 6) {
-      localStorage.removeItem("glpy_protocolo_ativo");
+      glpyStore.protocol.removeActive();
       setProtocoloConcluido(true);
     }
   };

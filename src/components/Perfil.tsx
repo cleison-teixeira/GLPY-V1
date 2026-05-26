@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import glpyLogoLight from '@/assets/logos/logo-light.png';
+import { glpyStore } from "../data/glpyStore";
 
 export default function Perfil({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -56,9 +57,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
     const historico: Array<Record<string, unknown>> = JSON.parse(
       localStorage.getItem("glpy_checkin_historico") || "[]"
     );
-    const protocolo = JSON.parse(
-      localStorage.getItem("glpy_protocolo_ativo") || '{"nome":"Anti-Rebote","emoji":"⚖️"}'
-    );
+    const protocolo = glpyStore.protocol.getActive() ?? { nome: "Anti-Rebote", emoji: "⚖️" };
 
     const today = new Date().toLocaleDateString('pt-BR');
     const glpyU = JSON.parse(localStorage.getItem("glpy_user") || "{}");

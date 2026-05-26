@@ -6,6 +6,7 @@ import {
   TrendingUp, Syringe, ChevronRight, RotateCcw, Images, CreditCard
 } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { glpyStore } from "../data/glpyStore";
 
 function getSaudacao(): string {
   const h = new Date().getHours();
@@ -67,11 +68,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     ? "67% das mulheres na semana 5+ relatam queda de cabelo e fadiga. É temporário e tem protocolo."
     : "67% dos usuários na semana 5+ relatam queda de energia. O corpo está se reprogramando.";
 
-  // Protocolo ativo via localStorage
-  const protocoloAtivoRaw = localStorage.getItem("glpy_protocolo_ativo");
-  const protocoloAtivo = protocoloAtivoRaw
-    ? (() => { try { return JSON.parse(protocoloAtivoRaw); } catch { return null; } })()
-    : null;
+  // Protocolo ativo via glpyStore
+  const protocoloAtivo = glpyStore.protocol.getActive();
 
   const diasFeitosProtocolo = (() => {
     if (!protocoloAtivo?.id) return 1;

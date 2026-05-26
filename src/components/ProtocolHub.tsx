@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Lock, Play } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { GLPYHeader } from "./ui";
 import { saveProtocolProgress } from "../services/firestore";
+import { glpyStore } from "../data/glpyStore";
 
 type Protocolo = {
   id: string;
@@ -95,10 +96,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
   // Em rotas /preview/* o modal de troca é desnecessário — navegação direta
   const isPreviewMode = window.location.pathname.startsWith('/preview');
 
-  const idAtivo = (() => {
-    const raw = localStorage.getItem("glpy_protocolo_ativo");
-    return raw ? JSON.parse(raw).id : "antiRebote";
-  })();
+  const idAtivo = glpyStore.protocol.getActive()?.id ?? "antiRebote";
 
   const handleClick = (p: Protocolo) => {
     if (!estaDesbloqueado(p.planoMinimo)) {
@@ -120,7 +118,7 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
       emoji: confirmar.emoji,
       totalDias: confirmar.dias,
     };
-    localStorage.setItem("glpy_protocolo_ativo", JSON.stringify(protocoloData));
+    glpyStore.protocol.saveActive(protocoloData as any);
     saveProtocolProgress({
       protocoloId: confirmar.id,
       protocoloNome: confirmar.nome,

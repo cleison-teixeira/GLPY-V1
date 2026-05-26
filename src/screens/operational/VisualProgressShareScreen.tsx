@@ -16,6 +16,7 @@ import { ArrowRight, TrendingUp, Ruler, CalendarDays, Check, Users, Share2, X } 
 import logoGlpyDark from '@/assets/logos/logo-dark.png';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
+import { glpyStore } from '../../data/glpyStore';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap } from '../../theme/spacing';
@@ -85,10 +86,7 @@ function readInitialWeight(): number | null {
 
 function readProtocolo(): string | null {
   try {
-    const raw = localStorage.getItem('glpy_protocolo_ativo');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.nome ?? null;
+    return glpyStore.protocol.getActive()?.nome ?? null;
   } catch { return null; }
 }
 

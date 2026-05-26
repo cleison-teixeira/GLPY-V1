@@ -7,6 +7,7 @@ import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { playSound } from "../utils/sounds";
 import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
+import { glpyStore } from "../data/glpyStore";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -107,8 +108,8 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   useEffect(() => {
     if (isPreviewMode) return; // Preview: não altera protocolo ativo nem chama Firestore
     try {
-      const existing = JSON.parse(localStorage.getItem("glpy_protocolo_ativo") || "{}");
-      localStorage.setItem("glpy_protocolo_ativo", JSON.stringify({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual }));
+      const existing = glpyStore.protocol.getActive() ?? {};
+      glpyStore.protocol.saveActive({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual } as any);
     } catch {}
     saveProtocolProgress({
       protocoloId,
@@ -286,7 +287,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     }
 
     if (diaAtual === 6) {
-      localStorage.removeItem("glpy_protocolo_ativo");
+      glpyStore.protocol.removeActive();
       setProtocoloConcluido(true);
     }
     setTimeout(() => {
