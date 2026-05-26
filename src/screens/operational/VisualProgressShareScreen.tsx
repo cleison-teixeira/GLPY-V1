@@ -274,47 +274,83 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   async function handleShareAction() {
     setActionMsg(null);
+    const ios = isIOS();
+
+    // Pre-open popup BEFORE any await so the user gesture is preserved.
+    // If navigator.share is unavailable or fails, we write the image here.
+    // window.open() called AFTER an await is blocked by iOS Safari.
+    let popup: Window | null = null;
+    if (ios) {
+      popup = window.open('', '_blank');
+      if (popup) popup.document.write(
+        '<html><body style="background:#0A1628;color:rgba(255,255,255,.5);font-family:sans-serif;' +
+        'display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+        '<p>Gerando imagem…</p></body></html>'
+      );
+    }
+
+    const imagePopupHtml = (dataUrl: string) =>
+      `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
+      `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+      `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
+      `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
+      `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
+      `text-align:center;padding:0 20px;margin:0}</style></head>` +
+      `<body><img src="${dataUrl}" style="max-width:100%;display:block"/>` +
+      `<p>Pressione e segure a imagem para salvar ou compartilhar pelo WhatsApp.</p>` +
+      `</body></html>`;
+
     try {
       const result = await generateStoryImageBlob();
-      if (!result) return;
+      if (!result) { popup?.close(); return; }
 
-      const file = new File([result.blob], 'evolucao-glpy.png', { type: 'image/png' });
-      const canShareFiles =
+      const file = new File([result.blob], 'minha-evolucao-glpy.png', { type: 'image/png' });
+      const canShare =
         typeof navigator.share === 'function' &&
         typeof navigator.canShare === 'function' &&
         (() => { try { return navigator.canShare({ files: [file] }); } catch { return false; } })();
 
-      if (canShareFiles) {
-        await navigator.share({ title: 'Minha evolução GLPY', text: 'Veja minha evolução!', files: [file] });
-        return;
+      if (canShare) {
+        // Close loading popup before share sheet — no url, no text in shareData
+        popup?.close();
+        try {
+          await navigator.share({ files: [file], title: 'Minha evolução GLPY' });
+          return;
+        } catch (shareErr: unknown) {
+          if ((shareErr as { name?: string }).name === 'AbortError') return;
+          // navigator.share failed (gesture lost on older iOS, etc.)
+          // Gesture is now lost — try blob URL download as last resort on desktop
+          if (!ios) {
+            try {
+              const blobUrl = URL.createObjectURL(result.blob);
+              const link = document.createElement('a');
+              link.href = blobUrl; link.download = 'minha-evolucao-glpy.png'; link.click();
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+              setActionMsg('Download iniciado.');
+            } catch { setActionMsg('Use "Salvar imagem" para salvar manualmente.'); }
+          } else {
+            setActionMsg('Use "Salvar imagem" para salvar e compartilhar manualmente.');
+          }
+          return;
+        }
       }
 
-      // Fallback: download / nova aba
-      if (isIOS()) {
-        const t = window.open();
-        if (t) {
-          t.document.write(
-            `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
-            `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-            `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
-            `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
-            `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
-            `text-align:center;padding:0 20px;margin:0}</style></head>` +
-            `<body><img src="${result.dataUrl}" style="max-width:100%;display:block"/>` +
-            `<p>Pressione a imagem e toque em "Salvar" para guardar no rolo.</p>` +
-            `</body></html>`
-          );
-          t.document.close();
-        }
+      // navigator.share unavailable or PNG files not supported:
+      // popup was opened before the await, so gesture is still valid for document.write
+      if (ios && popup) {
+        popup.document.open();
+        popup.document.write(imagePopupHtml(result.dataUrl));
+        popup.document.close();
+        setActionMsg('Pressione e segure a imagem para compartilhar.');
       } else {
+        popup?.close();
         const a = document.createElement('a');
-        a.href = result.dataUrl; a.download = 'evolucao-glpy.png'; a.click();
+        a.href = result.dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
+        setActionMsg('Download iniciado.');
       }
-      setActionMsg('Imagem gerada. Pressione e segure para salvar.');
-    } catch (err: unknown) {
-      if ((err as { name?: string }).name !== 'AbortError') {
-        console.error('[GLPY] Erro ao compartilhar', err);
-      }
+    } catch (err) {
+      console.error('[GLPY] Erro ao compartilhar', err);
+      popup?.close();
     }
   }
 
