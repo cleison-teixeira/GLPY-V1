@@ -8,7 +8,7 @@
 // Futuramente esta tela será conectada ao TreatmentTrackingEngine e à GLPY IA
 // para identificar padrões entre dose, sintomas, hidratação, alimentação e evolução.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HeartPulse, Gauge, PenLine, Lightbulb, ChevronRight, Check } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
@@ -49,6 +49,15 @@ const SYMPTOM_OPTIONS = [
 
 const INTENSITY_OPTIONS: Intensity[] = ['Leve', 'Moderada', 'Forte'];
 
+// ── localStorage keys ────────────────────────────────────────────────────────
+
+const KEY_TODAY   = 'glpy_injection_effects_today';
+const KEY_HISTORY = 'glpy_injection_effects_history';
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenProps) {
@@ -56,6 +65,20 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
   const [selectedIntensity, setSelectedIntensity] = useState<Intensity>('Leve');
   const [note,              setNote]              = useState('');
   const [modalOpen,         setModalOpen]         = useState(false);
+  const [saved,             setSaved]             = useState(false);
+
+  // Load today's saved record on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(KEY_TODAY);
+      if (!raw) return;
+      const rec = JSON.parse(raw);
+      if (rec.date !== todayISO()) return; // stale — different day
+      if (Array.isArray(rec.symptoms))       setSelectedSymptoms(rec.symptoms);
+      if (rec.intensity)                     setSelectedIntensity(rec.intensity as Intensity);
+      if (typeof rec.note === 'string')      setNote(rec.note);
+    } catch {}
+  }, []);
 
   const canSave = selectedIntensity !== '';
 
@@ -71,11 +94,33 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
   }
 
   function handleSave() {
-    console.log('[GLPY] Side effects saved:', {
+    const today = todayISO();
+    const record = {
+      date:      today,
       symptoms:  selectedSymptoms,
       intensity: selectedIntensity,
       note,
-    });
+      savedAt:   new Date().toISOString(),
+    };
+
+    // Persist today's record
+    localStorage.setItem(KEY_TODAY, JSON.stringify(record));
+
+    // Upsert history — replace entry for today if already exists, no duplicates
+    try {
+      const raw = localStorage.getItem(KEY_HISTORY);
+      const history: Array<{ id: string; date: string }> = raw ? JSON.parse(raw) : [];
+      const withoutToday = Array.isArray(history) ? history.filter(e => e.date !== today) : [];
+      withoutToday.push({ id: `effects_${today}_${Date.now()}`, ...record });
+      localStorage.setItem(KEY_HISTORY, JSON.stringify(withoutToday));
+    } catch {}
+
+    // Notify other components that listen to local-storage-change
+    window.dispatchEvent(new Event('local-storage-change'));
+
+    // Feedback + external callback
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
     onSave?.({ symptoms: selectedSymptoms, intensity: selectedIntensity, note });
   }
 
@@ -314,7 +359,7 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
             disabled={!canSave}
             onClick={handleSave}
           >
-            Salvar registro
+            {saved ? 'Registrado!' : 'Salvar registro'}
           </GLPYButton>
 
         </div>
