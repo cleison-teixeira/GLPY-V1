@@ -56,6 +56,8 @@ import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
 import FoodPhotoAnalysisScreen from './screens/operational/FoodPhotoAnalysisScreen';
 import { resolveSafeReturn } from './utils/navigationReturn';
 import { glpyStore } from './data/glpyStore';
+import { glpyBlackBox } from './data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES, MOOD_TO_SIGNAL } from './data/glpyEventCatalog';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
 
@@ -201,6 +203,12 @@ export default function App() {
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(data) => {
           glpyStore.emotion.saveToday({ ...data, savedAt: Date.now() });
+          glpyBlackBox.addEvent({
+            type: EVENT_TYPES.EMOTION_LOGGED, category: CATEGORIES.EMOTION, domain: DOMAINS.PSYCHOLOGY,
+            signal: MOOD_TO_SIGNAL[data.mood as string] ?? SIGNALS.EMOTION_LOGGED,
+            screen: 'EmotionScreen', source: 'manual',
+            payload: { mood: data.mood, energy: data.energy },
+          });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}

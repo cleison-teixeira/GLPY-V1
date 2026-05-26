@@ -38,6 +38,8 @@ interface TreatmentSettingsScreenProps {
 
 import { GLPY_MEDICATION_OPTIONS } from '../../data/glpyMedicationOptions';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 // Remove sufixo " mg" se presente, converte separador e formata com 2 casas decimais.
 // Evita "2,5 mg mg" quando o valor salvo inclui a unidade.
@@ -125,6 +127,11 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
     if (!isNaN(parsedDose) && parsedDose > 0) {
       glpyStore.treatment.saveDose(String(parsedDose));
     }
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.TREATMENT_UPDATED, category: CATEGORIES.TREATMENT, domain: DOMAINS.TREATMENT,
+      signal: SIGNALS.MEDICATION_UPDATED, screen: 'TreatmentSettingsScreen', source: 'manual',
+      payload: { fieldsChanged: ['medication', 'frequency', 'dose'] },
+    });
     try {
       const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
       onb.medicamento = selectedMedication;

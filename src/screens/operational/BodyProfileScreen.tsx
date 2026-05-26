@@ -15,6 +15,8 @@ import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { saveWeightEntry } from '../../core/glpyLocalIntelligence';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -99,6 +101,11 @@ export default function BodyProfileScreen({ onBack }: BodyProfileScreenProps) {
     const pesoAtual = parseKg(pesoAtualInput);
     if (pesoAtual !== null) {
       saveWeightEntry({ weight: pesoAtual });
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.WEIGHT_UPDATED, category: CATEGORIES.PROGRESS, domain: DOMAINS.PROGRESS,
+        signal: SIGNALS.WEIGHT_UPDATED, screen: 'BodyProfileScreen', source: 'manual',
+        payload: { weight: pesoAtual, source: 'manual' },
+      });
     }
 
     // Peso inicial

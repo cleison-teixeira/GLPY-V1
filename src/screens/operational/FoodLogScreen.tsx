@@ -11,6 +11,8 @@ import React, { useState } from 'react';
 import { Camera, Coffee, Utensils, Moon, Apple, Lightbulb, Check, Flame } from 'lucide-react';
 
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -131,6 +133,11 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       glpyStore.meals.saveMeal(canonicalEntry as any);
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.MEAL_SAVED, category: CATEGORIES.NUTRITION, domain: DOMAINS.NUTRITION,
+        signal: SIGNALS.MEAL_LOGGED, screen: 'FoodLogScreen', source: 'manual',
+        payload: { calories: calNum, protein: protNum, carbs: carbNum, fat: fatNum, mealType },
+      });
       window.dispatchEvent(new Event('local-storage-change'));
       setSaveState('saved');
       reloadTodayMeals();

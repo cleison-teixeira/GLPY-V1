@@ -31,6 +31,8 @@ import {
 } from '../../services/deepseekFoodAnalysis';
 
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 // ── Limite de fotos ──────────────────────────────────────────────────────────
 
@@ -256,7 +258,14 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
 
     setAnalysis({ foods: geminiResult.detectedFoods, summary: geminiResult.summary });
     incrementarFotos();
-    setFotosHoje(prev => prev + 1);
+    setFotosHoje(prev => {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.FOOD_PHOTO_ANALYZED, category: CATEGORIES.PHOTO, domain: DOMAINS.NUTRITION,
+        signal: SIGNALS.FOOD_PHOTO_ANALYZED, screen: 'FoodPhotoAnalysisScreen', source: 'photo_ia',
+        payload: { used: prev + 1, limit: limiteF, success: true },
+      });
+      return prev + 1;
+    });
 
     // DeepSeek: análise GLP-1 não-bloqueante — dispara apenas se macros disponíveis
     if (firstFsItem?.calories != null) {
@@ -396,6 +405,11 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
     };
 
     glpyStore.meals.saveMeal(entry);
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.FOOD_PHOTO_CONFIRMED, category: CATEGORIES.NUTRITION, domain: DOMAINS.NUTRITION,
+      signal: SIGNALS.MEAL_LOGGED, screen: 'FoodPhotoAnalysisScreen', source: 'photo_ia',
+      payload: { calories: entry.calories ?? 0, protein: entry.protein ?? 0, carbs: entry.carbs ?? 0, fat: entry.fat ?? 0 },
+    });
     window.dispatchEvent(new Event('local-storage-change'));
     setSavedFeedback(true);
   }

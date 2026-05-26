@@ -13,6 +13,8 @@ import { HeartPulse, Gauge, PenLine, Lightbulb, ChevronRight, Check } from 'luci
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -107,6 +109,11 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
     // Persist today's record
     glpyStore.treatment.saveEfeitosHoje(record);
 
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.SIDE_EFFECT_LOGGED, category: CATEGORIES.SIDE_EFFECTS, domain: DOMAINS.TREATMENT,
+      signal: SIGNALS.SIDE_EFFECT_AFTER_INJECTION, screen: 'SideEffectsScreen', source: 'manual',
+      payload: { symptomKeys: selectedSymptoms, count: selectedSymptoms.length, intensity: selectedIntensity },
+    });
     // Upsert history — replace entry for today if already exists, no duplicates
     try {
       const history = glpyStore.treatment.getEfeitosHistorico();

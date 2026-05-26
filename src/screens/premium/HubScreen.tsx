@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 function readGlpyProfilePhoto(): string | null {
   const photo = glpyStore.profile.getProfilePhoto();
@@ -131,6 +133,11 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
       } else {
         glpyStore.gamification.addXP(50);
         glpyStore.gamification.saveQuizCocriacaoClaimed(true);
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.XP_ADDED, category: CATEGORIES.GAMIFICATION, domain: DOMAINS.ADHERENCE,
+          signal: SIGNALS.XP_ADDED, screen: 'HubScreen', source: 'system',
+          payload: { amount: 50, reason: 'quiz_cocriacao', total: glpyStore.gamification.getXP() },
+        });
         window.dispatchEvent(new Event('local-storage-change'));
         triggerToast('+50 XP adicionados à sua jornada GLPY.');
       }

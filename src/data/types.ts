@@ -120,6 +120,22 @@ export interface GlpyAIUsage {
   updatedAt?: string;
 }
 
+// ── Black Box Comportamental ─────────────────────────────────────────────────
+
+export interface GlpyBlackBoxEvent {
+  id:         string;
+  type:       string;
+  category:   string;
+  domain:     string;
+  signal?:    string;
+  screen?:    string;
+  source?:    string;
+  date:       string;       // YYYY-MM-DD
+  timestamp:  string;       // ISO datetime
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?:   Record<string, any>;
+}
+
 // ── Protocolo ativo ──────────────────────────────────────────────────────────
 
 export interface GlpyActiveProtocol {

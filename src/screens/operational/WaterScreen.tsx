@@ -6,6 +6,8 @@ import React, { useState } from 'react';
 import { Droplets, Lightbulb } from 'lucide-react';
 
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -64,6 +66,12 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
       const next = parseFloat(Math.min(prev + amount, 99).toFixed(2));
       const today = new Date().toISOString().slice(0, 10);
       glpyStore.water.saveToday({ amount: next, date: today, updatedAt: new Date().toISOString() });
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.WATER_UPDATED, category: CATEGORIES.HYDRATION, domain: DOMAINS.METABOLISM,
+        signal: next >= DAILY_GOAL ? SIGNALS.WATER_GOAL_HIT : SIGNALS.WATER_LOGGED,
+        screen: 'WaterScreen', source: 'manual',
+        payload: { totalMlToday: next },
+      });
       window.dispatchEvent(new Event('local-storage-change'));
       return next;
     });

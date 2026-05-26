@@ -17,6 +17,8 @@ import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { lightShadows } from '../../theme/shadows';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -127,6 +129,11 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     const existing = readPhotos();
     const updated  = [...existing, newPhoto];
     glpyStore.progress.saveBodyPhotos(updated);
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.BODY_PHOTO_ADDED, category: CATEGORIES.PHOTO, domain: DOMAINS.PROGRESS,
+      signal: SIGNALS.BODY_PHOTO_ADDED, screen: 'PhotoTimelineScreen', source: 'manual',
+      payload: { date: newPhoto.date, role: newPhoto.role },
+    });
     window.dispatchEvent(new Event('local-storage-change'));
     setPhotos(updated);
     setModal(null);

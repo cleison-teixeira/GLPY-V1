@@ -13,6 +13,8 @@ import {
   Droplets, Utensils, Syringe, AlertCircle, Flame, Camera,
 } from 'lucide-react';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { lightColors } from '../../theme/colors';
@@ -190,8 +192,24 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
     glpyStore.checkin.saveHistory(hist);
 
     if (!alreadyDoneToday) {
-      glpyStore.gamification.addXP(10 + doneCount * 10);
+      const xpEarned = 10 + doneCount * 10;
+      glpyStore.gamification.addXP(xpEarned);
       glpyStore.gamification.saveStreak(realStreak + 1);
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.CHECKIN_COMPLETED, category: CATEGORIES.CHECKIN, domain: DOMAINS.ADHERENCE,
+        signal: SIGNALS.CHECKIN_COMPLETED, screen: 'CheckInScreen', source: 'manual',
+        payload: { doneCount, xpEarned, streak: realStreak + 1 },
+      });
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.XP_ADDED, category: CATEGORIES.GAMIFICATION, domain: DOMAINS.ADHERENCE,
+        signal: SIGNALS.XP_ADDED, screen: 'CheckInScreen', source: 'system',
+        payload: { amount: xpEarned, reason: 'checkin', total: glpyStore.gamification.getXP() },
+      });
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.STREAK_UPDATED, category: CATEGORIES.GAMIFICATION, domain: DOMAINS.ADHERENCE,
+        signal: SIGNALS.STREAK_UPDATED, screen: 'CheckInScreen', source: 'system',
+        payload: { streak: realStreak + 1 },
+      });
     }
 
     window.dispatchEvent(new Event('local-storage-change'));

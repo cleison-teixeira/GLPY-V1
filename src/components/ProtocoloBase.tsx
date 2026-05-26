@@ -8,6 +8,9 @@ import { playSound } from "../utils/sounds";
 import { salvarProgressoProtocolo, carregarProgressoProtocolo, saveProtocolProgress } from "../services/firestore";
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 import { glpyStore } from "../data/glpyStore";
+import { glpyBlackBox } from "../data/glpyBlackBox";
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
+import { classifyMission, missionTypeToSignal } from "../data/glpyMissionBridge";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -117,6 +120,16 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       diaAtual: diaAtual + 1,
       totalDias: dias.length,
     }).catch(() => {});
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.PROTOCOL_STARTED, category: CATEGORIES.PROTOCOL, domain: DOMAINS.ADHERENCE,
+      signal: SIGNALS.PROTOCOL_STARTED, screen: 'ProtocoloBase', source: 'manual',
+      payload: { protocolId: protocoloId, protocolName: nome },
+    });
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.PROTOCOL_DAY_OPENED, category: CATEGORIES.PROTOCOL, domain: DOMAINS.ADHERENCE,
+      signal: SIGNALS.PROTOCOL_DAY_OPENED, screen: 'ProtocoloBase', source: 'manual',
+      payload: { protocolId: protocoloId, day: diaAtual + 1 },
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Firestore load (apenas quando firestoreId é fornecido)
@@ -223,6 +236,25 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMissao = (i: number) => {
+    const isChecking  = !missoesMarcadas.includes(i);
+    const missionTitle = dia.missoes[i]?.texto ?? '';
+    const missionId   = `${protocoloId}-dia-${dia.n}-missao-${i + 1}`;
+    const missionType = classifyMission(missionTitle);
+
+    if (isChecking) {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.MISSION_COMPLETED, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
+        signal: missionTypeToSignal(missionType), screen: 'ProtocoloBase', source: 'protocol_mission',
+        payload: { protocolId: protocoloId, day: dia.n, missionId, missionType },
+      });
+    } else {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.MISSION_UNCHECKED, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
+        signal: SIGNALS.MISSION_UNCHECKED, screen: 'ProtocoloBase', source: 'protocol_mission',
+        payload: { protocolId: protocoloId, day: dia.n, missionId },
+      });
+    }
+
     setMissoesMarcadas(prev => {
       const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
       persistProtocolDay(next, checkinSelecionado, "em_andamento");

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { glpyStore } from "../data/glpyStore";
+import { glpyBlackBox } from "../data/glpyBlackBox";
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Sparkles, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
@@ -286,6 +288,11 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.AI_MESSAGE_SENT, category: CATEGORIES.AI, domain: DOMAINS.AI_CONTEXT,
+      signal: SIGNALS.AI_MESSAGE_SENT, screen: 'ChatIA', source: 'manual',
+      payload: { used: msgsUsadas + 1, limit: limiteIA },
+    });
 
     try {
       const history = messages.map(m => ({
@@ -321,8 +328,18 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
       incrementarMsgIA().catch(() => {});
       const today = new Date().toISOString().slice(0, 10);
       glpyStore.aiUsage.save({ date: today, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() } as any);
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.AI_RESPONSE_RECEIVED, category: CATEGORIES.AI, domain: DOMAINS.AI_CONTEXT,
+        signal: SIGNALS.AI_RESPONSE_RECEIVED, screen: 'ChatIA', source: 'ai',
+        payload: { success: true },
+      });
       window.dispatchEvent(new Event('local-storage-change'));
     } catch (error) {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.AI_RESPONSE_RECEIVED, category: CATEGORIES.AI, domain: DOMAINS.AI_CONTEXT,
+        signal: SIGNALS.AI_RESPONSE_RECEIVED, screen: 'ChatIA', source: 'ai',
+        payload: { success: false },
+      });
       console.error("[ChatIA] DeepSeek fetch error:", {
         message: error instanceof Error ? error.message : String(error),
         key_defined: !!import.meta.env.VITE_DEEPSEEK_KEY,

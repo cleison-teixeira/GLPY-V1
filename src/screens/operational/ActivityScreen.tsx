@@ -18,6 +18,8 @@ import {
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton, GLPYInput } from '../../components/ui';
 import { saveActivityEntry } from '../../core/glpyLocalIntelligence';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -154,6 +156,11 @@ export default function ActivityScreen({ onBack, onSave }: ActivityScreenProps) 
       savedAt: Date.now(),
     };
     glpyStore.activity.saveToday(legacyEntry);
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.ACTIVITY_SAVED, category: CATEGORIES.ACTIVITY, domain: DOMAINS.MOVEMENT,
+      signal: SIGNALS.ACTIVITY_LOGGED, screen: 'ActivityScreen', source: 'manual',
+      payload: { type: selectedActivity, duration: selectedDuration, intensity: selectedIntensity, caloriesEstimated: calculatedCalories },
+    });
     try {
       saveActivityEntry({
         type: selectedActivity,

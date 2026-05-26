@@ -15,6 +15,8 @@ import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRig
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { glpyStore } from '../../data/glpyStore';
+import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { calculateNextInjection } from '../../utils/treatmentUtils';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -98,6 +100,11 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
   function doActualSave() {
     setSaveState('saving');
     glpyStore.treatment.saveUltimaInjecao({ site: selectedSite, savedAt: Date.now() });
+    glpyBlackBox.addEvent({
+      type: EVENT_TYPES.INJECTION_LOGGED, category: CATEGORIES.INJECTION, domain: DOMAINS.TREATMENT,
+      signal: SIGNALS.INJECTION_LOGGED, screen: 'InjectionScreen', source: 'manual',
+      payload: { date: new Date().toISOString().slice(0, 10) },
+    });
     setTimeout(() => {
       setSaveState('saved');
       setTimeout(() => onSave?.({ medication, dose, frequency, site: selectedSite }), 900);
