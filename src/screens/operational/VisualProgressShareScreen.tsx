@@ -7,11 +7,12 @@
 // Se dado real não existir, fallback seguro '—'.
 // Exportação: html2canvas captura exportStoryCardRef (1080×1920 offscreen).
 // Photos usam backgroundImage no exportRef porque html2canvas ignora objectFit em <img>.
-// iOS: abre popup antes do canvas (preserva gesto) e instrui pressionar para salvar.
+// BUG 11K: modal interno mostra a imagem gerada. navigator.share é chamado com
+// gesto fresco (do botão no modal), sem await anterior — nunca perde o contexto iOS.
 
 import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { ArrowRight, TrendingUp, Ruler, CalendarDays, Check, Users, Share2 } from 'lucide-react';
+import { ArrowRight, TrendingUp, Ruler, CalendarDays, Check, Users, Share2, X } from 'lucide-react';
 import logoGlpyDark from '@/assets/logos/logo-dark.png';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
@@ -145,7 +146,13 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   const storyCardRef       = useRef<HTMLDivElement>(null);
   const exportStoryCardRef = useRef<HTMLDivElement>(null);
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  // Modal state — image is generated once and stored; blob URL revoked on close
+  const [modalOpen,          setModalOpen]          = useState(false);
+  const [generatedImageUrl,  setGeneratedImageUrl]  = useState<string | null>(null);
+  const [generatedImageBlob, setGeneratedImageBlob] = useState<Blob | null>(null);
+  const [modalShareMsg,      setModalShareMsg]      = useState<string | null>(null);
+  const [genError,           setGenError]           = useState<string | null>(null);
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -223,134 +230,81 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
     );
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Modal handlers ────────────────────────────────────────────────────────
 
-  async function handleSaveImage() {
-    setActionMsg(null);
-    const ios = isIOS();
-
-    // Open popup synchronously (preserves user-gesture context on iOS).
-    let popup: Window | null = null;
-    if (ios) {
-      popup = window.open('', '_blank');
-      if (popup) popup.document.write(
-        '<html><body style="background:#0A1628;color:rgba(255,255,255,.5);font-family:sans-serif;' +
-        'display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
-        '<p>Gerando imagem…</p></body></html>'
-      );
-    }
+  // Opens modal immediately (shows loading), then generates the image.
+  // Storing the blob URL in state means navigator.share in handleShareFromModal
+  // is called from a fresh click event — no await before it, gesture is preserved.
+  async function handleOpenModal() {
+    // Revoke any previous blob URL to avoid memory leaks
+    if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
+    setGeneratedImageUrl(null);
+    setGeneratedImageBlob(null);
+    setModalShareMsg(null);
+    setGenError(null);
+    setModalOpen(true);
 
     try {
       const result = await generateStoryImageBlob();
-      if (!result) { if (popup) popup.close(); return; }
+      if (!result) {
+        setGenError('Não foi possível gerar a imagem. Tente novamente.');
+        return;
+      }
+      const blobUrl = URL.createObjectURL(result.blob);
+      setGeneratedImageUrl(blobUrl);
+      setGeneratedImageBlob(result.blob);
 
-      if (ios) {
-        if (popup) {
-          popup.document.open();
-          popup.document.write(
-            `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
-            `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-            `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
-            `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
-            `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
-            `text-align:center;padding:0 20px;margin:0}</style></head>` +
-            `<body><img src="${result.dataUrl}" style="max-width:100%;display:block"/>` +
-            `<p>Pressione a imagem e toque em "Salvar" para guardar no rolo.</p>` +
-            `</body></html>`
-          );
-          popup.document.close();
-        }
-        setActionMsg('Imagem gerada. Pressione e segure para salvar.');
-      } else {
+      // Desktop: also auto-download for convenience
+      if (!isIOS()) {
         const a = document.createElement('a');
-        a.href = result.dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
-        setActionMsg('Download iniciado.');
+        a.href = blobUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
       }
     } catch (err) {
       console.error('[GLPY] Erro ao gerar imagem', err);
-      if (popup) popup.close();
+      setGenError('Erro ao gerar a imagem. Tente novamente.');
     }
   }
 
-  async function handleShareAction() {
-    setActionMsg(null);
-    const ios = isIOS();
+  function handleCloseModal() {
+    if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
+    setGeneratedImageUrl(null);
+    setGeneratedImageBlob(null);
+    setModalShareMsg(null);
+    setGenError(null);
+    setModalOpen(false);
+  }
 
-    // Pre-open popup BEFORE any await so the user gesture is preserved.
-    // If navigator.share is unavailable or fails, we write the image here.
-    // window.open() called AFTER an await is blocked by iOS Safari.
-    let popup: Window | null = null;
-    if (ios) {
-      popup = window.open('', '_blank');
-      if (popup) popup.document.write(
-        '<html><body style="background:#0A1628;color:rgba(255,255,255,.5);font-family:sans-serif;' +
-        'display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
-        '<p>Gerando imagem…</p></body></html>'
-      );
+  // Called from a fresh button click inside the modal — gesture is NOT lost.
+  // navigator.share recebe apenas o arquivo PNG, nunca a URL da página.
+  async function handleShareFromModal() {
+    if (!generatedImageBlob) return;
+    setModalShareMsg(null);
+
+    const file = new File([generatedImageBlob], 'minha-evolucao-glpy.png', { type: 'image/png' });
+    const canShare =
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function' &&
+      (() => { try { return navigator.canShare({ files: [file] }); } catch { return false; } })();
+
+    if (canShare) {
+      try {
+        await navigator.share({ files: [file], title: 'Minha evolução GLPY' });
+        return;
+      } catch (err: unknown) {
+        if ((err as { name?: string }).name === 'AbortError') return;
+        setModalShareMsg('Seu navegador não permitiu compartilhar direto. Pressione e segure a imagem para salvar ou compartilhar.');
+        return;
+      }
     }
+    setModalShareMsg('Pressione e segure a imagem para salvar ou compartilhar pelo WhatsApp.');
+  }
 
-    const imagePopupHtml = (dataUrl: string) =>
-      `<!DOCTYPE html><html><head><title>Minha evolução GLPY</title>` +
-      `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-      `<style>body{margin:0;background:#0A1628;display:flex;flex-direction:column;` +
-      `align-items:center;justify-content:center;min-height:100vh;gap:16px}` +
-      `p{color:rgba(255,255,255,.55);font-family:sans-serif;font-size:13px;` +
-      `text-align:center;padding:0 20px;margin:0}</style></head>` +
-      `<body><img src="${dataUrl}" style="max-width:100%;display:block"/>` +
-      `<p>Pressione e segure a imagem para salvar ou compartilhar pelo WhatsApp.</p>` +
-      `</body></html>`;
-
-    try {
-      const result = await generateStoryImageBlob();
-      if (!result) { popup?.close(); return; }
-
-      const file = new File([result.blob], 'minha-evolucao-glpy.png', { type: 'image/png' });
-      const canShare =
-        typeof navigator.share === 'function' &&
-        typeof navigator.canShare === 'function' &&
-        (() => { try { return navigator.canShare({ files: [file] }); } catch { return false; } })();
-
-      if (canShare) {
-        // Close loading popup before share sheet — no url, no text in shareData
-        popup?.close();
-        try {
-          await navigator.share({ files: [file], title: 'Minha evolução GLPY' });
-          return;
-        } catch (shareErr: unknown) {
-          if ((shareErr as { name?: string }).name === 'AbortError') return;
-          // navigator.share failed (gesture lost on older iOS, etc.)
-          // Gesture is now lost — try blob URL download as last resort on desktop
-          if (!ios) {
-            try {
-              const blobUrl = URL.createObjectURL(result.blob);
-              const link = document.createElement('a');
-              link.href = blobUrl; link.download = 'minha-evolucao-glpy.png'; link.click();
-              setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-              setActionMsg('Download iniciado.');
-            } catch { setActionMsg('Use "Salvar imagem" para salvar manualmente.'); }
-          } else {
-            setActionMsg('Use "Salvar imagem" para salvar e compartilhar manualmente.');
-          }
-          return;
-        }
-      }
-
-      // navigator.share unavailable or PNG files not supported:
-      // popup was opened before the await, so gesture is still valid for document.write
-      if (ios && popup) {
-        popup.document.open();
-        popup.document.write(imagePopupHtml(result.dataUrl));
-        popup.document.close();
-        setActionMsg('Pressione e segure a imagem para compartilhar.');
-      } else {
-        popup?.close();
-        const a = document.createElement('a');
-        a.href = result.dataUrl; a.download = 'minha-evolucao-glpy.png'; a.click();
-        setActionMsg('Download iniciado.');
-      }
-    } catch (err) {
-      console.error('[GLPY] Erro ao compartilhar', err);
-      popup?.close();
+  // Opens blob URL directly — called synchronously from click, not after await.
+  function handleOpenInNewTab() {
+    if (!generatedImageUrl) return;
+    const tab = window.open(generatedImageUrl, '_blank');
+    if (!tab) {
+      setModalShareMsg('Seu navegador bloqueou a nova aba. Pressione e segure a imagem acima para salvar.');
     }
   }
 
@@ -541,28 +495,184 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
           <div style={sectionTitle}>Compartilhar</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: gap.small }}>
             {SHARE_OPTIONS.map(opt => (
-              <div key={opt.id} style={shareBtnStyle} onClick={handleShareAction} role="button" aria-label={opt.label}>
+              <div key={opt.id} style={shareBtnStyle} onClick={handleOpenModal} role="button" aria-label={opt.label}>
                 {opt.icon}<span>{opt.label}</span>
               </div>
             ))}
           </div>
         </GLPYCard>
 
-        {actionMsg && (
-          <div style={{
-            fontFamily: fontFamily.primary, fontSize: 12, color: lightColors.text.secondary,
-            textAlign: 'center', padding: '4px 16px',
-          }}>
-            {actionMsg}
-          </div>
-        )}
-
         {/* ─── CTA ─────────────────────────────────────────────────────────── */}
-        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleSaveImage}>
+        <GLPYButton variant="primary" size="lg" fullWidth onClick={handleOpenModal}>
           Salvar imagem
         </GLPYButton>
 
       </div>
+
+      {/* ─── Modal de preview da imagem gerada ───────────────────────────────
+          Abre ao tocar em "Salvar imagem" ou em qualquer botão de Compartilhar.
+          A imagem fica dentro do app para pressionar/segurar no iPhone.
+          navigator.share é chamado de um clique fresco (sem await anterior).  */}
+      {modalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(7,12,26,0.80)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+          onClick={e => { if (e.target === e.currentTarget) handleCloseModal(); }}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '24px 24px 0 0',
+            width: '100%',
+            maxWidth: 480,
+            maxHeight: '92dvh',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            padding: '20px 20px 40px',
+          }}>
+
+            {/* Handle + fechar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ width: 36, height: 4, background: 'rgba(10,22,40,0.12)', borderRadius: 99, margin: '0 auto' }} />
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  position: 'absolute', right: 20, top: 20,
+                  background: 'rgba(10,22,40,0.07)', border: 'none', borderRadius: 99,
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+                aria-label="Fechar"
+              >
+                <X size={16} color="rgba(10,22,40,0.5)" strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Título */}
+            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+              <div style={{ fontFamily: ff, fontSize: 17, fontWeight: '800', color: '#0A1628', marginBottom: 6 }}>
+                Sua imagem está pronta
+              </div>
+              <div style={{ fontFamily: ff, fontSize: 13, color: 'rgba(10,22,40,0.50)', lineHeight: 1.45 }}>
+                Pressione e segure a imagem para salvar nas Fotos ou compartilhar no WhatsApp.
+              </div>
+            </div>
+
+            {/* Imagem ou loading */}
+            {generatedImageUrl ? (
+              <img
+                src={generatedImageUrl}
+                alt="Minha evolução GLPY"
+                style={{
+                  width: '100%',
+                  display: 'block',
+                  borderRadius: 14,
+                  objectFit: 'contain',
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+                }}
+                draggable={false}
+              />
+            ) : genError ? (
+              <div style={{
+                aspectRatio: '9/16',
+                background: '#f5f5f7',
+                borderRadius: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 20,
+              }}>
+                <div style={{ fontFamily: ff, fontSize: 13, color: 'rgba(10,22,40,0.45)', textAlign: 'center' }}>
+                  {genError}
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                aspectRatio: '9/16',
+                background: S_BG,
+                borderRadius: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 99,
+                  border: `3px solid ${S_GREEN}`,
+                  borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+                <div style={{ fontFamily: ff, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                  Gerando imagem…
+                </div>
+              </div>
+            )}
+
+            {/* Mensagem de feedback do compartilhar */}
+            {modalShareMsg && (
+              <div style={{
+                fontFamily: ff, fontSize: 12, color: 'rgba(10,22,40,0.50)',
+                textAlign: 'center', padding: '0 4px', lineHeight: 1.45,
+              }}>
+                {modalShareMsg}
+              </div>
+            )}
+
+            {/* Botões — só aparecem quando a imagem está pronta */}
+            {generatedImageUrl && (
+              <>
+                <button
+                  onClick={handleShareFromModal}
+                  style={{
+                    width: '100%', padding: '15px',
+                    background: S_GREEN, color: S_WHITE, border: 'none',
+                    borderRadius: 16, fontFamily: ff, fontSize: 15, fontWeight: '700',
+                    cursor: 'pointer', letterSpacing: '-0.2px',
+                  }}
+                >
+                  Compartilhar imagem
+                </button>
+                <button
+                  onClick={handleOpenInNewTab}
+                  style={{
+                    width: '100%', padding: '13px',
+                    background: 'transparent', color: '#0A1628',
+                    border: '1px solid rgba(10,22,40,0.14)',
+                    borderRadius: 16, fontFamily: ff, fontSize: 14, fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Abrir imagem
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={handleCloseModal}
+              style={{
+                width: '100%', padding: '12px',
+                background: 'transparent', color: 'rgba(10,22,40,0.38)', border: 'none',
+                fontFamily: ff, fontSize: 14, fontWeight: '500', cursor: 'pointer',
+              }}
+            >
+              Fechar
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* Spinner keyframe — injetado inline para não precisar de CSS global */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* ─── Export card offscreen 1080×1920 ─────────────────────────────────
           Capturado por generateStoryImageBlob(). Dimensões fixas garantem 9:16
