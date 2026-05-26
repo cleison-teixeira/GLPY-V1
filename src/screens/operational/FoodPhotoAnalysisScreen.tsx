@@ -561,7 +561,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   className="bg-white border border-border rounded-2xl p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Macros estimados</p>
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Nutrição estimada</p>
                     <span className="text-[10px] font-medium text-text-muted bg-[#F4F6F8] px-2 py-0.5 rounded-full border border-border">
                       FatSecret
                     </span>
@@ -569,22 +569,23 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
                   {/* Selected item */}
                   <div className="bg-[#F8FAF9] rounded-xl p-3 border border-[#E8EFEc] mb-3">
-                    <p className="font-semibold text-sm text-[#0A1628] leading-tight">{selectedFsItem.name}</p>
-                    {selectedFsItem.brand && (
-                      <p className="text-[10px] text-text-muted mt-0.5">{selectedFsItem.brand}</p>
-                    )}
-                    {selectedFsItem.servingDescription && (
-                      <p className="text-[10px] text-text-muted mt-0.5">{selectedFsItem.servingDescription}</p>
-                    )}
+                    <p className="font-semibold text-sm text-[#0A1628] leading-tight">
+                      {analysis?.foods[0]?.name ?? selectedFsItem.name}
+                    </p>
+                    <p className="text-[10px] text-text-muted mt-1 leading-relaxed">
+                      Base FatSecret: {selectedFsItem.name}
+                      {selectedFsItem.brand && ` • ${selectedFsItem.brand}`}
+                      {selectedFsItem.servingDescription && ` • ${selectedFsItem.servingDescription}`}
+                    </p>
                   </div>
 
                   {/* Macro grid */}
                   <div className="grid grid-cols-4 gap-2 mb-3">
                     {[
-                      { label: 'Kcal',  val: selectedFsItem.calories, round: true,  color: 'text-red-500',    bg: 'bg-red-50'    },
-                      { label: 'Prot',  val: selectedFsItem.protein,  round: false, color: 'text-primary',    bg: 'bg-primary/8', unit: 'g' },
-                      { label: 'Carbs', val: selectedFsItem.carbs,    round: false, color: 'text-amber-600',  bg: 'bg-amber-50',  unit: 'g' },
-                      { label: 'Gord',  val: selectedFsItem.fat,      round: false, color: 'text-violet-600', bg: 'bg-violet-50', unit: 'g' },
+                      { label: 'Calorias',     val: selectedFsItem.calories, round: true,  color: 'text-red-500',    bg: 'bg-red-50',    unit: 'kcal' },
+                      { label: 'Proteínas',    val: selectedFsItem.protein,  round: false, color: 'text-primary',    bg: 'bg-primary/8', unit: 'g' },
+                      { label: 'Carboidratos', val: selectedFsItem.carbs,    round: false, color: 'text-amber-600',  bg: 'bg-amber-50',  unit: 'g' },
+                      { label: 'Gorduras',     val: selectedFsItem.fat,      round: false, color: 'text-violet-600', bg: 'bg-violet-50', unit: 'g' },
                     ].map(m => (
                       <div key={m.label} className={`${m.bg} rounded-xl p-2.5 text-center border border-border`}>
                         <p className={`font-black text-lg ${m.color} leading-none`}>
@@ -679,7 +680,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                 <AlertTriangle size={13} className="text-blue-400 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
                   {hasMacros
-                    ? 'Macros estimados com base na base nutricional FatSecret. Confirme antes de salvar.'
+                    ? 'Estimativa calculada com base na FatSecret. Revise o alimento e confirme antes de salvar.'
                     : 'Alimentos identificados pela IA. Os macros e calorias serão calculados em breve.'}
                 </p>
               </div>
