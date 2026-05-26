@@ -1589,7 +1589,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Mensagens no mês</span>
+                      <span className="text-[10px] text-[#3D5A70] block font-bold uppercase tracking-wider leading-none">Mensagens hoje</span>
                       <span className="text-sm font-black text-[#0A1628] block font-mono">
                         {dailyLimits.iaUsadas} <span className="text-[10px] text-slate-400 font-bold">/ {dailyLimits.iaLimite}</span>
                       </span>
