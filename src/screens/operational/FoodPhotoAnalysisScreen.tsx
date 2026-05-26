@@ -94,6 +94,14 @@ const MEAL_OPTIONS: { id: FatSecretMealType; label: string; Icon: typeof Coffee 
   { id: 'lanche', label: 'Lanche', Icon: Apple     },
 ];
 
+// Mapeia FatSecretMealType → formato canônico do FoodLogScreen / glpy_refeicoes_hoje
+const MEAL_TYPE_MAP: Record<FatSecretMealType, string> = {
+  cafe:   'breakfast',
+  almoco: 'lunch',
+  jantar: 'dinner',
+  lanche: 'snack',
+};
+
 const ANALYSIS_STEPS = [
   'Detectando alimentos no prato',
   'Identificando ingredientes prováveis',
@@ -302,7 +310,37 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setDeepSeekAnalysis(null);
   }
 
-  function handleSave() { setSavedFeedback(true); }
+  function handleSave() {
+    if (savedFeedback || !analysis) return;
+
+    const entry = {
+      mealType:        MEAL_TYPE_MAP[mealType],
+      description:     analysis.foods.map(f => f.name).join(', '),
+      photoAdded:      true,
+      savedAt:         Date.now(),
+      calories:        selectedFsItem?.calories  ?? undefined,
+      protein:         selectedFsItem?.protein   ?? undefined,
+      carbs:           selectedFsItem?.carbs     ?? undefined,
+      fat:             selectedFsItem?.fat        ?? undefined,
+      source:          'FoodPhotoAnalysisScreen',
+      nutritionSource: selectedFsItem ? 'FatSecret' : 'none',
+      analysisSource:  'gemini_fatsecret_deepseek',
+      detectedFoods:   analysis.foods,
+      glp1Analysis:    deepseekAnalysis ?? undefined,
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
+      if (!Array.isArray(existing)) throw new Error('invalid');
+      existing.push(entry);
+      localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
+    } catch {
+      localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([entry]));
+    }
+
+    window.dispatchEvent(new Event('local-storage-change'));
+    setSavedFeedback(true);
+  }
 
   // ── Sub-components ────────────────────────────────────────────────────────
 
@@ -882,7 +920,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   <div className="w-full bg-emerald-50 border border-emerald-100 rounded-2xl py-4 px-5 flex items-center gap-3">
                     <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
                     <p className="text-sm text-emerald-700 font-semibold leading-snug">
-                      Na próxima etapa, isso será salvo no seu registro de refeição.
+                      Refeição salva com sucesso!
                     </p>
                   </div>
                 ) : (
