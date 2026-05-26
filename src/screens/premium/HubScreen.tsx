@@ -1,4 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+function readGlpyProfilePhoto(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('glpy_profile_photo');
+    if (!raw) return null;
+    let base64 = '';
+    if (raw.trim().startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      base64 = parsed?.imageBase64 ?? '';
+    } else {
+      base64 = raw;
+    }
+    if (!base64) return null;
+    return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
 import QuickActionModal from "../../components/QuickActionModal";
 import {
   Shield,
@@ -82,8 +101,18 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
   const [currentAnswer,    setCurrentAnswer]    = useState<number | null>(null);
   const [toasts,           setToasts]           = useState<Toast[]>([]);
 
-  const hubProfileImage = (() => { try { return localStorage.getItem("glpy_profile_image") || null; } catch { return null; } })();
+  const [hubProfileImage, setHubProfileImage] = useState<string | null>(() => readGlpyProfilePhoto());
   const hubSexo = (() => { try { return (localStorage.getItem("glpy_sexo") || "").trim(); } catch { return ""; } })();
+
+  useEffect(() => {
+    function onUpdate() { setHubProfileImage(readGlpyProfilePhoto()); }
+    window.addEventListener('local-storage-change', onUpdate);
+    window.addEventListener('storage', onUpdate);
+    return () => {
+      window.removeEventListener('local-storage-change', onUpdate);
+      window.removeEventListener('storage', onUpdate);
+    };
+  }, []);
 
   const triggerToast = (msg: string) => {
     const id = Date.now();

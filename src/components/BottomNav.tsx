@@ -1,6 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Compass, LayoutGrid, Plus, LineChart } from "lucide-react";
 import QuickActionModal from "./QuickActionModal";
+
+function readGlpyProfilePhoto(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('glpy_profile_photo');
+    if (!raw) return null;
+    let base64 = '';
+    if (raw.trim().startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      base64 = parsed?.imageBase64 ?? '';
+    } else {
+      base64 = raw;
+    }
+    if (!base64) return null;
+    return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
 
 interface BottomNavProps {
   active: string;
@@ -20,9 +39,17 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
     onNavigate("dashboard");
   };
 
-  const profileImage = (() => {
-    try { return localStorage.getItem("glpy_profile_image") || null; } catch { return null; }
-  })();
+  const [profileImage, setProfileImage] = useState<string | null>(() => readGlpyProfilePhoto());
+
+  useEffect(() => {
+    function onUpdate() { setProfileImage(readGlpyProfilePhoto()); }
+    window.addEventListener('local-storage-change', onUpdate);
+    window.addEventListener('storage', onUpdate);
+    return () => {
+      window.removeEventListener('local-storage-change', onUpdate);
+      window.removeEventListener('storage', onUpdate);
+    };
+  }, []);
 
   const sexo = (() => {
     try { return (localStorage.getItem("glpy_sexo") || "").trim(); } catch { return ""; }
