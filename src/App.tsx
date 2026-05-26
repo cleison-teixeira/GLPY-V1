@@ -53,6 +53,7 @@ import EmotionScreen from './screens/operational/EmotionScreen';
 import BodyMeasurementsScreen from './screens/operational/BodyMeasurementsScreen';
 import InjectionScreen from './screens/operational/InjectionScreen';
 import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
+import FoodPhotoAnalysisScreen from './screens/operational/FoodPhotoAnalysisScreen';
 import { resolveSafeReturn } from './utils/navigationReturn';
 
 const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
@@ -236,6 +237,16 @@ export default function App() {
         }}
       />;
       case 'foto':         return <PhotoTimelineScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
+      // BUG 15B — tela de análise de foto do prato (mock — BUG 15C integra FatSecret real)
+      case 'fotoAnalise': return (
+        <FoodPhotoAnalysisScreen
+          onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+          onSave={(_data) => {
+            // TODO BUG 15C: persistir _data em glpy_refeicoes_hoje e disparar local-storage-change
+            setTelaAtual(resolveSafeReturn('dashboard'));
+          }}
+        />
+      );
       default:                      return <HomePremiumV2 onNavigate={setTelaAtual} />;
     }
   };
