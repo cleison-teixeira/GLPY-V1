@@ -125,13 +125,12 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
     } else {
       setQuizStep(5);
       setCurrentAnswer(null);
-      const alreadyClaimed = localStorage.getItem('glpy_quiz_cocriacao_xp_claimed') === 'true';
+      const alreadyClaimed = glpyStore.gamification.getQuizCocriacaoClaimed();
       if (alreadyClaimed) {
         triggerToast('Você já recebeu o XP deste quiz.');
       } else {
-        const xpAtual = parseInt(localStorage.getItem('glpy_xp') || '0', 10);
-        localStorage.setItem('glpy_xp', String(xpAtual + 50));
-        localStorage.setItem('glpy_quiz_cocriacao_xp_claimed', 'true');
+        glpyStore.gamification.addXP(50);
+        glpyStore.gamification.saveQuizCocriacaoClaimed(true);
         window.dispatchEvent(new Event('local-storage-change'));
         triggerToast('+50 XP adicionados à sua jornada GLPY.');
       }

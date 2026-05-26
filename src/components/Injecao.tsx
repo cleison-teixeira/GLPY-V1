@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Calendar, ChevronLeft, RotateCcw } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti } from "../utils/confetti";
+import { glpyStore } from "../data/glpyStore";
 
 type HistItem = { id: string; label: string; data: string };
 
@@ -48,8 +49,7 @@ export default function Injecao({ onNavigate }: { onNavigate: (screen: string) =
 
     // Confetti + XP ao registrar aplicação
     dispararConfetti();
-    const xpAtual = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
-    localStorage.setItem("glpy_xp", String(xpAtual + 5));
+    glpyStore.gamification.addXP(5);
     setShowXP(true);
     setTimeout(() => setShowXP(false), 1500);
   };

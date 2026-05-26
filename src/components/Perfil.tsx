@@ -52,7 +52,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
 
   const generatePDF = () => {
     const onboarding = JSON.parse(localStorage.getItem("glpy_onboarding") || "{}");
-    const streak = localStorage.getItem("glpy_streak") || "0";
+    const streak = String(glpyStore.gamification.getStreak());
     const checkinHoje = JSON.parse(localStorage.getItem("glpy_checkin_hoje") || "{}");
     const historico: Array<Record<string, unknown>> = JSON.parse(
       localStorage.getItem("glpy_checkin_historico") || "[]"
@@ -113,7 +113,7 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    const xpPDF = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    const xpPDF = glpyStore.gamification.getXP();
     const nivelPDF = xpPDF < 100 ? 1 : xpPDF < 300 ? 2 : xpPDF < 600 ? 3 : xpPDF < 1000 ? 4 : 5;
     const nivelNomesPDF = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
     const stats = [
@@ -246,8 +246,8 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
 
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNome)}&background=00C27A&color=fff&size=128`;
 
-  const streakAtual = localStorage.getItem("glpy_streak") || "0";
-  const xpTotalN = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+  const streakAtual = String(glpyStore.gamification.getStreak());
+  const xpTotalN = glpyStore.gamification.getXP();
   const nivel = xpTotalN < 100 ? 1 : xpTotalN < 300 ? 2 : xpTotalN < 600 ? 3 : xpTotalN < 1000 ? 4 : 5;
   const nivelNomes = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
   const xpProxNivel = [100, 300, 600, 1000, Infinity];

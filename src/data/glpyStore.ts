@@ -62,6 +62,10 @@ const KEYS = {
   ultimaAplicacao:              'glpy_ultima_aplicacao',
   injectionEffectsToday:        'glpy_injection_effects_today',
   injectionEffectsHistory:      'glpy_injection_effects_history',
+  xp:                           'glpy_xp',
+  streak:                       'glpy_streak',
+  nivel:                        'glpy_nivel',
+  quizCocriacaoXpClaimed:       'glpy_quiz_cocriacao_xp_claimed',
 } as const;
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -416,6 +420,41 @@ const protocol = {
   },
 };
 
+// ── 11. gamification ──────────────────────────────────────────────────────────
+
+const gamification = {
+  getXP(): number {
+    const v = parseInt(readString(KEYS.xp, '0'), 10);
+    return isNaN(v) ? 0 : v;
+  },
+  saveXP(value: number): void {
+    writeString(KEYS.xp, String(value));
+  },
+  addXP(amount: number): void {
+    gamification.saveXP(gamification.getXP() + amount);
+  },
+  getStreak(): number {
+    const v = parseInt(readString(KEYS.streak, '0'), 10);
+    return isNaN(v) ? 0 : v;
+  },
+  saveStreak(value: number): void {
+    writeString(KEYS.streak, String(value));
+  },
+  getLevel(): number {
+    const v = parseInt(readString(KEYS.nivel, '1'), 10);
+    return isNaN(v) ? 1 : v;
+  },
+  saveLevel(value: number): void {
+    writeString(KEYS.nivel, String(value));
+  },
+  getQuizCocriacaoClaimed(): boolean {
+    return readString(KEYS.quizCocriacaoXpClaimed, '') === 'true';
+  },
+  saveQuizCocriacaoClaimed(value: boolean): void {
+    writeString(KEYS.quizCocriacaoXpClaimed, value ? 'true' : 'false');
+  },
+};
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const glpyStore = {
@@ -429,4 +468,5 @@ export const glpyStore = {
   treatment,
   aiUsage,
   protocol,
+  gamification,
 };

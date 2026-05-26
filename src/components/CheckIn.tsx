@@ -66,7 +66,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
   const [showXP, setShowXP] = useState(false);
   const [iaResponse, setIaResponse] = useState<string | null>(null);
 
-  const streakAtual = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
+  const streakAtual = glpyStore.gamification.getStreak();
 
   const toggleSymptom = (s: string) => {
     setSymptoms(prev => prev.includes(s) ? prev.filter(i => i !== s) : [...prev, s]);
@@ -111,13 +111,13 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
     // streak
     const ultimoCheckin = localStorage.getItem("glpy_checkin_data");
     const novoStreak = ultimoCheckin === today ? streakAtual : streakAtual + 1;
-    localStorage.setItem("glpy_streak", String(novoStreak));
+    glpyStore.gamification.saveStreak(novoStreak);
     localStorage.setItem("glpy_checkin_data", today);
 
     // XP +10
-    const xpAtual = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+    const xpAtual = glpyStore.gamification.getXP();
     const novoXP = xpAtual + 10;
-    localStorage.setItem("glpy_xp", String(novoXP));
+    glpyStore.gamification.saveXP(novoXP);
 
     // Sincroniza no Firestore
     const nivelCalc = novoXP < 100 ? 1 : novoXP < 300 ? 2 : novoXP < 600 ? 3 : novoXP < 1000 ? 4 : 5;

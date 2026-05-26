@@ -43,7 +43,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     || (glpyUser.email as string)?.split("@")[0]
     || "";
 
-  const xpTotal = parseInt(localStorage.getItem("glpy_xp") || "0", 10);
+  const xpTotal = glpyStore.gamification.getXP();
   const nivel = xpTotal < 100 ? 1 : xpTotal < 300 ? 2 : xpTotal < 600 ? 3 : xpTotal < 1000 ? 4 : 5;
   const nivelNomes = ["", "Iniciante", "Explorando", "Adaptado", "Avançado", "Mestre"];
   const xpProxNivel = [100, 300, 600, 1000, Infinity];
@@ -79,7 +79,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (screen: string)
     } catch { return 1; }
   })();
 
-  const streak = parseInt(localStorage.getItem("glpy_streak") || "0", 10);
+  const streak = glpyStore.gamification.getStreak();
 
   // Alerta de risco
   const riscoNivel = (dailyScore < 60 || streak < 2) ? "Alto"
