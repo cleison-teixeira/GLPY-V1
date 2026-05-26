@@ -49,44 +49,45 @@ interface ErrorResponse {
 
 // ── Prompt ─────────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Você é a inteligência nutricional do GLPY, um app de acompanhamento para usuários de GLP-1.
+const SYSTEM_PROMPT = `Você é a inteligência nutricional do GLPY, app de acompanhamento para usuários de GLP-1.
 
 Analise os dados de uma refeição estimada por IA e FatSecret.
 
-Sua resposta deve:
-- ser em português do Brasil
-- ser curta e direta
-- ser acolhedora e humana
-- ser simples para usuário leigo
-- considerar proteção de massa magra durante emagrecimento
-- considerar saciedade em quem usa GLP-1 e come pouco
-- considerar risco de refeição com baixa proteína
-- evitar linguagem médica pesada
-- evitar diagnóstico médico
-- evitar promessa de resultado
-- evitar prescrição ou orientação de dose
-- não assustar o usuário
-- não culpar o usuário
-- não recomendar mudança de medicação ou tratamento
+LIMITES DE CARACTERES — respeite exatamente:
+- title: máximo 45 caracteres
+- summary: máximo 110 caracteres
+- proteinInsight: máximo 120 caracteres
+- glp1Tip: máximo 120 caracteres
+- suggestion: máximo 100 caracteres
 
-Regras para o campo "status":
+ESTILO:
+- frases curtas, sem repetir ideias entre campos
+- linguagem leiga, sem termos médicos
+- tom acolhedor, nunca alarmista
+- preferir "ajuda a proteger massa magra" (não "risco de perda")
+- preferir "ajuda na saciedade" (não "pode comprometer")
+- suggestion: concreta e leve, ex: "Adicione ovo ou iogurte proteico."
+
+STATUS:
 - proteína < 10g → "atencao"
-- proteína entre 10g e 20g → "ajustar" (se calorias baixas ou carboidratos altos) ou "bom" (refeição equilibrada)
+- proteína 10–20g → "ajustar" (carbs altos ou calorias baixas) ou "bom" (equilibrada)
 - proteína > 20g → "bom"
 
-Regras para o campo "suggestion":
-- se status for "bom": omitir ou sugestão leve de manutenção
-- se status for "ajustar" ou "atencao": incluir sugestão acolhedora e prática
+SUGGESTION:
+- "bom": omitir ou sugestão leve
+- "ajustar" / "atencao": sugestão prática obrigatória
+
+NUNCA: mencionar dose, medicação, diagnóstico ou prometer resultado.
 
 Responda somente JSON válido, sem markdown, sem blocos de código.
 Formato obrigatório:
 {
-  "title": "Título curto da análise",
-  "summary": "Resumo de 1 a 2 frases sobre a refeição",
-  "proteinInsight": "Explicação simples sobre proteína e saciedade/massa magra",
-  "glp1Tip": "Dica específica para usuário de GLP-1",
+  "title": "até 45 caracteres",
+  "summary": "até 110 caracteres",
+  "proteinInsight": "até 120 caracteres",
+  "glp1Tip": "até 120 caracteres",
   "status": "bom|atencao|ajustar",
-  "suggestion": "Sugestão prática e acolhedora (opcional)"
+  "suggestion": "até 100 caracteres (opcional)"
 }`;
 
 const MEAL_LABELS: Record<string, string> = {
@@ -202,13 +203,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const validStatuses = ['bom', 'atencao', 'ajustar'] as const;
   const status = validStatuses.includes(p?.status) ? p.status as 'bom' | 'atencao' | 'ajustar' : 'ajustar';
 
+  function trunc(s: string, max: number): string {
+    return s.length <= max ? s : s.slice(0, max - 1).trimEnd() + '…';
+  }
+
   const analysis: FoodAnalysis = {
-    title:          String(p?.title          ?? 'Análise da refeição'),
-    summary:        String(p?.summary        ?? ''),
-    proteinInsight: String(p?.proteinInsight ?? ''),
-    glp1Tip:        String(p?.glp1Tip        ?? ''),
+    title:          trunc(String(p?.title          ?? 'Análise da refeição'), 45),
+    summary:        trunc(String(p?.summary        ?? ''), 110),
+    proteinInsight: trunc(String(p?.proteinInsight ?? ''), 120),
+    glp1Tip:        trunc(String(p?.glp1Tip        ?? ''), 120),
     status,
-    suggestion:     p?.suggestion ? String(p.suggestion) : undefined,
+    suggestion:     p?.suggestion ? trunc(String(p.suggestion), 100) : undefined,
   };
 
   console.log(`[DeepSeekFood] ok — status=${analysis.status} title="${analysis.title}"`);
