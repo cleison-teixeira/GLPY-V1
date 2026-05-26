@@ -231,6 +231,7 @@ export default function App() {
       case 'fotoAnalise': return (
         <FoodPhotoAnalysisScreen
           onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
+          onNavigate={setTelaAtual}
           onSave={(_data) => {
             // TODO BUG 15C: persistir _data em glpy_refeicoes_hoje e disparar local-storage-change
             setTelaAtual(resolveSafeReturn('dashboard'));

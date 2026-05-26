@@ -32,6 +32,27 @@ import {
 
 import { glpyStore } from '../../data/glpyStore';
 
+// ── Limite de fotos ──────────────────────────────────────────────────────────
+
+const LIMITES_FOTO: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
+
+function getFotosHoje(): number {
+  const hoje = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem('glpy_fotos_data') !== hoje) {
+    localStorage.setItem('glpy_fotos_data', hoje);
+    localStorage.setItem('glpy_fotos_hoje', '0');
+    return 0;
+  }
+  return parseInt(localStorage.getItem('glpy_fotos_hoje') || '0', 10);
+}
+
+function incrementarFotos() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  localStorage.setItem('glpy_fotos_data', hoje);
+  localStorage.setItem('glpy_fotos_hoje', String(getFotosHoje() + 1));
+  window.dispatchEvent(new Event('local-storage-change'));
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Phase = 'idle' | 'captured' | 'analyzing' | 'results' | 'error';
@@ -45,6 +66,7 @@ export interface FoodPhotoAnalysisScreenProps {
   onBack?: () => void;
   /** Reservado para BUG 15D — persistência real em glpy_refeicoes_hoje. */
   onSave?: () => void;
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -112,7 +134,7 @@ const ANALYSIS_STEPS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScreenProps) {
+export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhotoAnalysisScreenProps) {
   const [phase,               setPhase]               = useState<Phase>('idle');
   const [imageUrl,            setImageUrl]             = useState<string | null>(null);
   const [imageBase64,         setImageBase64]          = useState<string | null>(null);
@@ -133,6 +155,11 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
   const cameraRef  = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+
+  const plano   = localStorage.getItem('glpy_plano') || 'starter';
+  const limiteF = LIMITES_FOTO[plano] ?? 3;
+  const [fotosHoje,       setFotosHoje]       = useState(() => getFotosHoje());
+  const [showLimiteModal, setShowLimiteModal] = useState(false);
 
   // ── File capture ─────────────────────────────────────────────────────────
 
@@ -169,6 +196,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
   async function runAnalysis() {
     if (!imageBase64) return;
+    if (fotosHoje >= limiteF) { setShowLimiteModal(true); return; }
     console.log('[FoodPhoto] analyze started — imageBase64 exists=', Boolean(imageBase64), '| mealType=', mealType);
     setPhase('analyzing');
     setStep(0);
@@ -227,6 +255,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     }
 
     setAnalysis({ foods: geminiResult.detectedFoods, summary: geminiResult.summary });
+    incrementarFotos();
+    setFotosHoje(prev => prev + 1);
 
     // DeepSeek: análise GLP-1 não-bloqueante — dispara apenas se macros disponíveis
     if (firstFsItem?.calories != null) {
@@ -437,6 +467,9 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
               {phase === 'analyzing' && 'Analisando refeição...'}
               {phase === 'results'   && 'Análise concluída'}
               {phase === 'error'     && 'Erro na análise'}
+              {limiteF !== Infinity && (
+                <span className="ml-2 font-semibold text-primary">{fotosHoje}/{limiteF} hoje</span>
+              )}
             </p>
           </div>
           {(phase === 'captured' || phase === 'results' || phase === 'error') && (
@@ -982,6 +1015,48 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
         </AnimatePresence>
       </div>
+
+      {/* ─ Modal limite de fotos ─ */}
+      <AnimatePresence>
+        {showLimiteModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+            onClick={() => setShowLimiteModal(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2 relative"
+            >
+              <button onClick={() => setShowLimiteModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-text-muted">
+                <X size={20} />
+              </button>
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">📸</div>
+                <h2 className="font-bold text-lg text-[#0A1628]">Limite diário atingido</h2>
+                <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                  Você usou suas {limiteF} análises de hoje no plano {plano}.<br />
+                  Upgrade para Plus ({LIMITES_FOTO.plus}/dia) ou Pro ({LIMITES_FOTO.pro}/dia).
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowLimiteModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-sm font-semibold text-text-muted">
+                  Agora não
+                </button>
+                {onNavigate && (
+                  <button onClick={() => { setShowLimiteModal(false); onNavigate('planos'); }}
+                    className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold">
+                    Ver planos
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─ Hidden inputs ─ */}
       <input
