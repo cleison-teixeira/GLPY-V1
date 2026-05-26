@@ -167,6 +167,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
   async function runAnalysis() {
     if (!imageBase64) return;
+    console.log('[FoodPhoto] analyze started — imageBase64 exists=', Boolean(imageBase64), '| mealType=', mealType);
     setPhase('analyzing');
     setStep(0);
     setErrorMessage(null);
@@ -179,16 +180,19 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setDeepSeekAnalysis(null);
 
     // Steps 1-2: animate while Gemini processes
+    console.log('[FoodPhoto] calling Gemini Vision');
     const geminiPromise = detectFoodsFromPhoto(imageBase64);
     await delay(920);  setStep(1);
     await delay(1040); setStep(2);
 
     const geminiResult = await geminiPromise;
     if (!geminiResult.ok) {
+      console.error('[FoodPhoto] Gemini error:', geminiResult.error);
       setErrorMessage(geminiResult.error);
       setPhase('error');
       return;
     }
+    console.log('[FoodPhoto] Gemini success — foods=', geminiResult.detectedFoods.length, '| summary=', geminiResult.summary?.slice(0, 60));
 
     // Step 3: search FatSecret while showing "Buscando informações nutricionais"
     await delay(920); setStep(3);
@@ -200,6 +204,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     let firstFsItem: FatSecretFoodItem | null = null;
 
     if (query) {
+      console.log('[FoodPhoto] calling FatSecret — query=', query);
       const fsResult = await analyzeFoodWithFatSecret({
         mode:     'search',
         query,
@@ -207,12 +212,15 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
         locale:   'pt-BR',
       });
       if (fsResult.success && fsResult.items.length > 0) {
+        console.log('[FoodPhoto] FatSecret success — items=', fsResult.items.length, '| top=', fsResult.items[0]?.name);
         setFatSecretItems(fsResult.items);
         firstFsItem = fsResult.items[0];
       } else {
+        console.error('[FoodPhoto] FatSecret error:', JSON.stringify(fsResult).slice(0, 200));
         setFatSecretError(true);
       }
     } else {
+      console.warn('[FoodPhoto] FatSecret skipped — no query term from Gemini');
       setFatSecretError(true);
     }
 
@@ -220,6 +228,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
     // DeepSeek: análise GLP-1 não-bloqueante — dispara apenas se macros disponíveis
     if (firstFsItem?.calories != null) {
+      console.log('[FoodPhoto] calling DeepSeek');
       setDeepSeekState('loading');
       setPhase('results');
       analyzeFoodWithDeepSeek({
@@ -234,13 +243,19 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
         detectedFoods: geminiResult.detectedFoods,
       }).then(result => {
         if (result.ok) {
+          console.log('[FoodPhoto] DeepSeek success');
           setDeepSeekAnalysis(result.analysis);
           setDeepSeekState('success');
         } else {
+          console.error('[FoodPhoto] DeepSeek error (result.ok=false)');
           setDeepSeekState('error');
         }
-      }).catch(() => setDeepSeekState('error'));
+      }).catch(err => {
+        console.error('[FoodPhoto] DeepSeek exception:', { message: err?.message, name: err?.name });
+        setDeepSeekState('error');
+      });
     } else {
+      console.log('[FoodPhoto] DeepSeek skipped — no FatSecret macros available');
       setDeepSeekState('skipped');
       setPhase('results');
     }
@@ -323,15 +338,24 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
 
     setSaveError(null);
 
+    const now        = Date.now();
+    const foodDesc   = analysis.foods.map(f => f.name).join(', ');
     const entry = {
+      id:              now.toString(),
+      nome:            foodDesc,
+      descricao:       foodDesc,
+      tipo:            'foto_ia' as const,
+      origem:          'FoodPhotoAnalysisScreen' as const,
       mealType:        MEAL_TYPE_MAP[mealType],
-      description:     analysis.foods.map(f => f.name).join(', '),
+      description:     foodDesc,
       photoAdded:      true,
-      savedAt:         Date.now(),
+      savedAt:         now,
       calories:        selectedFsItem!.calories ?? 0,
       protein:         selectedFsItem!.protein  ?? 0,
       carbs:           selectedFsItem!.carbs    ?? 0,
       fat:             selectedFsItem!.fat      ?? 0,
+      createdAt:       new Date(now).toISOString(),
+      date:            new Date(now).toISOString().slice(0, 10),
       source:          'FoodPhotoAnalysisScreen',
       nutritionSource: 'FatSecret',
       analysisSource:  'gemini_fatsecret_deepseek',

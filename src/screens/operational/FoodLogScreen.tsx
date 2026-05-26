@@ -29,20 +29,37 @@ interface MealOption {
 }
 
 interface MealEntry {
-  mealType:    MealType;
+  id?:        string;
+  nome?:      string;
+  descricao?: string;
+  tipo?:      'manual' | 'foto_ia';
+  origem?:    'FoodLogScreen' | 'FoodPhotoAnalysisScreen';
+  mealType:   MealType;
   description: string;
   photoAdded:  boolean;
   savedAt:     number;
-  calories?:   number;
-  protein?:    number;
-  carbs?:      number;
-  fat?:        number;
+  calories:    number;
+  protein:     number;
+  carbs:       number;
+  fat:         number;
+  createdAt?:  string;
+  date?:       string;
 }
 
 interface FoodLogScreenProps {
-  onBack?: () => void;
-  onSave?: (data: { mealType: MealType; description: string; photoAdded: boolean; calories?: number; protein?: number; carbs?: number; fat?: number }) => void;
+  onBack?:            () => void;
+  onNavigateToPhoto?: () => void;
+  onSave?: (data: { mealType: MealType; description: string; photoAdded: boolean; calories: number; protein: number; carbs: number; fat: number }) => void;
 }
+
+// ── Module-scope label map ────────────────────────────────────────────────────
+
+const MEAL_LABEL_MAP: Record<MealType, string> = {
+  breakfast: 'Café da manhã',
+  lunch:     'Almoço',
+  dinner:    'Jantar',
+  snack:     'Lanche',
+};
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -57,7 +74,7 @@ const MEAL_OPTIONS: MealOption[] = [
 
 type MealSaveState = 'idle' | 'saving' | 'saved';
 
-export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
+export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: FoodLogScreenProps) {
   const [mealType,    setMealType]    = useState<MealType>('lunch');
   const [description, setDescription] = useState('');
   const [photoAdded,  setPhotoAdded]  = useState(false);
@@ -71,21 +88,57 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
     catch { return []; }
   });
 
+  function reloadTodayMeals() {
+    try { setTodayMeals(JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]')); }
+    catch { /* keep current */ }
+  }
+
   function handleAddPhoto() {
-    setPhotoAdded(true);
+    if (onNavigateToPhoto) {
+      onNavigateToPhoto();
+    } else {
+      setPhotoAdded(true);
+    }
   }
 
   function handleSave() {
     if (saveState !== 'idle') return;
     setSaveState('saving');
-    const calNum  = parseFloat(calories) || undefined;
-    const protNum = parseFloat(protein)  || undefined;
-    const carbNum = parseFloat(carbs)    || undefined;
-    const fatNum  = parseFloat(fat)      || undefined;
+    const now      = Date.now();
+    const todayDate = new Date().toISOString().slice(0, 10);
+    const calNum  = parseFloat(calories) || 0;
+    const protNum = parseFloat(protein)  || 0;
+    const carbNum = parseFloat(carbs)    || 0;
+    const fatNum  = parseFloat(fat)      || 0;
     setTimeout(() => {
+      const canonicalEntry: MealEntry = {
+        id:          now.toString(),
+        nome:        description.trim() || MEAL_LABEL_MAP[mealType],
+        descricao:   description.trim() || undefined,
+        tipo:        'manual',
+        origem:      'FoodLogScreen',
+        mealType,
+        description,
+        photoAdded,
+        savedAt:     now,
+        calories:    calNum,
+        protein:     protNum,
+        carbs:       carbNum,
+        fat:         fatNum,
+        createdAt:   new Date(now).toISOString(),
+        date:        todayDate,
+      };
+      try {
+        const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
+        if (!Array.isArray(existing)) throw new Error('invalid');
+        existing.push(canonicalEntry);
+        localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
+      } catch {
+        localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([canonicalEntry]));
+      }
+      window.dispatchEvent(new Event('local-storage-change'));
       setSaveState('saved');
-      const newEntry: MealEntry = { mealType, description, photoAdded, savedAt: Date.now(), calories: calNum, protein: protNum, carbs: carbNum, fat: fatNum };
-      setTodayMeals(prev => [...prev, newEntry]);
+      reloadTodayMeals();
       setTimeout(() => onSave?.({ mealType, description, photoAdded, calories: calNum, protein: protNum, carbs: carbNum, fat: fatNum }), 900);
     }, 500);
   }
@@ -181,12 +234,7 @@ export default function FoodLogScreen({ onBack, onSave }: FoodLogScreenProps) {
   };
 
   // meal history
-  const MEAL_LABEL: Record<MealType, string> = {
-    breakfast: 'Café da manhã',
-    lunch:     'Almoço',
-    dinner:    'Jantar',
-    snack:     'Lanche',
-  };
+  const MEAL_LABEL = MEAL_LABEL_MAP;
 
   const historyRowStyle: React.CSSProperties = {
     display:       'flex',

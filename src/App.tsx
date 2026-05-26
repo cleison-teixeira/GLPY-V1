@@ -184,17 +184,8 @@ export default function App() {
       case 'bodyProfile':  return <BodyProfileScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
       case 'refeicao':     return <FoodLogScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
-        onSave={(data) => {
-          try {
-            const existing = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
-            existing.push({ ...data, savedAt: Date.now() });
-            localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify(existing));
-          } catch {
-            localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ ...data, savedAt: Date.now() }]));
-          }
-          window.dispatchEvent(new Event('local-storage-change'));
-          setTelaAtual(resolveSafeReturn('dashboard'));
-        }}
+        onNavigateToPhoto={() => setTelaAtual('fotoAnalise')}
+        onSave={() => setTelaAtual(resolveSafeReturn('dashboard'))}
       />;
       case 'agua':         return <WaterScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
