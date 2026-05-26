@@ -21,8 +21,9 @@ function getCurrentMonth(): string {
 
 function readIAUsage(iaLimite: number): number {
   try {
-    const parsed = glpyStore.aiUsage.get();
-    if (!parsed.month || parsed.month !== getCurrentMonth()) return 0;
+    const parsed = glpyStore.aiUsage.get() as any;
+    const today = getTodayKey();
+    if (!parsed.date || parsed.date !== today) return 0;
     const used = typeof parsed.used === 'number' ? parsed.used : 0;
     return Math.min(used, iaLimite);
   } catch { return 0; }

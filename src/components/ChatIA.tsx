@@ -233,23 +233,23 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const parsed = glpyStore.aiUsage.get();
-      if (!parsed.month || parsed.month !== currentMonth) return 0;
+      const today = new Date().toISOString().slice(0, 10);
+      const parsed = glpyStore.aiUsage.get() as any;
+      if (!parsed.date || parsed.date !== today) return 0;
       return typeof parsed.used === 'number' ? parsed.used : 0;
     } catch { return 0; }
   });
   const [limiteIA, setLimiteIA] = useState(LIMITES_INICIAIS[plano] ?? 10);
   const [ctxIA, setCtxIA] = useState<ContextoIA | null>(null);
 
-  // Carrega limites do Firestore e aplica reset automático de mês; sincroniza em localStorage
+  // Carrega limites do Firestore e aplica reset automático de dia; sincroniza em localStorage
   useEffect(() => {
     carregarLimitesIA(plano)
       .then(({ usadas, limite }) => {
         setMsgsUsadas(usadas);
         setLimiteIA(limite);
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        glpyStore.aiUsage.save({ month: currentMonth, used: usadas, limit: limite, updatedAt: new Date().toISOString() });
+        const today = new Date().toISOString().slice(0, 10);
+        glpyStore.aiUsage.save({ date: today, used: usadas, limit: limite, updatedAt: new Date().toISOString() } as any);
         window.dispatchEvent(new Event('local-storage-change'));
       })
       .catch(() => {});
@@ -315,8 +315,8 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
       const novas = msgsUsadas + 1;
       setMsgsUsadas(novas);
       incrementarMsgIA().catch(() => {});
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      glpyStore.aiUsage.save({ month: currentMonth, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() });
+      const today = new Date().toISOString().slice(0, 10);
+      glpyStore.aiUsage.save({ date: today, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() } as any);
       window.dispatchEvent(new Event('local-storage-change'));
     } catch (error) {
       console.error("[ChatIA] DeepSeek fetch error:", {
@@ -421,7 +421,7 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
           <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-3">
             <div className="flex-grow min-w-0">
               <p className="text-sm font-bold text-amber-800 leading-snug">
-                Você usou {msgsUsadas}/{limiteIA} mensagens do mês.
+                Você usou {msgsUsadas}/{limiteIA} mensagens de hoje.
               </p>
               <p className="text-xs text-amber-600 mt-0.5">Faça upgrade para continuar.</p>
             </div>
@@ -499,7 +499,7 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
                 <div className="text-4xl mb-3">🤖</div>
                 <h2 className="font-bold text-lg text-[#0A1628]">Limite atingido</h2>
                 <p className="text-sm text-text-muted mt-2 leading-relaxed">
-                  Você usou todas as {limiteIA} mensagens do mês no plano atual.<br />
+                  Você usou todas as {limiteIA} mensagens de hoje no plano atual.<br />
                   Faça upgrade para continuar conversando com a GLPY.IA.
                 </p>
               </div>

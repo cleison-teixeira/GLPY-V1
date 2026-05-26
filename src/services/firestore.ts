@@ -168,14 +168,14 @@ export async function carregarLimitesIA(plano: string): Promise<{
   if (!id) return { usadas: 0, limite };
 
   const ref = doc(db, "users", id, "limites", "ia");
-  const primeroDiaMes = new Date().toISOString().slice(0, 8) + "01";
+  const hoje = new Date().toISOString().slice(0, 10);
 
   const snap = await getDoc(ref);
   if (!snap.exists()) {
     await setDoc(ref, {
       msgs_ia_usadas: 0,
       msgs_ia_limite: limite,
-      reset_dia: primeroDiaMes,
+      reset_dia: hoje,
       updatedAt: serverTimestamp(),
     });
     return { usadas: 0, limite };
@@ -184,12 +184,12 @@ export async function carregarLimitesIA(plano: string): Promise<{
   const d = snap.data();
   const resetDia: string = d.reset_dia ?? "2000-01-01";
 
-  if (resetDia < primeroDiaMes) {
-    // Novo mês — zera o contador
+  if (resetDia < hoje) {
+    // Novo dia — zera o contador
     await setDoc(ref, {
       msgs_ia_usadas: 0,
       msgs_ia_limite: limite,
-      reset_dia: primeroDiaMes,
+      reset_dia: hoje,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     return { usadas: 0, limite };
