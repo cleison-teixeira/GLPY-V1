@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Camera, Upload, ChevronLeft, Loader2, CheckCircle, AlertTriangle,
-  RotateCcw, Coffee, Utensils, Moon, Apple, Sparkles, Zap, Check, Search,
+  RotateCcw, Coffee, Utensils, Moon, Apple, Sparkles, Zap, Check, Search, Brain,
 } from 'lucide-react';
 
 import {
@@ -24,6 +24,11 @@ import type {
   FatSecretFoodItem,
   FatSecretMealType,
 } from '../../services/fatsecret';
+
+import {
+  analyzeFoodWithDeepSeek,
+  type DeepSeekFoodAnalysis,
+} from '../../services/deepseekFoodAnalysis';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -112,6 +117,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
   const [showFsList,          setShowFsList]           = useState(false);
   const [manualQuery,         setManualQuery]          = useState('');
   const [isManualSearching,   setIsManualSearching]    = useState(false);
+  const [deepseekState,       setDeepSeekState]        = useState<'idle' | 'loading' | 'success' | 'error' | 'skipped'>('idle');
+  const [deepseekAnalysis,    setDeepSeekAnalysis]     = useState<DeepSeekFoodAnalysis | null>(null);
 
   const cameraRef  = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -146,7 +153,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       });
   }
 
-  // ── Main analysis: Gemini → FatSecret ────────────────────────────────────
+  // ── Main analysis: Gemini → FatSecret → DeepSeek ────────────────────────
 
   async function runAnalysis() {
     if (!imageBase64) return;
@@ -158,6 +165,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setFatSecretError(false);
     setSelectedFsIdx(0);
     setShowFsList(false);
+    setDeepSeekState('idle');
+    setDeepSeekAnalysis(null);
 
     // Steps 1-2: animate while Gemini processes
     const geminiPromise = detectFoodsFromPhoto(imageBase64);
@@ -177,6 +186,9 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     const primaryFood = geminiResult.detectedFoods[0];
     // searchQuery é o termo em inglês otimizado para FatSecret; fallback para o nome em PT
     const query = primaryFood?.searchQuery ?? primaryFood?.name ?? '';
+
+    let firstFsItem: FatSecretFoodItem | null = null;
+
     if (query) {
       const fsResult = await analyzeFoodWithFatSecret({
         mode:     'search',
@@ -186,6 +198,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       });
       if (fsResult.success && fsResult.items.length > 0) {
         setFatSecretItems(fsResult.items);
+        firstFsItem = fsResult.items[0];
       } else {
         setFatSecretError(true);
       }
@@ -194,7 +207,33 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     }
 
     setAnalysis({ foods: geminiResult.detectedFoods, summary: geminiResult.summary });
-    setPhase('results');
+
+    // DeepSeek: análise GLP-1 não-bloqueante — dispara apenas se macros disponíveis
+    if (firstFsItem?.calories != null) {
+      setDeepSeekState('loading');
+      setPhase('results');
+      analyzeFoodWithDeepSeek({
+        foodName:      primaryFood?.name            ?? '',
+        fatSecretName: firstFsItem.name,
+        mealType,
+        calories:      firstFsItem.calories         ?? 0,
+        protein:       firstFsItem.protein          ?? 0,
+        carbs:         firstFsItem.carbs            ?? 0,
+        fat:           firstFsItem.fat              ?? 0,
+        portion:       firstFsItem.servingDescription,
+        detectedFoods: geminiResult.detectedFoods,
+      }).then(result => {
+        if (result.ok) {
+          setDeepSeekAnalysis(result.analysis);
+          setDeepSeekState('success');
+        } else {
+          setDeepSeekState('error');
+        }
+      }).catch(() => setDeepSeekState('error'));
+    } else {
+      setDeepSeekState('skipped');
+      setPhase('results');
+    }
   }
 
   // ── Manual FatSecret search (fallback) ───────────────────────────────────
@@ -215,6 +254,31 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
       setFatSecretError(false);
       setSelectedFsIdx(0);
       setShowFsList(false);
+      // DeepSeek com os macros recém-encontrados
+      const item = fsResult.items[0];
+      if (item.calories != null && analysis) {
+        const primaryFood = analysis.foods[0];
+        setDeepSeekState('loading');
+        setDeepSeekAnalysis(null);
+        analyzeFoodWithDeepSeek({
+          foodName:      primaryFood?.name ?? q,
+          fatSecretName: item.name,
+          mealType,
+          calories:      item.calories            ?? 0,
+          protein:       item.protein             ?? 0,
+          carbs:         item.carbs               ?? 0,
+          fat:           item.fat                 ?? 0,
+          portion:       item.servingDescription,
+          detectedFoods: analysis.foods,
+        }).then(result => {
+          if (result.ok) {
+            setDeepSeekAnalysis(result.analysis);
+            setDeepSeekState('success');
+          } else {
+            setDeepSeekState('error');
+          }
+        }).catch(() => setDeepSeekState('error'));
+      }
     }
   }
 
@@ -234,6 +298,8 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
     setShowFsList(false);
     setManualQuery('');
     setIsManualSearching(false);
+    setDeepSeekState('idle');
+    setDeepSeekAnalysis(null);
   }
 
   function handleSave() { setSavedFeedback(true); }
@@ -678,6 +744,124 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                   </div>
                 </motion.div>
               ) : null}
+
+              {/* DeepSeek GLP-1 analysis card */}
+              {analysis && (
+                deepseekState === 'loading' ? (
+                  <motion.div
+                    key="ds-loading"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.2 }}
+                    className="bg-white border border-border rounded-2xl p-4 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Brain size={14} className="text-violet-500" />
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Análise GLP-1</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
+                        GLPY IA
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 py-1">
+                      <Loader2 size={14} className="text-violet-400 animate-spin flex-shrink-0" />
+                      <p className="text-sm text-text-muted">Analisando sua refeição com a GLPY IA...</p>
+                    </div>
+                  </motion.div>
+                ) : deepseekState === 'success' && deepseekAnalysis ? (
+                  <motion.div
+                    key="ds-success"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.2 }}
+                    className="bg-white border border-border rounded-2xl p-4 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Brain size={14} className="text-violet-500" />
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Análise GLP-1</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
+                        GLPY IA
+                      </span>
+                    </div>
+                    {/* Status box */}
+                    <div className={`flex items-start gap-3 p-3 rounded-xl mb-3 border ${
+                      deepseekAnalysis.status === 'bom'
+                        ? 'bg-emerald-50 border-emerald-100'
+                        : deepseekAnalysis.status === 'atencao'
+                        ? 'bg-orange-50 border-orange-100'
+                        : 'bg-amber-50 border-amber-100'
+                    }`}>
+                      {deepseekAnalysis.status === 'bom'
+                        ? <CheckCircle size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                        : <AlertTriangle size={16} className={`flex-shrink-0 mt-0.5 ${deepseekAnalysis.status === 'atencao' ? 'text-orange-500' : 'text-amber-500'}`} />
+                      }
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-[#0A1628] leading-tight">{deepseekAnalysis.title}</p>
+                        <p className="text-[11px] text-text-muted mt-1 leading-relaxed">{deepseekAnalysis.summary}</p>
+                      </div>
+                    </div>
+                    {deepseekAnalysis.proteinInsight && (
+                      <p className="text-xs text-[#0A1628] leading-relaxed mb-2">{deepseekAnalysis.proteinInsight}</p>
+                    )}
+                    {deepseekAnalysis.glp1Tip && (
+                      <p className="text-xs text-text-muted leading-relaxed">{deepseekAnalysis.glp1Tip}</p>
+                    )}
+                    {deepseekAnalysis.suggestion && (
+                      <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 mt-3">
+                        <p className="text-xs text-violet-700 leading-relaxed">
+                          <span className="font-semibold">Sugestão: </span>
+                          {deepseekAnalysis.suggestion}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : deepseekState === 'error' ? (
+                  <motion.div
+                    key="ds-error"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.2 }}
+                    className="bg-white border border-border rounded-2xl p-4 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Brain size={14} className="text-violet-500" />
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Análise GLP-1</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
+                        GLPY IA
+                      </span>
+                    </div>
+                    <p className="text-sm text-text-muted leading-relaxed">
+                      Não conseguimos gerar a análise inteligente agora, mas você ainda pode revisar os macros antes de salvar.
+                    </p>
+                  </motion.div>
+                ) : deepseekState === 'skipped' ? (
+                  <motion.div
+                    key="ds-skipped"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.2 }}
+                    className="bg-white border border-border rounded-2xl p-4 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Brain size={14} className="text-violet-400" />
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Análise GLP-1</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
+                        GLPY IA
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-muted leading-relaxed">
+                      Assim que a nutrição for estimada, a GLPY IA poderá analisar seu prato.
+                    </p>
+                  </motion.div>
+                ) : null
+              )}
 
               {/* Meal type */}
               <MealTypeSelector />
