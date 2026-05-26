@@ -1,24 +1,14 @@
 import { useState, useEffect } from "react";
 import { Compass, LayoutGrid, Plus, LineChart } from "lucide-react";
 import QuickActionModal from "./QuickActionModal";
+import { glpyStore } from '../data/glpyStore';
 
 function readGlpyProfilePhoto(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('glpy_profile_photo');
-    if (!raw) return null;
-    let base64 = '';
-    if (raw.trim().startsWith('{')) {
-      const parsed = JSON.parse(raw);
-      base64 = parsed?.imageBase64 ?? '';
-    } else {
-      base64 = raw;
-    }
-    if (!base64) return null;
-    return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
-  } catch {
-    return null;
-  }
+  const photo = glpyStore.profile.getProfilePhoto();
+  if (!photo) return null;
+  const base64 = photo.imageBase64;
+  if (!base64) return null;
+  return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
 }
 
 interface BottomNavProps {

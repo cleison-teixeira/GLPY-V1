@@ -37,6 +37,7 @@ import { useActiveProtocol } from '../hooks/useActiveProtocol';
 import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
+import { glpyStore } from '../data/glpyStore';
 import { formatDecimalBR, formatGrams, formatLiters, formatMeters, formatUnit, parseBRNumber } from '../utils/formatters';
 
 // TODO Fase 1F.2:
@@ -241,21 +242,11 @@ function NutritionGoalCard({
 // ── Profile photo helpers ─────────────────────────────────────────────────────
 
 function readProfilePhoto(): string | null {
-  try {
-    const raw = localStorage.getItem('glpy_profile_photo');
-    if (!raw) return null;
-    let base64 = '';
-    if (raw.trim().startsWith('{')) {
-      const parsed = JSON.parse(raw);
-      base64 = parsed?.imageBase64 ?? '';
-    } else {
-      base64 = raw; // compatibilidade: string legada
-    }
-    if (!base64) return null;
-    return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
-  } catch {
-    return null;
-  }
+  const photo = glpyStore.profile.getProfilePhoto();
+  if (!photo) return null;
+  const base64 = photo.imageBase64;
+  if (!base64) return null;
+  return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
 }
 
 async function compressProfilePhoto(file: File): Promise<string> {
@@ -332,12 +323,11 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     try {
       const dataUrl = await compressProfilePhoto(file);
       const base64 = dataUrl.split(',')[1] ?? dataUrl;
-      localStorage.setItem('glpy_profile_photo', JSON.stringify({
+      glpyStore.profile.saveProfilePhoto({
         imageBase64: base64,
         updatedAt:   new Date().toISOString(),
-      }));
+      });
       setProfilePhoto(dataUrl);
-      window.dispatchEvent(new Event('local-storage-change'));
     } catch {
       // foto não alterada em caso de erro
     }
