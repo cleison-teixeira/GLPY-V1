@@ -188,6 +188,12 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
       hist.push(newEntry);
     }
     glpyStore.checkin.saveHistory(hist);
+
+    if (!alreadyDoneToday) {
+      glpyStore.gamification.addXP(10 + doneCount * 10);
+      glpyStore.gamification.saveStreak(realStreak + 1);
+    }
+
     window.dispatchEvent(new Event('local-storage-change'));
 
     setTimeout(() => {
