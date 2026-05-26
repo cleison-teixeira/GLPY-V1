@@ -943,7 +943,7 @@ export default function FoodPhotoAnalysisScreen({ onBack }: FoodPhotoAnalysisScr
                 <AlertTriangle size={13} className="text-blue-400 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
                   {hasMacros
-                    ? 'Estimativa calculada com base na FatSecret. Revise o alimento e confirme antes de salvar.'
+                    ? 'Estimativa calculada com base na FatSecret. Revise os dados antes de confirmar.'
                     : 'Alimentos identificados pela IA. Os macros e calorias serão calculados em breve.'}
                 </p>
               </div>

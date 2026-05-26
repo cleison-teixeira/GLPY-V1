@@ -331,7 +331,7 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
               size="sm"
               onClick={handleAddPhoto}
             >
-              {photoAdded ? 'Alterar foto' : 'Adicionar foto'}
+              Analisar pela foto com IA
             </GLPYButton>
           </div>
         </GLPYCard>
