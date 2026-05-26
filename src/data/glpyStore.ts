@@ -1,0 +1,348 @@
+// GLPY — glpyStore
+// BUG 16A: camada canônica de dados — localStorage apenas.
+//
+// Regras:
+// - Não migra telas existentes neste bug (BUG 16B+ farão isso tela por tela).
+// - Não usa Firebase.
+// - Preserva todas as chaves atuais do localStorage sem renomear.
+// - Mantém compatibilidade total com dados já salvos.
+// - Todas as escritas disparam local-storage-change via localStorageAdapter.
+
+import {
+  readJSON,
+  writeJSON,
+  readString,
+  removeKey,
+  emitStorageChange,
+} from './localStorageAdapter';
+
+import type {
+  GlpyProfile,
+  GlpyProfilePhoto,
+  GlpyMeal,
+  GlpyWater,
+  GlpyEmotion,
+  GlpyActivity,
+  GlpyCheckIn,
+  GlpyBodyMeasurements,
+  GlpyTreatment,
+  GlpyAIUsage,
+  GlpyActiveProtocol,
+} from './types';
+
+// ── Chaves canônicas (não renomear) ──────────────────────────────────────────
+
+const KEYS = {
+  onboarding:          'glpy_onboarding',
+  nome:                'glpy_nome',
+  email:               'glpy_email',
+  altura:              'glpy_altura',
+  pesoAtual:           'glpy_peso_atual',
+  pesoSonho:           'glpy_peso_sonho',
+  medicamento:         'glpy_medicamento',
+  profilePhoto:        'glpy_profile_photo',
+  aguaHoje:            'glpy_agua_hoje',
+  refeicoesHoje:       'glpy_refeicoes_hoje',
+  emocaoHoje:          'glpy_emocao_hoje',
+  todayEmotion:        'glpy_today_emotion',
+  atividadeHoje:       'glpy_atividade_hoje',
+  todayActivity:       'glpy_today_activity',
+  checkinHoje:         'glpy_checkin_hoje',
+  checkinHistorico:    'glpy_checkin_historico',
+  aiUsage:             'glpy_ai_usage',
+  medidasCorporais:    'glpy_medidas_corporais',
+  protocoloAtivo:      'glpy_protocolo_ativo',
+  activeProtocol:      'glpy_active_protocol',
+} as const;
+
+// ── Helpers internos ─────────────────────────────────────────────────────────
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ── 1. profile ────────────────────────────────────────────────────────────────
+
+const profile = {
+  get(): GlpyProfile {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onb: any = readJSON(KEYS.onboarding, {});
+    return {
+      uid:           readString('glpy_uid') || undefined,
+      name:          readString(KEYS.nome)  || onb?.nome || onb?.name || undefined,
+      email:         readString(KEYS.email) || onb?.email || undefined,
+      height:        parseFloat(readString(KEYS.altura))  || onb?.altura  || undefined,
+      currentWeight: parseFloat(readString(KEYS.pesoAtual)) || onb?.peso_atual || onb?.pesoAtual || undefined,
+      goalWeight:    parseFloat(readString(KEYS.pesoSonho)) || onb?.peso_sonho || onb?.pesoSonho || undefined,
+      medication:    readString(KEYS.medicamento) || onb?.medicamento || undefined,
+      onboarding:    onb,
+    };
+  },
+
+  update(partial: Partial<GlpyProfile>): void {
+    if (partial.name       != null) writeJSON(KEYS.nome,        partial.name);
+    if (partial.email      != null) writeJSON(KEYS.email,       partial.email);
+    if (partial.height     != null) writeJSON(KEYS.altura,      partial.height);
+    if (partial.currentWeight != null) writeJSON(KEYS.pesoAtual, partial.currentWeight);
+    if (partial.goalWeight != null) writeJSON(KEYS.pesoSonho,   partial.goalWeight);
+    if (partial.medication != null) writeJSON(KEYS.medicamento, partial.medication);
+    if (partial.onboarding != null) writeJSON(KEYS.onboarding,  partial.onboarding);
+    emitStorageChange();
+  },
+
+  getProfilePhoto(): GlpyProfilePhoto | null {
+    const raw = readString(KEYS.profilePhoto);
+    if (!raw) return null;
+    try {
+      if (raw.trim().startsWith('{')) {
+        // formato canônico: { imageBase64, updatedAt }
+        const parsed = JSON.parse(raw) as Partial<GlpyProfilePhoto>;
+        if (parsed?.imageBase64) return parsed as GlpyProfilePhoto;
+        return null;
+      }
+      // formato legado: string base64 direta
+      return {
+        imageBase64: raw,
+        updatedAt:   '',
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  saveProfilePhoto(photo: GlpyProfilePhoto): void {
+    writeJSON(KEYS.profilePhoto, photo);
+  },
+
+  removeProfilePhoto(): void {
+    removeKey(KEYS.profilePhoto);
+  },
+};
+
+// ── 2. meals ─────────────────────────────────────────────────────────────────
+
+// Normaliza campos antigos e novos para o formato canônico GlpyMeal.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeMeal(raw: any): GlpyMeal {
+  const calories = parseFloat(String(raw.calories ?? raw.calorias      ?? 0)) || 0;
+  const protein  = parseFloat(String(raw.protein  ?? raw.proteina ?? raw.proteinas ?? 0)) || 0;
+  const carbs    = parseFloat(String(raw.carbs    ?? raw.carboidratos  ?? 0)) || 0;
+  const fat      = parseFloat(String(raw.fat      ?? raw.gordura ?? raw.gorduras   ?? 0)) || 0;
+  const nome     = String(raw.nome ?? raw.name ?? raw.description ?? raw.descricao ?? '');
+  const descricao = raw.descricao ?? raw.description ?? undefined;
+
+  // Derivar date / createdAt a partir dos campos disponíveis
+  let date      = '';
+  let createdAt = '';
+
+  if (typeof raw.date === 'string' && raw.date.length >= 10) {
+    date      = raw.date.slice(0, 10);
+    createdAt = raw.createdAt ?? new Date(date).toISOString();
+  } else if (typeof raw.createdAt === 'string' && raw.createdAt.length >= 10) {
+    createdAt = raw.createdAt;
+    date      = raw.createdAt.slice(0, 10);
+  } else if (raw.savedAt) {
+    const d = new Date(raw.savedAt);
+    date      = d.toISOString().slice(0, 10);
+    createdAt = d.toISOString();
+  } else {
+    // sem campo de data — tratar como hoje (compatibilidade com dados antigos)
+    date      = todayKey();
+    createdAt = new Date().toISOString();
+  }
+
+  return {
+    ...raw,          // preserva campos extras (detectedFoods, glp1Analysis, etc.)
+    id:        raw.id ?? String(raw.savedAt ?? Date.now()),
+    nome,
+    descricao,
+    tipo:      raw.tipo ?? (raw.source === 'FoodPhotoAnalysisScreen' ? 'foto_ia' : 'manual'),
+    origem:    raw.origem ?? raw.source ?? 'FoodLogScreen',
+    calories,
+    protein,
+    carbs,
+    fat,
+    createdAt,
+    date,
+    savedAt:   raw.savedAt,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isToday(raw: any, today = todayKey()): boolean {
+  if (typeof raw.date === 'string'      && raw.date.length >= 10)
+    return raw.date.slice(0, 10) === today;
+  if (typeof raw.createdAt === 'string' && raw.createdAt.length >= 10)
+    return raw.createdAt.slice(0, 10) === today;
+  if (raw.savedAt)
+    return new Date(raw.savedAt).toISOString().slice(0, 10) === today;
+  return true; // sem data → compatibilidade com dados antigos
+}
+
+const meals = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getAll(): GlpyMeal[] {
+    return readJSON<any[]>(KEYS.refeicoesHoje, []).map(normalizeMeal);
+  },
+
+  getToday(): GlpyMeal[] {
+    const today = todayKey();
+    return readJSON<any[]>(KEYS.refeicoesHoje, [])
+      .filter(e => isToday(e, today))
+      .map(normalizeMeal);
+  },
+
+  saveMeal(meal: GlpyMeal): void {
+    const existing = readJSON<any[]>(KEYS.refeicoesHoje, []);
+    existing.push(meal);
+    writeJSON(KEYS.refeicoesHoje, existing);
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateAll(meals: any[]): void {
+    writeJSON(KEYS.refeicoesHoje, meals);
+  },
+
+  normalizeMeal,
+  isToday,
+};
+
+// ── 3. water ──────────────────────────────────────────────────────────────────
+
+const water = {
+  getToday(): GlpyWater | null {
+    return readJSON<GlpyWater | null>(KEYS.aguaHoje, null);
+  },
+
+  saveToday(value: GlpyWater): void {
+    writeJSON(KEYS.aguaHoje, value);
+  },
+};
+
+// ── 4. emotion ───────────────────────────────────────────────────────────────
+
+const emotion = {
+  getToday(): GlpyEmotion | null {
+    return readJSON<GlpyEmotion | null>(KEYS.emocaoHoje, null);
+  },
+
+  saveToday(value: GlpyEmotion): void {
+    writeJSON(KEYS.emocaoHoje, value);
+    // glpy_today_emotion é uma segunda chave espelhada usada por alguns componentes
+    if (value.mood != null) {
+      writeJSON(KEYS.todayEmotion, {
+        emotion:         value.mood,
+        emotionalEnergy: value.energy,
+        notes:           value.note ?? '',
+        date:            value.date ?? todayKey(),
+        savedAt:         new Date().toISOString(),
+      });
+    }
+  },
+};
+
+// ── 5. activity ───────────────────────────────────────────────────────────────
+
+const activity = {
+  getToday(): GlpyActivity | null {
+    return readJSON<GlpyActivity | null>(KEYS.atividadeHoje, null);
+  },
+
+  saveToday(value: GlpyActivity): void {
+    writeJSON(KEYS.atividadeHoje, value);
+    writeJSON(KEYS.todayActivity, value);
+  },
+};
+
+// ── 6. checkin ────────────────────────────────────────────────────────────────
+
+const checkin = {
+  getToday(): GlpyCheckIn | null {
+    return readJSON<GlpyCheckIn | null>(KEYS.checkinHoje, null);
+  },
+
+  saveToday(value: GlpyCheckIn): void {
+    writeJSON(KEYS.checkinHoje, value);
+  },
+
+  getHistory(): GlpyCheckIn[] {
+    return readJSON<GlpyCheckIn[]>(KEYS.checkinHistorico, []);
+  },
+
+  saveHistory(value: GlpyCheckIn[]): void {
+    writeJSON(KEYS.checkinHistorico, value);
+  },
+};
+
+// ── 7. bodyMeasurements ───────────────────────────────────────────────────────
+
+const bodyMeasurements = {
+  get(): GlpyBodyMeasurements | null {
+    return readJSON<GlpyBodyMeasurements | null>(KEYS.medidasCorporais, null);
+  },
+
+  save(value: GlpyBodyMeasurements): void {
+    writeJSON(KEYS.medidasCorporais, value);
+  },
+};
+
+// ── 8. treatment ──────────────────────────────────────────────────────────────
+
+const treatment = {
+  get(): GlpyTreatment | null {
+    return readJSON<GlpyTreatment | null>(KEYS.medicamento, null);
+  },
+
+  save(value: GlpyTreatment): void {
+    writeJSON(KEYS.medicamento, value);
+  },
+};
+
+// ── 9. aiUsage ────────────────────────────────────────────────────────────────
+
+const aiUsage = {
+  get(): GlpyAIUsage {
+    return readJSON<GlpyAIUsage>(KEYS.aiUsage, { used: 0, limit: 30 });
+  },
+
+  save(value: GlpyAIUsage): void {
+    writeJSON(KEYS.aiUsage, value);
+  },
+
+  increment(): void {
+    const current = aiUsage.get();
+    aiUsage.save({ ...current, used: current.used + 1, updatedAt: new Date().toISOString() });
+  },
+};
+
+// ── 10. protocol ──────────────────────────────────────────────────────────────
+
+const protocol = {
+  getActive(): GlpyActiveProtocol | null {
+    // tenta glpy_active_protocol primeiro, depois glpy_protocolo_ativo
+    return (
+      readJSON<GlpyActiveProtocol | null>(KEYS.activeProtocol,  null) ??
+      readJSON<GlpyActiveProtocol | null>(KEYS.protocoloAtivo,  null)
+    );
+  },
+
+  saveActive(value: GlpyActiveProtocol): void {
+    writeJSON(KEYS.activeProtocol,  value);
+    writeJSON(KEYS.protocoloAtivo,  value);
+  },
+};
+
+// ── Export ────────────────────────────────────────────────────────────────────
+
+export const glpyStore = {
+  profile,
+  meals,
+  water,
+  emotion,
+  activity,
+  checkin,
+  bodyMeasurements,
+  treatment,
+  aiUsage,
+  protocol,
+};
