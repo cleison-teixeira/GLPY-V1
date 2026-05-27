@@ -339,24 +339,21 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         {/* Cabeçalho confirmação — sempre visível */}
         <div className="flex flex-col items-center gap-2 mb-5">
           <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-          <h1 className="font-bold text-xl text-[#0A1628] text-center">Pagamento confirmado</h1>
-          <p className="text-sm text-primary font-semibold text-center">{planoNome}</p>
-        </div>
-
-        {/* E-mail da compra — sempre visível */}
-        <div className="bg-[#F4F6F8] border border-border rounded-2xl px-4 py-3 mb-5">
-          <p className="text-xs text-text-muted font-semibold mb-0.5">Acesso liberado para</p>
-          <p className="text-sm font-bold text-[#0A1628] break-all">{email}</p>
+          <h1 className="font-bold text-xl text-[#0A1628] text-center">Pagamento confirmado ✅</h1>
+          <p className="text-sm text-text-muted text-center leading-relaxed">
+            Seu acesso ao <strong className="text-primary">{planoNome}</strong> está liberado para:
+          </p>
+          <p className="text-sm font-bold text-[#0A1628] text-center break-all">{email}</p>
         </div>
 
         {/* Área dinâmica por loginStep */}
         <AnimatePresence mode="wait">
 
-          {/* ── Inicial: dois botões ─────────────────────────────────── */}
+          {/* ── Inicial: criar / entrar ───────────────────────────────── */}
           {(loginStep === 'inicial') && (
             <motion.div key="inicial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
               <p className="text-xs text-text-muted text-center leading-relaxed">
-                Para liberar seu plano, crie uma senha ou entre se já tem conta.
+                Para proteger sua conta, crie ou redefina sua senha de acesso.
               </p>
 
               {erroAuth && (
@@ -370,15 +367,18 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 onClick={handleCriarSenha}
                 className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition"
               >
-                Criar minha senha e começar
+                Criar / redefinir minha senha
               </button>
 
-              <button
-                onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
-                className="w-full text-center text-sm text-text-muted font-semibold hover:text-primary py-2 transition"
-              >
-                Já tenho senha, entrar
-              </button>
+              <div className="flex flex-col items-center gap-1 pt-1">
+                <p className="text-xs text-text-muted">Já defini minha senha?</p>
+                <button
+                  onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
+                  className="text-sm text-primary font-bold hover:underline transition"
+                >
+                  Entrar no GLPY
+                </button>
+              </div>
             </motion.div>
           )}
 
