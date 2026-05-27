@@ -250,11 +250,6 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  // Altura inicial do viewport (antes do teclado abrir) — usada para detectar keyboard open
-  const baseViewportHeight = useRef<number>(
-    typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 600
-  );
 
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
@@ -297,36 +292,25 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
     document.body.scrollLeft = 0;
   }, []);
 
-  // Sprint 17A.2.1 — visualViewport: ajusta container ao viewport real quando teclado iOS abre.
-  // Também aciona local-storage-change para que o BottomNav leia a foto de perfil na montagem.
+  // Sprint 17A.2.2 — container agora usa position:fixed (não pode ser scrollado pelo iOS).
+  // visualViewport detecta keyboard open apenas para mostrar/ocultar BottomNav/spacer.
+  // Não seta altura do container por JS — o flex resolve sozinho dentro do fixed inset-0.
   useEffect(() => {
     // Força o BottomNav a reler a foto de perfil do localStorage na primeira montagem
     window.dispatchEvent(new Event('local-storage-change'));
 
     const vv = window.visualViewport;
     if (!vv) return;
-    baseViewportHeight.current = vv.height;
+    const base = vv.height;
 
     const sync = () => {
-      // Ajusta a altura do container ao viewport visível (exclui teclado e barra do browser)
-      if (containerRef.current) {
-        containerRef.current.style.height = `${vv.height}px`;
-      }
-      // Keyboard open = viewport encolheu mais de 150px em relação ao valor base
-      const isOpen = baseViewportHeight.current - vv.height > 150;
+      const isOpen = base - vv.height > 150;
       setKeyboardOpen(isOpen);
-      if (isOpen) {
-        // Rola para o fim das mensagens quando teclado abre
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      }
+      if (isOpen) setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     };
 
     vv.addEventListener('resize', sync);
-    vv.addEventListener('scroll', sync);
-    return () => {
-      vv.removeEventListener('resize', sync);
-      vv.removeEventListener('scroll', sync);
-    };
+    return () => vv.removeEventListener('resize', sync);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -423,9 +407,7 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
 
   return (
     <div
-      ref={containerRef}
-      style={{ height: '100dvh' }}
-      className="w-full max-w-full min-w-0 bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col overflow-hidden overflow-x-hidden md:max-w-[430px] md:mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]"
+      className="fixed inset-0 bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col overflow-hidden overflow-x-hidden md:left-[max(0px,calc(50%-215px))] md:right-[max(0px,calc(50%-215px))] md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]"
     >
 
       {/* Header compacto */}
@@ -525,7 +507,10 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
         )}
 
         {/* Input */}
-        <div className="w-full max-w-full min-w-0 box-border px-4 pt-3 pb-3 bg-background/95 backdrop-blur-sm border-t border-border overflow-hidden">
+        <div
+          className="w-full max-w-full min-w-0 box-border px-4 pt-3 bg-background/95 backdrop-blur-sm border-t border-border overflow-hidden"
+          style={{ paddingBottom: keyboardOpen ? '8px' : 'max(12px, env(safe-area-inset-bottom, 12px))' }}
+        >
           <div className="relative w-full max-w-full min-w-0 box-border flex items-center">
             <textarea
               ref={inputRef}
@@ -533,14 +518,11 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
               onFocus={() => {
-                // Fallback para browsers sem visualViewport (ex: Chrome desktop)
+                // Fallback para browsers sem visualViewport (Chrome desktop, etc.)
                 if (!window.visualViewport) setKeyboardOpen(true);
-                window.scrollTo({ left: 0, top: window.scrollY });
-                document.documentElement.scrollLeft = 0;
-                document.body.scrollLeft = 0;
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
               }}
-              onBlur={() => { if (!window.visualViewport) setTimeout(() => setKeyboardOpen(false), 150); }}
+              onBlur={() => { if (!window.visualViewport) setTimeout(() => setKeyboardOpen(false), 200); }}
               disabled={limitReached}
               placeholder={limitReached ? 'Limite mensal atingido' : 'Pergunte qualquer coisa...'}
               className="flex-1 min-w-0 w-full box-border py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-base focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto disabled:opacity-60 disabled:cursor-not-allowed"
