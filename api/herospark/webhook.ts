@@ -1,19 +1,22 @@
 // GLPY — HeroSpark Webhook
-// Sprint 17B.1
+// Sprint 17B.1 — criação
+// Sprint 17B.3 — normalização de payload, subscription_status: "active", diagnóstico de ignore
+//
 // Endpoint: POST /api/herospark/webhook
 //
 // Responsabilidades:
 //   1. Validar token de segurança
-//   2. Identificar plano pelo offer_id (NÃO pelo preço)
-//   3. Criar/atualizar usuário no Firebase Auth + Firestore
-//   4. Enviar e-mail de acesso via EmailJS
-//   5. Tratar cancelamento: rebaixa plano para starter
+//   2. Normalizar payload (flat ou aninhado)
+//   3. Identificar plano pelo offer_id (NÃO pelo preço)
+//   4. Criar/atualizar usuário no Firebase Auth + Firestore
+//   5. Enviar e-mail de acesso via EmailJS
+//   6. Tratar cancelamento: rebaixa plano para starter
 //
 // Configuração de ambiente (Vercel → Settings → Environment Variables):
 //   FIREBASE_PROJECT_ID
 //   FIREBASE_CLIENT_EMAIL
-//   FIREBASE_PRIVATE_KEY
-//   HEROSPARK_WEBHOOK_TOKEN   (token secreto para validar origem)
+//   FIREBASE_PRIVATE_KEY      (chave privada com \n literais — Vercel substitui em runtime)
+//   HEROSPARK_WEBHOOK_TOKEN   (opcional — token extra além do fixo)
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { initializeApp, getApps, cert } from "firebase-admin/app";
@@ -50,6 +53,35 @@ function planFromOfferId(offerId: string | number | undefined): string {
   return HEROSPARK_OFFER_MAP[String(offerId)] ?? "starter";
 }
 
+// ── Normalização de payload ───────────────────────────────────────────────────
+// HeroSpark pode enviar campos flat (buyer_email) ou aninhados (buyer.email).
+// Esta função normaliza os dois formatos para a interface padrão.
+
+function normalizePayload(raw: Record<string, unknown>): HeroSparkPayload {
+  const buyer       = raw.buyer        as Record<string, unknown> | undefined;
+  const payment     = raw.payment      as Record<string, unknown> | undefined;
+  const offer       = raw.offer        as Record<string, unknown> | undefined;
+  const subscription = raw.subscription as Record<string, unknown> | undefined;
+
+  return {
+    buyer_email:  (raw.buyer_email  as string | undefined) ?? (buyer?.email  as string | undefined),
+    buyer_name:   (raw.buyer_name   as string | undefined) ?? (buyer?.name   as string | undefined),
+    buyer_phone:  (raw.buyer_phone  as string | undefined) ?? (buyer?.phone  as string | undefined),
+    product_id:   raw.product_id  ?? undefined,
+    product_name: raw.product_name as string | undefined,
+    offer_id:     raw.offer_id    ?? (offer?.id)           ?? undefined,
+    offer_title:  raw.offer_title as string | undefined,
+    payment_id:   raw.payment_id  ?? (payment?.id)         ?? undefined,
+    payment_status: (raw.payment_status as string | undefined) ?? (payment?.status as string | undefined),
+    payment_method: (raw.payment_method as string | undefined) ?? (payment?.method as string | undefined),
+    payment_value:  (raw.payment_value  as number | string | undefined) ?? (payment?.value as number | string | undefined),
+    subscription_id:     raw.subscription_id     ?? (subscription?.id)     ?? undefined,
+    subscription_status: (raw.subscription_status as string | undefined)   ?? (subscription?.status as string | undefined),
+    subscription_available_until: raw.subscription_available_until as string | undefined,
+    execution_at: raw.execution_at as string | undefined,
+  };
+}
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -76,32 +108,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // 3. Payload
-  const body = req.body as HeroSparkPayload;
-  const email = body?.buyer_email?.trim().toLowerCase();
+  // 3. Normalizar payload (aceita flat e aninhado)
+  const raw  = req.body as Record<string, unknown> ?? {};
+  const body = normalizePayload(raw);
+
+  const email = body.buyer_email?.trim().toLowerCase();
   if (!email) {
-    return res.status(400).json({ error: "Missing buyer_email" });
+    console.warn("[HeroSpark] payload sem email:", JSON.stringify(raw).slice(0, 300));
+    return res.status(400).json({ error: "Missing buyer_email", reason: "missing_email" });
   }
 
-  const paymentStatus      = body?.payment_status ?? "";
-  const subscriptionStatus = body?.subscription_status ?? "";
+  const paymentStatus      = body.payment_status      ?? "";
+  const subscriptionStatus = body.subscription_status ?? "";
+  const offerId            = String(body.offer_id ?? "");
 
   console.log("[HeroSpark] recebido:", {
     email,
-    offer_id: body?.offer_id,
-    payment_status: paymentStatus,
+    offer_id:            offerId,
+    payment_status:      paymentStatus,
     subscription_status: subscriptionStatus,
+    payment_method:      body.payment_method,
+    raw_keys:            Object.keys(raw),
   });
 
   try {
 
-    // ── 4a. Pagamento aprovado ──────────────────────────────────────────────
-    if (paymentStatus === "approved") {
-      const planTipo  = planFromOfferId(body?.offer_id);
-      const offerId   = String(body?.offer_id ?? "");
-      const productId = String(body?.product_id ?? "");
+    // ── 4a. Pagamento aprovado OU assinatura ativa ──────────────────────────
+    // Sprint 17B.3: aceita subscription_status: "active" além de payment_status: "approved".
+    // Necessário para Pix e para eventos de renovação de assinatura HeroSpark.
+    const isAprovado = paymentStatus === "approved" || subscriptionStatus === "active";
 
-      // Busca ou cria usuário no Firebase Auth
+    if (isAprovado) {
+      const planTipo   = planFromOfferId(body.offer_id);
+      const productId  = String(body.product_id ?? "");
+
+      if (planTipo === "starter" && offerId) {
+        // offer_id veio mas não está mapeado — logar para diagnóstico
+        console.warn("[HeroSpark] offer_id desconhecido — plano fallback=starter:", { offerId, email });
+      }
+
+      // Busca ou cria usuário no Firebase Auth + Firestore
       const snapshot = await db
         .collection("users")
         .where("email", "==", email)
@@ -120,22 +166,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         uid = snapshot.docs[0].id;
       }
 
-      const nomeCliente   = (body?.buyer_name ?? "Usuário GLPY").trim();
-      const subscriptionId = String(body?.subscription_id ?? "");
-      const paymentId      = String(body?.payment_id ?? "");
-      const availableUntil = body?.subscription_available_until ?? null;
+      const nomeCliente    = (body.buyer_name ?? "Usuário GLPY").trim();
+      const subscriptionId = String(body.subscription_id ?? "");
+      const paymentId      = String(body.payment_id ?? "");
+      const availableUntil = body.subscription_available_until ?? null;
 
-      // Dado de acesso: compatível com syncFromFirestore (usa plano.tipo)
+      // Dado de acesso: lido por syncFromFirestore via plano.tipo
       const planoData = {
-        tipo:                     planTipo,
-        status:                   "active",
-        origem:                   "herospark",
-        heroSparkOfferId:         offerId,
-        heroSparkSubscriptionId:  subscriptionId,
-        dataExpiracao:            null,   // assinatura recorrente — sem data fixa de expiração
+        tipo:                    planTipo,
+        status:                  "active",
+        origem:                  "herospark",
+        heroSparkOfferId:        offerId,
+        heroSparkSubscriptionId: subscriptionId,
+        dataExpiracao:           null,   // assinatura recorrente — sem data fixa
       };
 
-      // Dado completo para auditoria / access_control
+      // Dado completo para auditoria
       const heroSparkData = {
         source:         "herospark",
         plan:           planTipo,
@@ -148,20 +194,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         paymentId,
         subscriptionId,
         subscriptionAvailableUntil: availableUntil,
-        paymentMethod:  body?.payment_method ?? null,
-        paymentValue:   body?.payment_value  ?? null,  // armazenado apenas para auditoria
+        paymentMethod:  body.payment_method ?? null,
+        paymentValue:   body.payment_value  ?? null,
         updatedAt:      FieldValue.serverTimestamp(),
       };
 
       if (!existia) {
         await db.collection("users").doc(uid).set({
           email,
-          nome:          nomeCliente,
+          nome:           nomeCliente,
           primeiroAcesso: true,
-          plano:         planoData,
-          herospark:     heroSparkData,
-          createdAt:     FieldValue.serverTimestamp(),
-          updatedAt:     FieldValue.serverTimestamp(),
+          plano:          planoData,
+          herospark:      heroSparkData,
+          createdAt:      FieldValue.serverTimestamp(),
+          updatedAt:      FieldValue.serverTimestamp(),
         });
       } else {
         await db.collection("users").doc(uid).update({
@@ -171,32 +217,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      console.log("[HeroSpark] purchase.approved:", { email, planTipo, offerId, novo: !existia });
+      console.log("[HeroSpark] ativado:", { email, planTipo, offerId, novo: !existia, trigger: isAprovado ? (paymentStatus === "approved" ? "payment_approved" : "subscription_active") : "—" });
 
-      // E-mail de boas-vindas via EmailJS
-      await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id:  "service_2yk9ntj",
-          template_id: "template_s9fz94e",
-          user_id:     "nzjByS_tk1VefLj3y",
-          template_params: {
-            to_email: email,
-            to_name:  nomeCliente,
-            plano:    planTipo,
-            senha:    "GLPY@2026",
-            app_url:  "glpy.com.br",
-          },
-        }),
-      });
+      // E-mail de boas-vindas via EmailJS (somente em criação nova)
+      if (!existia) {
+        await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id:  "service_2yk9ntj",
+            template_id: "template_s9fz94e",
+            user_id:     "nzjByS_tk1VefLj3y",
+            template_params: {
+              to_email: email,
+              to_name:  nomeCliente,
+              plano:    planTipo,
+              senha:    "GLPY@2026",
+              app_url:  "glpy.com.br",
+            },
+          }),
+        }).catch((e) => console.warn("[HeroSpark] EmailJS falhou:", e?.message));
 
-      console.log("[HeroSpark] email enviado para:", email);
+        console.log("[HeroSpark] email enviado para:", email);
+      }
 
-      return res.status(200).json({ ok: true, plan: planTipo });
+      return res.status(200).json({ ok: true, plan: planTipo, novo: !existia });
     }
 
-    // ── 4b. Assinatura cancelada ─────────────────────────────────────────────
+    // ── 4b. Assinatura cancelada / reembolso / chargeback ───────────────────
     if (subscriptionStatus === "canceled" || paymentStatus === "refunded" || paymentStatus === "chargeback") {
       const snapshot = await db
         .collection("users")
@@ -223,14 +271,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ok: true, action: "canceled" });
     }
 
-    // ── 4c. Evento não tratado ───────────────────────────────────────────────
-    console.log("[HeroSpark] evento ignorado:", { paymentStatus, subscriptionStatus });
-    return res.status(200).json({ ignored: true });
+    // ── 4c. Evento não tratado — retornar diagnóstico ────────────────────────
+    const ignoreReason =
+      !paymentStatus && !subscriptionStatus ? "missing_status_fields"
+      : paymentStatus === "pending" || paymentStatus === "waiting_payment" ? "payment_not_confirmed"
+      : "unhandled_event";
+
+    console.log("[HeroSpark] ignorado:", { email, paymentStatus, subscriptionStatus, ignoreReason });
+    return res.status(200).json({
+      ignored: true,
+      reason:  ignoreReason,
+      debug: {
+        payment_status:      paymentStatus,
+        subscription_status: subscriptionStatus,
+        offer_id:            offerId,
+      },
+    });
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[HeroSpark] erro:", message);
-    return res.status(500).json({ error: message });
+    console.error("[HeroSpark] firebase_write_failed:", message);
+    return res.status(500).json({ error: message, reason: "firebase_write_failed" });
   }
 }
 
@@ -245,7 +306,7 @@ interface HeroSparkPayload {
   offer_id?:                    string | number;
   offer_title?:                 string;
   payment_id?:                  string | number;
-  payment_status?:              string; // 'approved' | 'pending' | 'refunded' | 'chargeback' | 'canceled'
+  payment_status?:              string; // 'approved' | 'pending' | 'waiting_payment' | 'refunded' | 'chargeback'
   payment_method?:              string;
   payment_value?:               number | string;
   subscription_id?:             string | number;
