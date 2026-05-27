@@ -24,7 +24,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } fr
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 type CheckStatus = 'loading' | 'token_invalido' | 'plano_ativo' | 'aguardando' | 'nao_encontrado' | 'erro';
-type LoginStep   = 'inicial' | 'form_senha' | 'enviando' | 'sucesso' | 'reset_enviado';
+type LoginStep   = 'inicial' | 'form_senha' | 'enviando' | 'sucesso' | 'reset_enviado' | 'enviando_reset';
 
 interface AcessoScreenProps {
   user:        User | null;
@@ -75,7 +75,6 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   const [senha,       setSenha]       = useState('');
   const [verSenha,    setVerSenha]    = useState(false);
   const [erroAuth,    setErroAuth]    = useState<string | null>(null);
-  const [hintSenha,   setHintSenha]   = useState(false);
 
   // ── 1. Validar token localmente ───────────────────────────────────────────
   useEffect(() => {
@@ -126,7 +125,21 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
       });
   }, [checkStatus, authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 4. Login com e-mail travado ───────────────────────────────────────────
+  // ── 4. Criar senha — envia link seguro via Firebase ──────────────────────
+  async function handleCriarSenha() {
+    if (!email) return;
+    setErroAuth(null);
+    setLoginStep('enviando_reset');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setLoginStep('reset_enviado');
+    } catch {
+      setErroAuth('Não conseguimos enviar o link. Verifique sua conexão e tente novamente.');
+      setLoginStep('inicial');
+    }
+  }
+
+  // ── 5. Login com e-mail travado ───────────────────────────────────────────
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
     if (!email || !senha) return;
@@ -134,38 +147,20 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     setLoginStep('enviando');
     try {
       await signInWithEmailAndPassword(auth, email, senha);
-      // onAuthStateChanged em App.tsx vai sincronizar e navegar
       setLoginStep('sucesso');
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? '';
-      const msg  = traduzirErroAuth(code);
-      setErroAuth(msg);
-      // Se senha errada, mostrar hint sobre senha padrão
-      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setHintSenha(true);
-      }
+      setErroAuth(traduzirErroAuth(code));
       setLoginStep('form_senha');
-    }
-  }
-
-  // ── 5. Redefinir senha ────────────────────────────────────────────────────
-  async function handleResetSenha() {
-    if (!email) return;
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setLoginStep('reset_enviado');
-    } catch {
-      setErroAuth('Erro ao enviar e-mail de redefinição. Tente novamente.');
     }
   }
 
   // ── 6. Sair e entrar com o e-mail da compra ───────────────────────────────
   async function handleSairETrocar() {
     await signOut(auth);
-    setLoginStep('form_senha');
+    setLoginStep('inicial');
     setSenha('');
     setErroAuth(null);
-    setHintSenha(false);
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -331,7 +326,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     );
   }
 
-  // Usuário NÃO autenticado — mostrar tela de confirmação + login
+  // Usuário NÃO autenticado — tela de confirmação + fluxo de acesso
   return (
     <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center p-6">
       {renderLogo()}
@@ -341,77 +336,101 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-border p-7"
       >
-        {/* Cabeçalho confirmação */}
-        <div className="flex flex-col items-center gap-2 mb-6">
+        {/* Cabeçalho confirmação — sempre visível */}
+        <div className="flex flex-col items-center gap-2 mb-5">
           <CheckCircle2 className="w-12 h-12 text-emerald-500" />
           <h1 className="font-bold text-xl text-[#0A1628] text-center">Pagamento confirmado</h1>
           <p className="text-sm text-primary font-semibold text-center">{planoNome}</p>
         </div>
 
-        {/* E-mail da compra */}
+        {/* E-mail da compra — sempre visível */}
         <div className="bg-[#F4F6F8] border border-border rounded-2xl px-4 py-3 mb-5">
           <p className="text-xs text-text-muted font-semibold mb-0.5">Acesso liberado para</p>
           <p className="text-sm font-bold text-[#0A1628] break-all">{email}</p>
         </div>
 
-        <p className="text-xs text-text-muted text-center mb-5 leading-relaxed">
-          Para liberar seu plano automaticamente, entre com este mesmo e-mail.
-        </p>
-
-        {/* Separador */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-grow h-px bg-border" />
-          <span className="text-xs text-text-muted font-medium">Entrar</span>
-          <div className="flex-grow h-px bg-border" />
-        </div>
-
-        {/* Form de senha */}
+        {/* Área dinâmica por loginStep */}
         <AnimatePresence mode="wait">
-          {loginStep === 'reset_enviado' ? (
-            <motion.div
-              key="reset"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-3 py-4"
-            >
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-              <p className="text-sm text-[#0A1628] font-semibold text-center">
-                E-mail de redefinição enviado para{' '}
-                <span className="text-primary">{email}</span>
+
+          {/* ── Inicial: dois botões ─────────────────────────────────── */}
+          {(loginStep === 'inicial') && (
+            <motion.div key="inicial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+              <p className="text-xs text-text-muted text-center leading-relaxed">
+                Para liberar seu plano, crie uma senha ou entre se já tem conta.
+              </p>
+
+              {erroAuth && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">{erroAuth}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleCriarSenha}
+                className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition"
+              >
+                Criar minha senha e começar
+              </button>
+
+              <button
+                onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
+                className="w-full text-center text-sm text-text-muted font-semibold hover:text-primary py-2 transition"
+              >
+                Já tenho senha, entrar
+              </button>
+            </motion.div>
+          )}
+
+          {/* ── Enviando link de criação de senha ────────────────────── */}
+          {loginStep === 'enviando_reset' && (
+            <motion.div key="enviando_reset" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-3 py-4">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-text-muted text-center">Enviando link seguro...</p>
+            </motion.div>
+          )}
+
+          {/* ── Link enviado ─────────────────────────────────────────── */}
+          {loginStep === 'reset_enviado' && (
+            <motion.div key="reset_enviado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-3 py-2">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              <p className="text-sm font-bold text-[#0A1628] text-center">Link enviado!</p>
+              <p className="text-xs text-text-muted text-center leading-relaxed">
+                Enviamos um link seguro para você criar sua senha em{' '}
+                <strong className="text-primary">{email}</strong>.
+                Verifique sua caixa de entrada e spam.
               </p>
               <p className="text-xs text-text-muted text-center">
-                Verifique sua caixa de entrada e spam. Após redefinir, volte aqui para entrar.
+                Após criar sua senha, volte aqui e clique em{' '}
+                <strong>"Já tenho senha, entrar"</strong>.
               </p>
               <button
-                onClick={() => { setLoginStep('form_senha'); setErroAuth(null); }}
-                className="text-primary text-sm font-semibold hover:underline mt-1"
+                onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
+                className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md hover:bg-primary/90 transition mt-2"
+              >
+                Já defini minha senha, entrar
+              </button>
+              <button
+                onClick={() => { setErroAuth(null); setLoginStep('inicial'); }}
+                className="text-xs text-text-muted hover:text-primary transition"
               >
                 Voltar
               </button>
             </motion.div>
-          ) : loginStep === 'sucesso' ? (
-            <motion.div
-              key="sucesso"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-3 py-4"
-            >
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-text-muted text-center">Carregando seu plano...</p>
-            </motion.div>
-          ) : (
+          )}
+
+          {/* ── Formulário de login (e-mail travado) ─────────────────── */}
+          {(loginStep === 'form_senha' || loginStep === 'enviando') && (
             <motion.form
-              key="form"
+              key="form_senha"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onSubmit={handleLogin}
               className="space-y-3"
             >
-              {/* E-mail travado */}
               <div>
-                <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                  E-mail da compra
-                </label>
+                <label className="block text-xs font-semibold text-text-muted mb-1.5">E-mail da compra</label>
                 <input
                   type="email"
                   value={email ?? ''}
@@ -420,7 +439,6 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 />
               </div>
 
-              {/* Senha */}
               <div>
                 <label className="block text-xs font-semibold text-text-muted mb-1.5">Senha</label>
                 <div className="relative">
@@ -433,23 +451,15 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                     autoFocus
                     className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setVerSenha(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"
-                  >
+                  <button type="button" onClick={() => setVerSenha(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">
                     {verSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Erro */}
               <AnimatePresence>
                 {erroAuth && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                     className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2.5"
                   >
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -458,43 +468,36 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 )}
               </AnimatePresence>
 
-              {/* Hint senha padrão */}
-              <AnimatePresence>
-                {hintSenha && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 leading-relaxed"
-                  >
-                    Se é seu primeiro acesso ao GLPY, tente a senha <strong>GLPY@2026</strong>.
-                    Caso não funcione, redefina sua senha abaixo.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Botão entrar */}
               <button
                 type="submit"
                 disabled={loginStep === 'enviando' || !senha}
                 className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition disabled:opacity-60 mt-2"
               >
-                {loginStep === 'enviando'
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : 'Acessar meu GLPY'
-                }
+                {loginStep === 'enviando' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Acessar meu GLPY'}
               </button>
 
-              {/* Redefinir senha */}
-              <button
-                type="button"
-                onClick={handleResetSenha}
+              <button type="button" onClick={handleCriarSenha}
                 className="w-full text-center text-xs text-text-muted hover:text-primary py-1 transition"
               >
-                Esqueci minha senha
+                Esqueci minha senha — enviar novo link
+              </button>
+
+              <button type="button" onClick={() => { setErroAuth(null); setLoginStep('inicial'); setSenha(''); }}
+                className="w-full text-center text-xs text-text-muted hover:text-primary py-0.5 transition"
+              >
+                Voltar
               </button>
             </motion.form>
           )}
+
+          {/* ── Sucesso: aguardando onAuthStateChanged ────────────────── */}
+          {loginStep === 'sucesso' && (
+            <motion.div key="sucesso" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-3 py-4">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-text-muted text-center">Carregando seu plano...</p>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </motion.div>
 
