@@ -4,6 +4,7 @@ import { Calendar, ChevronLeft, RotateCcw } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { dispararConfetti } from "../utils/confetti";
 import { glpyStore } from "../data/glpyStore";
+import { getLocalDateKey } from "../utils/formatters";
 
 type HistItem = { id: string; label: string; data: string };
 
@@ -16,7 +17,7 @@ const PONTOS = [
   { id: "braco-dir", label: "Braço Dir.",   cx: 178, cy: 138, desc: "Lateral do braço direito" },
 ];
 
-const hoje = new Date().toISOString().split('T')[0];
+const hoje = getLocalDateKey();
 const fmtData = (d: string) =>
   new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 

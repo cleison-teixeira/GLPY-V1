@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Camera, ChevronLeft, Upload, Loader2, RotateCcw, ShoppingBag, CheckCircle, X } from "lucide-react";
 import BottomNav from "./BottomNav";
+import { getLocalDateKey } from "../utils/formatters";
 
 const LIMITES: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
 
 function getFotosHoje(): number {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   if (localStorage.getItem("glpy_fotos_data") !== hoje) {
     localStorage.setItem("glpy_fotos_data", hoje);
     localStorage.setItem("glpy_fotos_hoje", "0");
@@ -16,13 +17,13 @@ function getFotosHoje(): number {
 }
 
 function incrementarFotos() {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   localStorage.setItem("glpy_fotos_data", hoje);
   localStorage.setItem("glpy_fotos_hoje", String(getFotosHoje() + 1));
 }
 
 function acumularProteina(g: number) {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   if (localStorage.getItem("glpy_proteina_data") !== hoje) {
     localStorage.setItem("glpy_proteina_data", hoje);
     localStorage.setItem("glpy_proteina_hoje", "0");

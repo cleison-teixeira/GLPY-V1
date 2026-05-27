@@ -18,6 +18,7 @@ import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 import { calculateNextInjection } from '../../utils/treatmentUtils';
+import { getLocalDateKey } from '../../utils/formatters';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -74,18 +75,16 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
   const [saveState,           setSaveState]           = useState<'idle' | 'saving' | 'saved'>('idle');
   const [noSymptomsModalOpen, setNoSymptomsModalOpen] = useState(false);
 
-  function todayISO(): string { return new Date().toISOString().slice(0, 10); }
-
   function hasTodaySymptoms(): boolean {
     try {
       const rec = glpyStore.treatment.getEfeitosHoje();
       if (!rec) return false;
-      return rec.date === todayISO();
+      return rec.date === getLocalDateKey();
     } catch { return false; }
   }
 
   function registerNoSymptoms(): void {
-    const today = todayISO();
+    const today = getLocalDateKey();
     const record = { date: today, symptoms: [], intensity: 'none', noSymptoms: true, savedAt: new Date().toISOString() };
     glpyStore.treatment.saveEfeitosHoje(record);
     try {
@@ -103,7 +102,7 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
     glpyBlackBox.addEvent({
       type: EVENT_TYPES.INJECTION_LOGGED, category: CATEGORIES.INJECTION, domain: DOMAINS.TREATMENT,
       signal: SIGNALS.INJECTION_LOGGED, screen: 'InjectionScreen', source: 'manual',
-      payload: { date: new Date().toISOString().slice(0, 10) },
+      payload: { date: getLocalDateKey() },
     });
     setTimeout(() => {
       setSaveState('saved');

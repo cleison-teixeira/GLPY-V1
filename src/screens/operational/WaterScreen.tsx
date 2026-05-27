@@ -12,7 +12,7 @@ import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/u
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
-import { formatLiters } from '../../utils/formatters';
+import { formatLiters, getLocalDateKey } from '../../utils/formatters';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // MVP PLACEHOLDER — meta diária fixa. No futuro será calculada dinamicamente
@@ -46,7 +46,7 @@ function readTodayWater(): number {
   try {
     const w = glpyStore.water.getToday();
     if (!w) return 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateKey();
     if (w.date !== today) return 0;
     return parseFloat(String(w.amount)) || 0;
   } catch { return 0; }
@@ -64,7 +64,7 @@ export default function WaterScreen({ onBack, onSave }: WaterScreenProps) {
   function handleAdd(amount: number) {
     setWaterAmount(prev => {
       const next = parseFloat(Math.min(prev + amount, 99).toFixed(2));
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       glpyStore.water.saveToday({ amount: next, date: today, updatedAt: new Date().toISOString() });
       glpyBlackBox.addEvent({
         type: EVENT_TYPES.WATER_UPDATED, category: CATEGORIES.HYDRATION, domain: DOMAINS.METABOLISM,

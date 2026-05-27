@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import { glpyStore } from './data/glpyStore';
+import { getLocalDateKey } from './utils/formatters';
 import './index.css';
 
 const root = createRoot(document.getElementById('root')!);
@@ -215,7 +216,7 @@ if (path === '/admin') {
         <WaterScreen
           onBack={() => { window.location.href = getHomePath(); }}
           onSave={(amount) => {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = getLocalDateKey();
             glpyStore.water.saveToday({ amount, date: today, updatedAt: new Date().toISOString() });
             window.dispatchEvent(new Event('local-storage-change'));
             window.location.href = getHomePath();
@@ -508,6 +509,14 @@ if (path === '/admin') {
     root.render(
       <StrictMode>
         <DailyTargetsTestScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
+} else if (path === '/preview/date-risk-test') {
+  import('./screens/debug/DateRiskTestScreen.tsx').then(({ default: DateRiskTestScreen }) => {
+    root.render(
+      <StrictMode>
+        <DateRiskTestScreen onBack={() => { window.location.href = '/preview'; }} />
       </StrictMode>,
     );
   });

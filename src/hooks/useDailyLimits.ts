@@ -16,8 +16,22 @@ function getTodayKey(): string {
   return getLocalDateKey();
 }
 
-function getCurrentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+// Zera glpy_ai_usage localmente quando detecta mudança de dia.
+// Roda antes de qualquer leitura, garantindo que readIAUsage retorna 0 no novo dia
+// mesmo antes de qualquer callback async (Firestore) completar.
+function resetLocalIfNewDay(): void {
+  try {
+    const parsed = glpyStore.aiUsage.get() as any;
+    const today = getTodayKey();
+    if (!parsed.date || parsed.date !== today) {
+      const plano = localStorage.getItem('glpy_plano') ?? 'starter';
+      const limit = LIMITES_IA[plano] ?? 10;
+      glpyStore.aiUsage.save({
+        date: today, dia: today, reset_dia: today,
+        used: 0, limit, updatedAt: new Date().toISOString(),
+      } as any);
+    }
+  } catch {}
 }
 
 function readIAUsage(iaLimite: number): number {
@@ -31,6 +45,7 @@ function readIAUsage(iaLimite: number): number {
 }
 
 function readDailyLimits(): DailyLimitsData {
+  resetLocalIfNewDay();
   const plano = localStorage.getItem('glpy_plano') ?? 'starter';
   const fotosLimite = LIMITES_FOTO[plano] ?? 3;
   const iaLimite   = LIMITES_IA[plano]   ?? 10;

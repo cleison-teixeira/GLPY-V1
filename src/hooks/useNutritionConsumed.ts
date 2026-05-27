@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { glpyStore } from '../data/glpyStore';
+import { getLocalDateKey } from '../utils/formatters';
 
 export interface NutritionConsumed {
   consumedCalories: number;
@@ -33,7 +34,7 @@ function isToday(e: any, todayKey: string): boolean {
   if (typeof e.createdAt === 'string' && e.createdAt.length >= 10)
     return e.createdAt.slice(0, 10) === todayKey;
   if (e.savedAt)
-    return new Date(e.savedAt).toISOString().slice(0, 10) === todayKey;
+    return getLocalDateKey(new Date(e.savedAt)) === todayKey;
   return true;
 }
 

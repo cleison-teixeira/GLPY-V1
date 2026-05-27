@@ -15,6 +15,7 @@ import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/u
 import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
+import { getLocalDateKey } from '../../utils/formatters';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
@@ -52,12 +53,6 @@ const SYMPTOM_OPTIONS = [
 
 const INTENSITY_OPTIONS: Intensity[] = ['Leve', 'Moderada', 'Forte'];
 
-// ── Helpers de storage ───────────────────────────────────────────────────────
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenProps) {
@@ -76,7 +71,7 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
     try {
       const rec = glpyStore.treatment.getEfeitosHoje();
       if (!rec) return;
-      if (rec.date !== todayISO()) return; // stale — different day
+      if (rec.date !== getLocalDateKey()) return; // stale — different day
       if (Array.isArray(rec.symptoms))       setSelectedSymptoms(rec.symptoms);
       if (rec.intensity)                     setSelectedIntensity(rec.intensity as Intensity);
       if (typeof rec.note === 'string')      setNote(rec.note);
@@ -97,7 +92,7 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
   }
 
   function handleSave() {
-    const today = todayISO();
+    const today = getLocalDateKey();
     const record = {
       date:      today,
       symptoms:  selectedSymptoms,

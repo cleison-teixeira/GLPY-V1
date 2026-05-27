@@ -12,9 +12,10 @@ import { glpyStore } from './glpyStore';
 import { glpyBlackBox } from './glpyBlackBox';
 import { CATEGORIES } from './glpyEventCatalog';
 import type { GlpyBlackBoxEvent } from './types';
+import { getLocalDateKey } from '../utils/formatters';
 
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateKey();
 }
 
 function safeGet<T>(fn: () => T, fallback: T): T {
@@ -176,14 +177,16 @@ export function buildTodaySnapshot(): TodaySnapshot {
     const dates = hist.map((i: any) => (typeof i === 'string' ? i : i?.date)).filter(Boolean);
     const unique = Array.from(new Set(dates)).sort((a: any, b: any) => b.localeCompare(a)) as string[];
     const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const yStr = yest.toISOString().slice(0, 10);
+    const yStr = getLocalDateKey(yest);
     const hasToday = unique.includes(today);
     const hasYest  = unique.includes(yStr);
     if (!hasToday && !hasYest) return 0;
     let streak = 0;
-    let d = new Date(hasToday ? today : yStr);
+    const startStr = hasToday ? today : yStr;
+    const [sy, sm, sd] = startStr.split('-').map(Number);
+    let d = new Date(sy, sm - 1, sd); // construtor local — evita UTC midnight
     while (true) {
-      const s = d.toISOString().slice(0, 10);
+      const s = getLocalDateKey(d);
       if (unique.includes(s)) { streak++; d.setDate(d.getDate() - 1); } else break;
     }
     return streak;
@@ -192,7 +195,7 @@ export function buildTodaySnapshot(): TodaySnapshot {
   // Emoção
   const emotionEntry = safeGet(() => glpyStore.emotion.getToday() as any, null);
   const emotionIsToday = emotionEntry?.savedAt
-    ? new Date(emotionEntry.savedAt).toISOString().slice(0, 10) === today
+    ? getLocalDateKey(new Date(emotionEntry.savedAt)) === today
     : false;
   const emotionMood   = emotionIsToday ? (emotionEntry?.mood || null) : null;
   const emotionEnergy = emotionIsToday ? (emotionEntry?.energy ?? null) : null;
@@ -205,7 +208,7 @@ export function buildTodaySnapshot(): TodaySnapshot {
 
   // Aplicação
   const injEntry     = safeGet(() => glpyStore.treatment.getUltimaInjecao() as any, null);
-  const injDate      = injEntry?.savedAt ? new Date(injEntry.savedAt).toISOString().slice(0, 10) : (injEntry?.date || null);
+  const injDate      = injEntry?.savedAt ? getLocalDateKey(new Date(injEntry.savedAt)) : (injEntry?.date || null);
   const injectionDone = injDate === today;
 
   // IA

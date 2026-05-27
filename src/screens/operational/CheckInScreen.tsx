@@ -22,7 +22,7 @@ import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { transition } from '../../theme/motion';
-import { formatLiters } from '../../utils/formatters';
+import { formatLiters, getLocalDateKey } from '../../utils/formatters';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ function buildResumoItems(todayStr: string) {
       const list = JSON.parse(localStorage.getItem('glpy_refeicoes_hoje') || '[]');
       if (!Array.isArray(list)) return { value: 'Pendente', done: false };
       const count = list.filter((r: any) =>
-        r?.savedAt && new Date(r.savedAt).toISOString().slice(0, 10) === todayStr
+        r?.savedAt && getLocalDateKey(new Date(r.savedAt)) === todayStr
       ).length;
       if (count === 0) return { value: 'Pendente', done: false };
       return { value: `${count} de 3`, done: count >= 3 };
@@ -62,7 +62,7 @@ function buildResumoItems(todayStr: string) {
   const aplicacao = (() => {
     try {
       const p = glpyStore.treatment.getUltimaInjecao();
-      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      const isToday = p?.savedAt && getLocalDateKey(new Date(p.savedAt)) === todayStr;
       return isToday ? { value: 'Registrada', done: true } : { value: 'Pendente', done: false };
     } catch { return { value: 'Pendente', done: false }; }
   })();
@@ -71,7 +71,7 @@ function buildResumoItems(todayStr: string) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const p = glpyStore.emotion.getToday() as any;
-      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      const isToday = p?.savedAt && getLocalDateKey(new Date(p.savedAt)) === todayStr;
       if (!isToday) return { value: 'Pendente', done: false };
       return { value: typeof p?.mood === 'string' ? p.mood : 'Registrada', done: true };
     } catch { return { value: 'Pendente', done: false }; }
@@ -81,7 +81,7 @@ function buildResumoItems(todayStr: string) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const p = glpyStore.activity.getToday() as any;
-      const isToday = p?.savedAt && new Date(p.savedAt).toISOString().slice(0, 10) === todayStr;
+      const isToday = p?.savedAt && getLocalDateKey(new Date(p.savedAt)) === todayStr;
       if (!isToday) return { value: 'Pendente', done: false };
       return { value: p?.duration ? `${p.duration} min` : 'Registrada', done: true };
     } catch { return { value: 'Pendente', done: false }; }
@@ -115,7 +115,7 @@ function buildResumoItems(todayStr: string) {
 type CheckInSaveState = 'idle' | 'saving' | 'saved';
 
 export default function CheckInScreen({ onBack }: CheckInScreenProps) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateKey();
   const resumoItems = buildResumoItems(todayStr);
   const doneCount = resumoItems.filter(i => i.done).length;
 
@@ -141,16 +141,17 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
         return '';
       }).filter(Boolean);
       const unique = Array.from(new Set(dates)).sort((a: any, b: any) => b.localeCompare(a)) as string[];
-      const todayStr = new Date().toISOString().split('T')[0];
       const yest = new Date(); yest.setDate(yest.getDate() - 1);
-      const yesterdayStr = yest.toISOString().split('T')[0];
+      const yesterdayStr = getLocalDateKey(yest);
       const hasToday = unique.includes(todayStr);
       const hasYesterday = unique.includes(yesterdayStr);
       if (!hasToday && !hasYesterday) return 0;
       let streak = 0;
-      let d = new Date(hasToday ? todayStr : yesterdayStr);
+      const startStr = hasToday ? todayStr : yesterdayStr;
+      const [sy, sm, sd] = startStr.split('-').map(Number);
+      let d = new Date(sy, sm - 1, sd); // construtor local — evita UTC midnight
       while (true) {
-        const s = d.toISOString().split('T')[0];
+        const s = getLocalDateKey(d);
         if (unique.includes(s)) { streak++; d.setDate(d.getDate() - 1); } else break;
       }
       return streak;
@@ -159,7 +160,6 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
   const alreadyDoneToday = (() => {
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsed = glpyStore.checkin.getToday() as any;
       return parsed?.date === todayStr;
@@ -169,8 +169,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   function handleCheckIn() {
     if (checkInState !== 'idle') return;
     setCheckInState('saving');
-    const today = new Date().toISOString().split('T')[0];
-    const newEntry = { date: today, dayFeeling: selectedDayFeeling, savedAt: Date.now() };
+    const newEntry = { date: todayStr, dayFeeling: selectedDayFeeling, savedAt: Date.now() };
     glpyStore.checkin.saveToday(newEntry);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,7 +179,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
     if (!Array.isArray(hist)) hist = [];
 
     const existingIndex = hist.findIndex((item: any) =>
-      typeof item === 'string' ? item === today : item?.date === today
+      typeof item === 'string' ? item === todayStr : item?.date === todayStr
     );
     if (existingIndex !== -1) {
       hist[existingIndex] = typeof hist[existingIndex] === 'string'

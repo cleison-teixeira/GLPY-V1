@@ -12,6 +12,7 @@
 // - SSR safe: verifica typeof window antes de acessar localStorage
 
 import type { GlpyBlackBoxEvent } from './types';
+import { getLocalDateKey } from '../utils/formatters';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ function isBrowser(): boolean {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateKey();
 }
 
 function generateId(): string {
@@ -58,7 +59,7 @@ function writeRaw(events: GlpyBlackBoxEvent[]): void {
 function pruneOldEvents(events: GlpyBlackBoxEvent[], days: number): GlpyBlackBoxEvent[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
-  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  const cutoffISO = getLocalDateKey(cutoff);
   return events.filter(e => e.date >= cutoffISO);
 }
 
@@ -74,7 +75,7 @@ function addEvent(event: Omit<GlpyBlackBoxEvent, 'id' | 'date' | 'timestamp'> & 
   const now = new Date();
   const fullEvent: GlpyBlackBoxEvent = {
     id:        event.id        ?? generateId(),
-    date:      event.date      ?? now.toISOString().slice(0, 10),
+    date:      event.date      ?? getLocalDateKey(now),
     timestamp: event.timestamp ?? now.toISOString(),
     type:      event.type,
     category:  event.category,
@@ -125,7 +126,7 @@ function getEventsBySignal(signal: string): GlpyBlackBoxEvent[] {
 function getRecentEvents(days: number): GlpyBlackBoxEvent[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
-  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  const cutoffISO = getLocalDateKey(cutoff);
   return readRaw().filter(e => e.date >= cutoffISO);
 }
 

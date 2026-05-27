@@ -6,6 +6,7 @@ import { playSound } from "../utils/sounds";
 import BottomNav from "./BottomNav";
 import { saveCheckin, saveGamification, salvarContextoIA } from "../services/firestore";
 import { glpyStore } from "../data/glpyStore";
+import { getLocalDateKey } from "../utils/formatters";
 
 const SYMPTOM_OPTIONS = [
   { label: "Náusea", emoji: "🤢" },
@@ -136,7 +137,7 @@ export default function CheckIn({ onNavigate }: { onNavigate: (screen: string) =
       } catch { return (protAtivo.dia ?? 0) + 1; }
     })();
     salvarContextoIA({
-      data: new Date().toISOString().slice(0, 10),
+      data: getLocalDateKey(),
       fome: hunger,
       energia: symptoms.includes("Energia") ? 8 : satiety,
       humor: mood !== null ? MOOD_OPTIONS[mood] : "😐",

@@ -38,7 +38,7 @@ import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
 import { glpyStore } from '../data/glpyStore';
-import { formatDecimalBR, formatGrams, formatLiters, formatMeters, formatUnit, parseBRNumber } from '../utils/formatters';
+import { formatDecimalBR, formatGrams, formatLiters, formatMeters, formatUnit, parseBRNumber, getLocalDateKey } from '../utils/formatters';
 
 // TODO Fase 1F.2:
 // Substituir mockHomeData por dados derivados de:
@@ -442,7 +442,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   const [waterAmount, setWaterAmount] = useState<number>(() => {
     const w = glpyStore.water.getToday();
     if (!w) return 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateKey();
     return w.date === today ? (parseFloat(String(w.amount)) || 0) : 0;
   });
 
@@ -450,7 +450,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   useEffect(() => {
     const syncWater = () => {
       const w = glpyStore.water.getToday();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       if (w && w.date === today) {
         setWaterAmount(parseFloat(String(w.amount)) || 0);
       } else {
@@ -480,12 +480,11 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
       const uniqueDates = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
       if (uniqueDates.length === 0) return 0;
 
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      
+      const todayStr = getLocalDateKey();
+
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = getLocalDateKey(yesterday);
 
       const hasToday = uniqueDates.includes(todayStr);
       const hasYesterday = uniqueDates.includes(yesterdayStr);
@@ -495,10 +494,10 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
       }
 
       let streak = 0;
-      let currentCheckDate = new Date(hasToday ? todayStr : yesterdayStr);
+      let currentCheckDate = new Date((hasToday ? todayStr : yesterdayStr) + 'T12:00:00');
 
       while (true) {
-        const checkStr = currentCheckDate.toISOString().split('T')[0];
+        const checkStr = getLocalDateKey(currentCheckDate);
         if (uniqueDates.includes(checkStr)) {
           streak++;
           currentCheckDate.setDate(currentCheckDate.getDate() - 1);
@@ -515,7 +514,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
 
   // Validação dinâmica se check-in foi realizado hoje
   const isCheckInDone = (() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateKey();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hoje = glpyStore.checkin.getToday() as any;
     if (hoje && (hoje === todayStr || hoje.date === todayStr)) return true;
@@ -545,8 +544,8 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   const [todayActivity, setTodayActivity] = useState<any>(() => {
     const act = glpyStore.activity.getToday();
     if (!act) return null;
-    const today = new Date().toISOString().split('T')[0];
-    const entryDate = act.savedAt ? new Date(act.savedAt).toISOString().split('T')[0] : '';
+    const today = getLocalDateKey();
+    const entryDate = act.savedAt ? getLocalDateKey(new Date(act.savedAt)) : '';
     return entryDate === today ? act : null;
   });
 
@@ -554,8 +553,8 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     const handleUpdateActivity = () => {
       const act = glpyStore.activity.getToday();
       if (!act) { setTodayActivity(null); return; }
-      const today = new Date().toISOString().split('T')[0];
-      const entryDate = act.savedAt ? new Date(act.savedAt).toISOString().split('T')[0] : '';
+      const today = getLocalDateKey();
+      const entryDate = act.savedAt ? getLocalDateKey(new Date(act.savedAt)) : '';
       setTodayActivity(entryDate === today ? act : null);
     };
     window.addEventListener('storage', handleUpdateActivity);
@@ -769,7 +768,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     const newWater = parseFloat((waterAmount + 0.25).toFixed(2));
     if (newWater <= 5.0) {
       setWaterAmount(newWater);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       localStorage.setItem('glpy_agua_hoje', JSON.stringify({ amount: newWater, date: today, updatedAt: new Date().toISOString() }));
       window.dispatchEvent(new Event('local-storage-change'));
       triggerToast(`💧 Registro de Água: +250ml salvos! Agora: ${newWater}L`);

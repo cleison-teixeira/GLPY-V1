@@ -5,7 +5,7 @@ import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCata
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Sparkles, Loader2, ChevronLeft, X } from "lucide-react";
 import BottomNav from "./BottomNav";
-import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, type ContextoIA } from "../services/firestore";
+import { carregarLimitesIA, incrementarMsgIA, carregarContextoIA, resetLimitesIAHoje, type ContextoIA } from "../services/firestore";
 import { buildGLPYContextForAI, getGLPYIntelligenceContext } from "../core/glpyLocalIntelligence";
 import {
   calculateGLPYDailyTargets, calculateDailyRemaining, buildDailyTargetsForAI,
@@ -89,7 +89,7 @@ function buildEnrichedGLPYContext(): string {
     let targetsBlock = "";
     try {
       const ctx = getGLPYIntelligenceContext();
-      const todayKey = new Date().toISOString().slice(0, 10);
+      const todayKey = getLocalDateKey();
       const ob = ctx.userProfile.onboarding || {};
 
       const weightKg: number  = ctx.currentWeight?.weight  || ob.currentWeight  || 0;
@@ -192,7 +192,7 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     // Bloco Firestore check-in (preservado, mas protocolo_ativo não sobrescreve snapshot)
     let checkinBlock = "";
     if (ctx) {
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = getLocalDateKey();
       if (ctx.data === hoje) {
         const regras: string[] = [];
         if (ctx.energia < 5)
@@ -279,16 +279,36 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
 
   // Carrega limites do Firestore e aplica reset automático de dia; sincroniza em localStorage
   useEffect(() => {
+    // Captura ANTES de chamar Firestore: local estava de ontem?
+    // Necessário porque o .then() roda async e local pode ter sido atualizado enquanto esperava.
+    const wasStale = (() => {
+      try {
+        const parsed = glpyStore.aiUsage.get() as any;
+        return !parsed.date || parsed.date !== getLocalDateKey();
+      } catch { return false; }
+    })();
+
     carregarLimitesIA(plano)
       .then(({ usadas, limite }) => {
         const today = getLocalDateKey();
-        const localParsed = glpyStore.aiUsage.get() as any;
-        const localUsed = (localParsed.date === today && typeof localParsed.used === 'number') ? localParsed.used : 0;
-        // Nunca regredir: usa o maior entre localStorage e Firestore (evita sobrescrever com 0 se incrementos ainda não chegaram ao Firestore)
-        const finalUsadas = Math.max(localUsed, usadas);
-        setMsgsUsadas(finalUsadas);
         setLimiteIA(limite);
-        glpyStore.aiUsage.save({ date: today, used: finalUsadas, limit: limite, updatedAt: new Date().toISOString() } as any);
+
+        if (wasStale) {
+          // Local estava de ontem: reset local ganha, independente do que Firestore retornou.
+          // Se Firestore retornou > 0 (tinha count de hoje de sessão anterior), força reset no Firestore.
+          if (usadas > 0) {
+            resetLimitesIAHoje(plano).catch(() => {});
+          }
+          setMsgsUsadas(0);
+          glpyStore.aiUsage.save({ date: today, used: 0, limit: limite, updatedAt: new Date().toISOString() } as any);
+        } else {
+          // Local já era de hoje: Math.max evita regredir em race com incrementarMsgIA
+          const localParsed = glpyStore.aiUsage.get() as any;
+          const localUsed = (localParsed.date === today && typeof localParsed.used === 'number') ? localParsed.used : 0;
+          const finalUsadas = Math.max(localUsed, usadas);
+          setMsgsUsadas(finalUsadas);
+          glpyStore.aiUsage.save({ date: today, used: finalUsadas, limit: limite, updatedAt: new Date().toISOString() } as any);
+        }
         window.dispatchEvent(new Event('local-storage-change'));
       })
       .catch(() => {});
@@ -538,7 +558,7 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
               }}
               onBlur={() => { if (!window.visualViewport) setTimeout(() => setKeyboardOpen(false), 200); }}
               disabled={limitReached}
-              placeholder={limitReached ? 'Limite mensal atingido' : 'Pergunte qualquer coisa...'}
+              placeholder={limitReached ? 'Limite diário atingido' : 'Pergunte qualquer coisa...'}
               className="flex-1 min-w-0 w-full box-border py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-base focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <button

@@ -20,6 +20,7 @@ import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { lightShadows } from '../../theme/shadows';
 import { transition } from '../../theme/motion';
+import { getLocalDateKey } from '../../utils/formatters';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
     if (saveState !== 'idle') return;
     setSaveState('saving');
     const now      = Date.now();
-    const todayDate = new Date().toISOString().slice(0, 10);
+    const todayDate = getLocalDateKey();
     const calNum  = parseFloat(calories) || 0;
     const protNum = parseFloat(protein)  || 0;
     const carbNum = parseFloat(carbs)    || 0;

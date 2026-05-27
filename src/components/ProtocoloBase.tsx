@@ -11,6 +11,7 @@ import { glpyStore } from "../data/glpyStore";
 import { glpyBlackBox } from "../data/glpyBlackBox";
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
 import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal, getMissionActionSuggestion } from "../data/glpyMissionBridge";
+import { getLocalDateKey } from "../utils/formatters";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -348,7 +349,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     localStorage.setItem(`${storageKey}_dia`, String(proximoDiaIdx));
 
     const dataInicio = (() => {
-      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || new Date().toISOString().slice(0, 10); } catch { return new Date().toISOString().slice(0, 10); }
+      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || getLocalDateKey(); } catch { return getLocalDateKey(); }
     })();
     localStorage.setItem(progressoKey, JSON.stringify({
       diaAtual: proximoDiaIdx,
@@ -366,7 +367,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     if (firestoreId) {
       salvarProgressoProtocolo(firestoreId, {
         diaAtual: proximoDiaIdx,
-        dataUltimoCheck: new Date().toISOString().slice(0, 10),
+        dataUltimoCheck: getLocalDateKey(),
         diasCompletos: novasConcluidas,
       }).catch((err) => console.error('[Protocolo] erro Firestore:', err));
     }

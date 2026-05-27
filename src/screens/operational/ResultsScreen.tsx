@@ -12,6 +12,7 @@ import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
 import { gap, padding } from '../../theme/spacing';
 import { radius } from '../../theme/radius';
 import { glpyStore } from '../../data/glpyStore';
+import { getLocalDateKey } from '../../utils/formatters';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -42,9 +43,9 @@ function readAtividadeHoje() {
     const raw = localStorage.getItem('glpy_atividade_hoje');
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateKey();
     const savedDate = parsed?.savedAt
-      ? new Date(parsed.savedAt).toISOString().slice(0, 10)
+      ? getLocalDateKey(new Date(parsed.savedAt))
       : null;
     return savedDate === today ? parsed : null;
   } catch { return null; }
@@ -94,16 +95,16 @@ function readStreak(): number {
     }).filter(Boolean) as string[];
     const unique = Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
     if (unique.length === 0) return 0;
-    const todayStr    = new Date().toISOString().split('T')[0];
+    const todayStr    = getLocalDateKey();
     const yest        = new Date(); yest.setDate(yest.getDate() - 1);
-    const yesterdayStr = yest.toISOString().split('T')[0];
+    const yesterdayStr = getLocalDateKey(yest);
     const hasToday     = unique.includes(todayStr);
     const hasYesterday = unique.includes(yesterdayStr);
     if (!hasToday && !hasYesterday) return 0;
     let streak = 0;
-    const d = new Date(hasToday ? todayStr : yesterdayStr);
+    const d = new Date((hasToday ? todayStr : yesterdayStr) + 'T12:00:00');
     while (true) {
-      const s = d.toISOString().split('T')[0];
+      const s = getLocalDateKey(d);
       if (unique.includes(s)) { streak++; d.setDate(d.getDate() - 1); } else break;
     }
     return streak;

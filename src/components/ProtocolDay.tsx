@@ -4,6 +4,7 @@ import { ChevronLeft, Play, ShoppingBag, Award, CheckCircle2, Circle } from "luc
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import BottomNav from "./BottomNav";
 import { glpyStore } from "../data/glpyStore";
+import { getLocalDateKey } from "../utils/formatters";
 
 const MISSIONS = [
   { id: 1, title: "Zero açúcar líquido", desc: "Suco, refri, isotônico — fora por hoje", icon: "🚫" },
@@ -32,7 +33,7 @@ export default function ProtocolDay({ onNavigate }: { onNavigate: (screen: strin
       const raw = localStorage.getItem(progressoKey);
       if (raw) return JSON.parse(raw);
     } catch {}
-    return { diaAtual: 1, diasConcluidos: [], dataInicio: new Date().toISOString().slice(0, 10) };
+    return { diaAtual: 1, diasConcluidos: [], dataInicio: getLocalDateKey() };
   };
 
   const [progresso, setProgresso] = useState<Progresso>(loadProgresso);

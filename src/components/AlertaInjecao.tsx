@@ -3,9 +3,10 @@ import { motion } from "motion/react";
 import { ChevronLeft, CheckCircle, Utensils } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { glpyStore } from "../data/glpyStore";
+import { getLocalDateKey } from "../utils/formatters";
 
 export default function AlertaInjecao({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = getLocalDateKey();
   const [registrado, setRegistrado] = useState(
     glpyStore.treatment.getUltimaAplicacao() === hoje
   );

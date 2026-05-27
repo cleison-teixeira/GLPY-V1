@@ -18,6 +18,7 @@ import { radius } from '../../theme/radius';
 import { lightShadows } from '../../theme/shadows';
 import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
+import { getLocalDateKey } from '../../utils/formatters';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
       if (fileInputRef.current) fileInputRef.current.value = '';
       setModal({
         imageDataUrl,
-        date:        new Date().toISOString().split('T')[0],
+        date:        getLocalDateKey(),
         weightInput: '',
         role:        'progress',
       });
@@ -120,7 +121,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
     if (!modal) return;
     const newPhoto: BodyPhoto = {
       id:           `photo_${Date.now()}`,
-      date:         modal.date || new Date().toISOString().split('T')[0],
+      date:         modal.date || getLocalDateKey(),
       createdAt:    new Date().toISOString(),
       weight:       parseBRWeight(modal.weightInput),
       imageDataUrl: modal.imageDataUrl,
@@ -530,7 +531,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
             <input
               type="date"
               value={modal.date}
-              max={new Date().toISOString().split('T')[0]}
+              max={getLocalDateKey()}
               onChange={e => setModal(m => m ? { ...m, date: e.target.value } : m)}
               style={modalInputStyle}
             />

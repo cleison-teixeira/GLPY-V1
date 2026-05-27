@@ -2,6 +2,8 @@
 // Camada centralizada de inteligência local tolerante a falhas.
 // Proporciona leitura, agregação e formatação do contexto completo do usuário para a IA.
 
+import { getLocalDateKey } from '../utils/formatters';
+
 export interface WeightEntry {
   weight: number;
   date?: string;
@@ -163,7 +165,7 @@ function safeWrite<T>(key: string, value: T): void {
 }
 
 function getTodayKey(): string {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return getLocalDateKey();
 }
 
 function getFormattedDateBR(): string {

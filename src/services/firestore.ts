@@ -211,6 +211,19 @@ export async function incrementarMsgIA(): Promise<void> {
   });
 }
 
+export async function resetLimitesIAHoje(plano: string): Promise<void> {
+  const id = uid();
+  if (!id) return;
+  const limite = LIMITES_POR_PLANO[plano] ?? 10;
+  const hoje = getLocalDateKey();
+  await setDoc(doc(db, "users", id, "limites", "ia"), {
+    msgs_ia_usadas: 0,
+    msgs_ia_limite: limite,
+    reset_dia: hoje,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
 // ─────────────────────────────────────────────
 // Contexto da IA — users/{uid}/contexto_ia/atual
 // ─────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { syncFromFirestore } from './services/firestore';
+import { getLocalDateKey } from './utils/formatters';
 import { hasActiveAccess } from './core/accessControl';
 import Login from './components/Login';
 import SplashScreen from './components/SplashScreen';
@@ -42,6 +43,7 @@ import Protocolo9 from './components/Protocolo9';
 import Protocolo10 from './components/Protocolo10';
 import LocalIntelligenceTestScreen from './screens/debug/LocalIntelligenceTestScreen';
 import DailyTargetsTestScreen from './screens/debug/DailyTargetsTestScreen';
+import DateRiskTestScreen from './screens/debug/DateRiskTestScreen';
 import QuickActionsScreen from './screens/premium/QuickActionsScreen';
 import HubScreen from './screens/premium/HubScreen';
 import BodyProfileScreen from './screens/operational/BodyProfileScreen';
@@ -184,6 +186,7 @@ export default function App() {
       case 'transicaoParar':        return <Protocolo10 onNavigate={setTelaAtual} />;
       case 'localIntelligenceTest': return <LocalIntelligenceTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'dailyTargetsTest': return <DailyTargetsTestScreen onBack={() => setTelaAtual('dashboard')} />;
+      case 'dateRiskTest': return <DateRiskTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'bodyProfile':  return <BodyProfileScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
       case 'refeicao':     return <FoodLogScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
@@ -193,7 +196,7 @@ export default function App() {
       case 'agua':         return <WaterScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={(amount) => {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = getLocalDateKey();
           glpyStore.water.saveToday({ amount, date: today, updatedAt: new Date().toISOString() });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));

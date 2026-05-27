@@ -6,6 +6,7 @@
 
 import { MISSION_TYPES, MISSION_TYPE_TO_SIGNAL } from './glpyEventCatalog';
 import { glpyStore } from './glpyStore';
+import { getLocalDateKey } from '../utils/formatters';
 
 // ── Classificação por palavras-chave (PT-BR) ──────────────────────────────────
 
@@ -204,7 +205,7 @@ export function syncMissionToStore(
   // Proteína explícita → criar refeição protocol_mission
   if (values.proteinG !== undefined) {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       // ID determinístico por missão+dia+data → re-marcar a mesma missão no mesmo dia não cria duplicata
       const mealId = context?.missionId
         ? `protocol_mission_${context.missionId}_${today}`
@@ -241,7 +242,7 @@ export function syncMissionToStore(
   // Água explícita → atualizar glpyStore.water
   if (values.waterMl !== undefined) {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       const existing = glpyStore.water.getToday();
       const prevAmount = (existing?.date === today) ? (parseFloat(String(existing.amount)) || 0) : 0;
       const newAmount = parseFloat((prevAmount + values.waterMl / 1000).toFixed(2));
@@ -253,7 +254,7 @@ export function syncMissionToStore(
   // Atividade explícita → atualizar glpyStore.activity
   if (values.durationMin !== undefined) {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       glpyStore.activity.saveToday({
         activity:  values.activityType ?? 'caminhada',
         duration:  String(values.durationMin),

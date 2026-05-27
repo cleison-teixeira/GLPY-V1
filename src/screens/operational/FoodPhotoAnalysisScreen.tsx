@@ -33,13 +33,14 @@ import {
 import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
+import { getLocalDateKey } from '../../utils/formatters';
 
 // ── Limite de fotos ──────────────────────────────────────────────────────────
 
 const LIMITES_FOTO: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
 
 function getFotosHoje(): number {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   if (localStorage.getItem('glpy_fotos_data') !== hoje) {
     localStorage.setItem('glpy_fotos_data', hoje);
     localStorage.setItem('glpy_fotos_hoje', '0');
@@ -49,7 +50,7 @@ function getFotosHoje(): number {
 }
 
 function incrementarFotos() {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   localStorage.setItem('glpy_fotos_data', hoje);
   localStorage.setItem('glpy_fotos_hoje', String(getFotosHoje() + 1));
   window.dispatchEvent(new Event('local-storage-change'));
@@ -396,7 +397,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
       carbs:           selectedFsItem!.carbs    ?? 0,
       fat:             selectedFsItem!.fat      ?? 0,
       createdAt:       new Date(now).toISOString(),
-      date:            new Date(now).toISOString().slice(0, 10),
+      date:            getLocalDateKey(),
       source:          'FoodPhotoAnalysisScreen',
       nutritionSource: 'FatSecret',
       analysisSource:  'gemini_fatsecret_deepseek',

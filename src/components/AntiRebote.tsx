@@ -8,6 +8,7 @@ import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
 import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/firestore";
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 import { glpyStore } from "../data/glpyStore";
+import { getLocalDateKey } from "../utils/formatters";
 
 // ─── CÁLCULO DE METAS PERSONALIZADAS ───────────────────────────────────────
 function calcMetas(peso: number, altura: number) {
@@ -319,7 +320,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const receitaDetalhe = receitaAberta !== null ? RECEITAS.find(r => r.id === receitaAberta) : null;
 
   // ── Derivados para controle do botão ──
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
   const jaConcluidoHoje = dataUltimoCheck === hoje;
   const diaJaFeito = diasConcluidos.includes(diaAtual + 1);
 
@@ -401,7 +402,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     if (jaConcluidoHoje || diaJaFeito) return;
     playSound('concluir');
 
-    const agora = new Date().toISOString().slice(0, 10);
+    const agora = getLocalDateKey();
     const xpDia = DIAS[diaIndex]?.xp ?? 30;
     persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
     setConcluido(true);

@@ -16,6 +16,7 @@ import {
   removeKey,
   emitStorageChange,
 } from './localStorageAdapter';
+import { getLocalDateKey } from '../utils/formatters';
 
 import type {
   GlpyProfile,
@@ -75,7 +76,7 @@ const KEYS = {
 // ── Helpers internos ─────────────────────────────────────────────────────────
 
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateKey();
 }
 
 // ── 1. profile ────────────────────────────────────────────────────────────────
@@ -160,7 +161,7 @@ function normalizeMeal(raw: any): GlpyMeal {
     date      = raw.createdAt.slice(0, 10);
   } else if (raw.savedAt) {
     const d = new Date(raw.savedAt);
-    date      = d.toISOString().slice(0, 10);
+    date      = getLocalDateKey(d);
     createdAt = d.toISOString();
   } else {
     // sem campo de data — tratar como hoje (compatibilidade com dados antigos)
@@ -192,7 +193,7 @@ function isToday(raw: any, today = todayKey()): boolean {
   if (typeof raw.createdAt === 'string' && raw.createdAt.length >= 10)
     return raw.createdAt.slice(0, 10) === today;
   if (raw.savedAt)
-    return new Date(raw.savedAt).toISOString().slice(0, 10) === today;
+    return getLocalDateKey(new Date(raw.savedAt)) === today;
   return true; // sem data → compatibilidade com dados antigos
 }
 
@@ -279,7 +280,7 @@ const activity = {
     let singleIsToday = false;
     if (single && typeof single === 'object') {
       const entryDate = single.savedAt
-        ? new Date(single.savedAt).toISOString().slice(0, 10)
+        ? getLocalDateKey(new Date(single.savedAt))
         : (single.date ?? '');
       if (entryDate === today) {
         singleIsToday = true;
