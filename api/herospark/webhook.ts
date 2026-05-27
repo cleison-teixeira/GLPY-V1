@@ -147,23 +147,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.warn("[HeroSpark] offer_id desconhecido — plano fallback=starter:", { offerId, email });
       }
 
-      // Busca ou cria usuário no Firebase Auth + Firestore
-      const snapshot = await db
-        .collection("users")
-        .where("email", "==", email)
-        .limit(1)
-        .get();
-
+      // Busca ou cria usuário no Firebase Auth (fonte de verdade do uid).
+      // Sprint 17B.4: getUserByEmail() evita "email-already-exists" em createUser.
       let uid: string;
       let existia: boolean;
 
-      if (snapshot.empty) {
-        existia = false;
-        const userRecord = await getAuth().createUser({ email, password: "GLPY@2026" });
-        uid = userRecord.uid;
-      } else {
+      try {
+        const userRecord = await getAuth().getUserByEmail(email);
+        uid    = userRecord.uid;
         existia = true;
-        uid = snapshot.docs[0].id;
+      } catch (authErr: unknown) {
+        const code = (authErr as { code?: string })?.code ?? "";
+        if (code === "auth/user-not-found") {
+          // Usuário realmente não existe — criar
+          const newUser = await getAuth().createUser({ email, password: "GLPY@2026" });
+          uid    = newUser.uid;
+          existia = false;
+        } else {
+          // Outro erro de Auth — propagar
+          throw authErr;
+        }
       }
 
       const nomeCliente    = (body.buyer_name ?? "Usuário GLPY").trim();
@@ -171,53 +174,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const paymentId      = String(body.payment_id ?? "");
       const availableUntil = body.subscription_available_until ?? null;
 
-      // Dado de acesso: lido por syncFromFirestore via plano.tipo
-      const planoData = {
-        tipo:                    planTipo,
-        status:                  "active",
-        origem:                  "herospark",
-        heroSparkOfferId:        offerId,
-        heroSparkSubscriptionId: subscriptionId,
-        dataExpiracao:           null,   // assinatura recorrente — sem data fixa
-      };
+      const trigger = paymentStatus === "approved" ? "payment_approved" : "subscription_active";
 
-      // Dado completo para auditoria
-      const heroSparkData = {
-        source:         "herospark",
-        plan:           planTipo,
-        active:         true,
-        status:         "active",
-        customerEmail:  email,
-        customerName:   nomeCliente,
-        productId,
-        offerId,
-        paymentId,
-        subscriptionId,
-        subscriptionAvailableUntil: availableUntil,
-        paymentMethod:  body.payment_method ?? null,
-        paymentValue:   body.payment_value  ?? null,
-        updatedAt:      FieldValue.serverTimestamp(),
-      };
+      // Sprint 17B.4: set+merge garante que nunca apaga dados existentes do usuário,
+      // e funciona tanto para doc novo quanto existente no Firestore.
+      await db.collection("users").doc(uid).set({
+        email,
+        nome:      nomeCliente,
+        plano: {
+          tipo:                    planTipo,
+          status:                  "active",
+          origem:                  "herospark",
+          heroSparkOfferId:        offerId,
+          heroSparkSubscriptionId: subscriptionId,
+          dataExpiracao:           null,
+        },
+        herospark: {
+          source:                     "herospark",
+          plan:                       planTipo,
+          active:                     true,
+          status:                     "active",
+          customerEmail:              email,
+          customerName:               nomeCliente,
+          customerPhone:              body.buyer_phone ?? null,
+          productId,
+          offerId,
+          paymentId,
+          subscriptionId,
+          subscriptionAvailableUntil: availableUntil,
+          paymentMethod:              body.payment_method ?? null,
+          paymentValue:               body.payment_value  ?? null,
+          updatedAt:                  FieldValue.serverTimestamp(),
+        },
+        ...(existia ? {} : { primeiroAcesso: true, createdAt: FieldValue.serverTimestamp() }),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
 
-      if (!existia) {
-        await db.collection("users").doc(uid).set({
-          email,
-          nome:           nomeCliente,
-          primeiroAcesso: true,
-          plano:          planoData,
-          herospark:      heroSparkData,
-          createdAt:      FieldValue.serverTimestamp(),
-          updatedAt:      FieldValue.serverTimestamp(),
-        });
-      } else {
-        await db.collection("users").doc(uid).update({
-          plano:     planoData,
-          herospark: heroSparkData,
-          updatedAt: FieldValue.serverTimestamp(),
-        });
-      }
-
-      console.log("[HeroSpark] ativado:", { email, planTipo, offerId, novo: !existia, trigger: isAprovado ? (paymentStatus === "approved" ? "payment_approved" : "subscription_active") : "—" });
+      const action = existia ? "updated_existing_user" : "created_new_user";
+      console.log("[HeroSpark] ativado:", { email, uid, planTipo, offerId, action, trigger });
 
       // E-mail de boas-vindas via EmailJS (somente em criação nova)
       if (!existia) {
@@ -241,7 +235,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log("[HeroSpark] email enviado para:", email);
       }
 
-      return res.status(200).json({ ok: true, plan: planTipo, novo: !existia });
+      return res.status(200).json({ ok: true, success: true, action, plan: planTipo, email, uid });
     }
 
     // ── 4b. Assinatura cancelada / reembolso / chargeback ───────────────────
