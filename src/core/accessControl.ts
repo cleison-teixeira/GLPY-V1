@@ -1,14 +1,14 @@
 /**
  * 🚨 ATENÇÃO PRÉ-LANÇAMENTO GLPY
  *
- * DEV_ACCESS_OPEN libera o app inteiro sem validar plano, Admin, Kiwify ou Paywall.
+ * DEV_ACCESS_OPEN libera o app inteiro sem validar plano, HeroSpark ou Paywall.
  *
  * USAR SOMENTE DURANTE DESENVOLVIMENTO DO MVP.
  *
  * ANTES DE LANÇAR/VENDER OFICIALMENTE:
  * 1. Alterar DEV_ACCESS_OPEN para false
  * 2. Validar /admin liberando usuário por email
- * 3. Validar webhook Kiwify
+ * 3. Validar webhook HeroSpark (api/herospark/webhook.ts)
  * 4. Validar usuário com plano ativo → Home
  * 5. Validar usuário sem plano → Planos
  * 6. Validar que botão voltar de Planos não burla acesso
@@ -17,7 +17,13 @@
  */
 export const DEV_ACCESS_OPEN = true;
 
-const VALID_PLANS = new Set(['starter', 'plus', 'pro', 'top', 'vitalicio', 'founder', 'premium']);
+// Planos oficiais Sprint 17B.1 (HeroSpark) + planos legados Kiwify para compatibilidade
+const VALID_PLANS = new Set([
+  // Planos HeroSpark (Sprint 17B.1)
+  'starter', 'fundador', 'essencial', 'pro', 'top',
+  // Planos legados Kiwify (backward compat)
+  'plus', 'vitalicio', 'founder', 'premium',
+]);
 
 export function hasActiveAccess(): boolean {
   if (DEV_ACCESS_OPEN) {

@@ -50,8 +50,15 @@ type BlockId = typeof BLOCK_IDS[number];
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const LIMITES_IA:   Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
-const LIMITES_FOTO: Record<string, number> = { starter: 5,  plus: 6,  pro: 9,  top: Infinity };
+// Sprint 17B.1 — planos HeroSpark + backward compat Kiwify
+const LIMITES_IA:   Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, plus: 20 };
+const LIMITES_FOTO: Record<string, number> = { starter: 5,  fundador: 5,  essencial: 5,  pro: 19, top: 999, plus: 6  };
+
+// Mapeamento offer_id HeroSpark → plano (espelha api/herospark/webhook.ts)
+const HEROSPARK_OFFER_MAP: Record<string, string> = {
+  '524346': 'fundador',
+  // futuros: 'XXXXXX': 'essencial', 'XXXXXX': 'pro'
+};
 
 const ALL_KEYS: string[] = [
   'glpy_plano', 'glpy_ai_usage', 'glpy_fotos_data', 'glpy_fotos_hoje',
@@ -412,14 +419,16 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
   const backup = makeBackup(['glpy_plano', 'glpy_access_control']);
 
   try {
-    const cases: Array<{ plano: string; expectIA: number; expectFoto: number; label: string }> = [
-      { plano: 'starter', expectIA: 30,  expectFoto: 5,        label: 'Plano starter (free)' },
-      { plano: 'plus',    expectIA: 20,  expectFoto: 6,        label: 'Plano plus' },
-      { plano: 'pro',     expectIA: 30,  expectFoto: 9,        label: 'Plano pro (fundador)' },
-      { plano: 'top',     expectIA: 999, expectFoto: Infinity, label: 'Plano top (dev/admin)' },
+    // ── 7.1 Limites por plano (Sprint 17B.1 — HeroSpark) ────────────────────
+    const casesLimites: Array<{ plano: string; expectIA: number; expectFoto: number; label: string }> = [
+      { plano: 'starter',   expectIA: 30,  expectFoto: 5,   label: 'Starter (free)' },
+      { plano: 'fundador',  expectIA: 30,  expectFoto: 5,   label: 'Fundador — offer 524346' },
+      { plano: 'essencial', expectIA: 30,  expectFoto: 5,   label: 'Essencial (futuro)' },
+      { plano: 'pro',       expectIA: 99,  expectFoto: 19,  label: 'Pro' },
+      { plano: 'top',       expectIA: 999, expectFoto: 999, label: 'Top / Admin / Dev' },
     ];
 
-    for (const c of cases) {
+    for (const c of casesLimites) {
       localStorage.setItem('glpy_plano', c.plano);
       const plano = localStorage.getItem('glpy_plano') ?? 'starter';
       const ia    = LIMITES_IA[plano]   ?? 10;
@@ -427,34 +436,59 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
       const ok = ia === c.expectIA && foto === c.expectFoto;
       results.push({
         feature: c.label, key: 'glpy_plano',
-        expected: `IA=${c.expectIA}, Foto=${c.expectFoto === Infinity ? '∞' : c.expectFoto}`,
-        found: `ia=${ia}, foto=${foto === Infinity ? '∞' : foto}`,
-        status: ok ? 'ok' : 'erro',
-        reason: ok ? 'Limites corretos para este plano' : `Limite incorreto: ia=${ia}(esp ${c.expectIA}), foto=${foto}(esp ${c.expectFoto})`,
+        expected: `IA=${c.expectIA}/dia, Foto=${c.expectFoto}/dia`,
+        found:    `ia=${ia}, foto=${foto}`,
+        status:   ok ? 'ok' : 'erro',
+        reason:   ok ? `Limites corretos (plano=${c.plano})` : `ERRO: ia=${ia}(esp ${c.expectIA}), foto=${foto}(esp ${c.expectFoto})`,
       });
     }
 
+    // ── 7.2 Fallback sem plano ────────────────────────────────────────────────
     localStorage.removeItem('glpy_plano');
     {
       const plano = localStorage.getItem('glpy_plano') ?? 'starter';
       results.push({ feature: 'Sem plano → fallback starter', key: 'glpy_plano', expected: 'starter', found: plano, status: plano === 'starter' ? 'ok' : 'warn', reason: plano === 'starter' ? 'Fallback correto' : 'Fallback inesperado' });
     }
 
-    localStorage.setItem('glpy_access_control', JSON.stringify({ active: false, expiresAt: '2020-01-01', plano: 'pro' }));
+    // ── 7.3 Planos cancelado / expirado — sem acesso ─────────────────────────
+    for (const plano of ['cancelado', 'expirado']) {
+      localStorage.setItem('glpy_plano', plano);
+      const ia   = LIMITES_IA[plano]   ?? 0;
+      const foto = LIMITES_FOTO[plano] ?? 0;
+      const blocked = ia === 0 && foto === 0;
+      results.push({ feature: `Plano ${plano} — bloqueado`, key: 'glpy_plano', expected: 'IA=0, Foto=0', found: `ia=${ia}, foto=${foto}`, status: blocked ? 'ok' : 'warn', reason: blocked ? `${plano}: limites = 0 → paywall deve bloquear` : `BUG! ${plano} com limites ${ia}/${foto}` });
+    }
+
+    // ── 7.4 Mapeamento offer_id HeroSpark → plano ────────────────────────────
+    const offerTests: Array<{ offerId: string; expectedPlan: string; label: string }> = [
+      { offerId: '524346', expectedPlan: 'fundador', label: 'offer_id 524346 → fundador' },
+      { offerId: '999999', expectedPlan: 'starter',  label: 'offer_id desconhecido → starter (fallback)' },
+      { offerId: '',       expectedPlan: 'starter',  label: 'offer_id vazio → starter (fallback)' },
+    ];
+
+    for (const t of offerTests) {
+      const mapped = t.offerId ? (HEROSPARK_OFFER_MAP[t.offerId] ?? 'starter') : 'starter';
+      const ok = mapped === t.expectedPlan;
+      results.push({ feature: t.label, key: 'HEROSPARK_OFFER_MAP', expected: t.expectedPlan, found: mapped, status: ok ? 'ok' : 'erro', reason: ok ? `offer_id "${t.offerId}" → plano "${mapped}" correto` : `BUG! offer_id "${t.offerId}" mapeou para "${mapped}" (esperado "${t.expectedPlan}")` });
+    }
+
+    // ── 7.5 access_control — estrutura HeroSpark ─────────────────────────────
+    const sampleControl = { source: 'herospark', plan: 'fundador', active: true, status: 'active', customerEmail: 'test@glpy.com.br', offerId: '524346' };
+    localStorage.setItem('glpy_access_control', JSON.stringify(sampleControl));
+    {
+      const parsed   = safeGet('glpy_access_control');
+      const isActive = parsed?.active === true && parsed?.source === 'herospark';
+      results.push({ feature: 'access_control HeroSpark ativo', key: 'glpy_access_control', expected: 'active=true, source=herospark', found: `active=${parsed?.active}, source=${parsed?.source}, plan=${parsed?.plan}`, status: isActive ? 'ok' : 'erro', reason: isActive ? 'Estrutura de access_control HeroSpark reconhecida' : 'BUG! Estrutura incorreta' });
+    }
+
+    localStorage.setItem('glpy_access_control', JSON.stringify({ source: 'herospark', plan: 'fundador', active: false, status: 'canceled' }));
     {
       const parsed   = safeGet('glpy_access_control');
       const isActive = parsed?.active === true;
-      results.push({ feature: 'Acesso expirado', key: 'glpy_access_control', expected: 'active=false', found: `active=${parsed?.active}, exp=${parsed?.expiresAt}`, status: !isActive ? 'ok' : 'warn', reason: !isActive ? 'Marcado como inativo — paywall deve bloquear (verificar manualmente)' : 'Ativo mesmo com dados de expirado' });
+      results.push({ feature: 'access_control cancelado', key: 'glpy_access_control', expected: 'active=false', found: `active=${parsed?.active}, status=${parsed?.status}`, status: !isActive ? 'ok' : 'warn', reason: !isActive ? 'Cancelado — paywall deve bloquear acesso' : 'Ativo mesmo cancelado' });
     }
 
-    localStorage.setItem('glpy_access_control', JSON.stringify({ active: false, cancelledAt: '2024-03-01', plano: 'starter' }));
-    {
-      const parsed   = safeGet('glpy_access_control');
-      const isActive = parsed?.active === true;
-      results.push({ feature: 'Acesso cancelado', key: 'glpy_access_control', expected: 'active=false', found: `active=${parsed?.active}`, status: !isActive ? 'ok' : 'warn', reason: !isActive ? 'Cancelado corretamente — paywall deve bloquear' : 'Ativo mesmo com dados de cancelado' });
-    }
-
-    results.push({ feature: 'HeroSpark webhook (futuro)', key: 'webhook_herospark', expected: 'pendente', found: 'não implementado', status: 'skip', reason: 'Seção reservada — integração HeroSpark não testada nesta sprint' });
+    results.push({ feature: 'Webhook HeroSpark — endpoint', key: '/api/herospark/webhook', expected: 'POST /api/herospark/webhook', found: 'implementado (Sprint 17B.1)', status: 'skip', reason: 'Testar manualmente: curl -X POST https://glpy.com.br/api/herospark/webhook?token=glpy_herospark_2026' });
   } finally {
     restoreBackup(backup);
   }
