@@ -59,3 +59,12 @@ export function parseBRNumber(input: string): number {
   const cleaned = String(input).trim().replace(',', '.');
   return parseFloat(cleaned);
 }
+
+// Retorna YYYY-MM-DD em hora LOCAL do dispositivo (não UTC).
+// Usar para reset diário de contadores — UTC causa falso "dia anterior" nas madrugadas do Brasil.
+export function getLocalDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

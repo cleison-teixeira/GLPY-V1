@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { glpyStore } from '../data/glpyStore';
+import { getLocalDateKey } from '../utils/formatters';
 
 export interface DailyLimitsData {
   fotosUsadas: number;
@@ -12,7 +13,7 @@ const LIMITES_FOTO: Record<string, number> = { starter: 5, plus: 6, pro: 9, top:
 const LIMITES_IA:   Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
 function getTodayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateKey();
 }
 
 function getCurrentMonth(): string {

@@ -7,6 +7,7 @@ import { getAuth, createUserWithEmailAndPassword, signOut as fbSignOut } from "f
 import { initializeApp, deleteApp } from "firebase/app";
 import { db, auth } from "../firebase.js";
 import app from "../firebase.js";
+import { getLocalDateKey } from "../utils/formatters";
 
 function uid(): string | null {
   return auth.currentUser?.uid ?? null;
@@ -168,7 +169,7 @@ export async function carregarLimitesIA(plano: string): Promise<{
   if (!id) return { usadas: 0, limite };
 
   const ref = doc(db, "users", id, "limites", "ia");
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = getLocalDateKey();
 
   const snap = await getDoc(ref);
   if (!snap.exists()) {

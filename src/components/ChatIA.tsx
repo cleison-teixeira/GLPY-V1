@@ -13,6 +13,7 @@ import {
 } from "../core/glpyDailyTargets";
 import { buildAIContextFromSnapshot } from "../data/glpyUserSnapshot";
 import { detectCravingSignal } from "../data/glpyMissionBridge";
+import { getLocalDateKey } from "../utils/formatters";
 
 const LIMITES_INICIAIS: Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
@@ -267,7 +268,7 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       const parsed = glpyStore.aiUsage.get() as any;
       if (!parsed.date || parsed.date !== today) return 0;
       return typeof parsed.used === 'number' ? parsed.used : 0;
@@ -280,7 +281,7 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
   useEffect(() => {
     carregarLimitesIA(plano)
       .then(({ usadas, limite }) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateKey();
         const localParsed = glpyStore.aiUsage.get() as any;
         const localUsed = (localParsed.date === today && typeof localParsed.used === 'number') ? localParsed.used : 0;
         // Nunca regredir: usa o maior entre localStorage e Firestore (evita sobrescrever com 0 se incrementos ainda não chegaram ao Firestore)
@@ -388,7 +389,7 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
       const novas = msgsUsadas + 1;
       setMsgsUsadas(novas);
       incrementarMsgIA().catch(() => {});
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       glpyStore.aiUsage.save({ date: today, used: novas, limit: limiteIA, updatedAt: new Date().toISOString() } as any);
       glpyBlackBox.addEvent({
         type: EVENT_TYPES.AI_RESPONSE_RECEIVED, category: CATEGORIES.AI, domain: DOMAINS.AI_CONTEXT,
