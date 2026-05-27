@@ -249,7 +249,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       });
       // Sinergia real: sincroniza com glpyStore apenas quando há valor numérico explícito no texto
       const missionTextFormatted = formatMissao(missionTitle);
-      const syncResult = syncMissionToStore(missionType, missionTextFormatted, true);
+      const syncResult = syncMissionToStore(missionType, missionTextFormatted, true, {
+        protocolId: protocoloId,
+        day: dia.n,
+        missionId,
+      });
       if (syncResult.synced && syncResult.syncType === 'meal') {
         glpyBlackBox.addEvent({
           type: EVENT_TYPES.MISSION_SYNCED_TO_MEAL, category: CATEGORIES.MISSION, domain: DOMAINS.NUTRITION,

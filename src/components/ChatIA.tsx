@@ -183,6 +183,11 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     let legacyBlock = "";
     try { legacyBlock = buildEnrichedGLPYContext(); } catch (_) { /* non-blocking */ }
 
+    // Nota de prioridade: resolve conflito quando legacyBlock diz "Nenhum protocolo" mas snapshot tem dados reais
+    const priorityNote = snapshotBlock
+      ? '\n\nNOTA: O User Snapshot acima é a fonte AUTORIZADA (dados reais do glpyStore). Se qualquer dado abaixo contradisser o snapshot (protocolo, refeições, água, atividade), IGNORE os dados abaixo e use o User Snapshot.\n'
+      : '';
+
     // Bloco Firestore check-in (preservado, mas protocolo_ativo não sobrescreve snapshot)
     let checkinBlock = "";
     if (ctx) {
@@ -207,7 +212,7 @@ CHECK-IN FIRESTORE (complementar): fome ${ctx.fome}/10, energia ${ctx.energia}/1
     }
 
     return `Você é GLPY.IA — uma coach clínica acolhedora do app GLPY, especialista em apoio nutricional e comportamental para quem usa GLP-1 (Ozempic, Mounjaro, Saxenda, Wegovy). Seu tom é humano, simples, seguro e motivador — nunca técnico demais, nunca parece relatório.
-${snapshotBlock}${legacyBlock}${checkinBlock}
+${snapshotBlock}${priorityNote}${legacyBlock}${checkinBlock}
 
 FORMATO — REGRAS ABSOLUTAS:
 NUNCA use markdown. Isso significa: sem ** negrito **, sem * itálico *, sem ~~ tachado ~~, sem # títulos, sem ## subtítulos, sem tabelas, sem blocos de código, sem hífens de lista markdown.

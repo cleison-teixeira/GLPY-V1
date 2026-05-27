@@ -1,6 +1,7 @@
 // GLPY — Mission Bridge
 // Sprint 17A: classifica missões de protocolo por tipo via palavras-chave.
 // Sprint 17A.1: extrai valores numéricos e sincroniza com glpyStore quando há dado explícito.
+// Sprint 17A.2: ID determinístico + campos compat + dedup para evitar duplicatas em re-marcar.
 // Regras: não altera texto da UI. Não inventa dados. Missão genérica nunca cria macro.
 
 import { MISSION_TYPES, MISSION_TYPE_TO_SIGNAL } from './glpyEventCatalog';
@@ -178,15 +179,23 @@ export interface MissionSyncResult {
   reason?:   string;
 }
 
+export interface MissionSyncContext {
+  protocolId?: string;
+  day?:        number;
+  missionId?:  string;
+}
+
 /**
  * Cria registro real no glpyStore quando a missão contém valor explícito.
  * Regra crítica: missão genérica (sem valor numérico) → synced: false, nenhum dado criado.
  * Só sincroniza ao MARCAR (isChecking = true). Desmarcar não remove dados.
+ * Sprint 17A.2: context opcional → ID determinístico por missão+dia+data, com dedup.
  */
 export function syncMissionToStore(
   missionType: string,
   missionText: string,
   isChecking: boolean,
+  context?: MissionSyncContext,
 ): MissionSyncResult {
   if (!isChecking) return { synced: false, syncType: 'none', reason: 'unchecking — no data removed' };
 
@@ -196,19 +205,34 @@ export function syncMissionToStore(
   if (values.proteinG !== undefined) {
     try {
       const today = new Date().toISOString().slice(0, 10);
+      // ID determinístico por missão+dia+data → re-marcar a mesma missão no mesmo dia não cria duplicata
+      const mealId = context?.missionId
+        ? `protocol_mission_${context.missionId}_${today}`
+        : `protocol_mission_${Date.now()}`;
+
+      // Dedup: se já existe entry com este ID, não cria novamente
+      const todayMeals: any[] = glpyStore.meals.getToday() ?? [];
+      if (Array.isArray(todayMeals) && todayMeals.some((m: any) => m.id === mealId)) {
+        return { synced: true, syncType: 'meal', reason: 'already synced (dedup)' };
+      }
+
       glpyStore.meals.saveMeal({
-        id:        `protocol_mission_${Date.now()}`,
-        nome:      'Proteína registrada no protocolo',
-        descricao: missionText.slice(0, 100),
-        tipo:      'protocol_mission',
-        origem:    'ProtocoloBase',
-        calories:  0,
-        protein:   values.proteinG,
-        carbs:     0,
-        fat:       0,
-        date:      today,
-        createdAt: new Date().toISOString(),
-        savedAt:   Date.now(),
+        id:           mealId,
+        nome:         'Proteína registrada no protocolo',
+        descricao:    missionText.slice(0, 100),
+        tipo:         'protocol_mission',
+        origem:       'ProtocoloBase',
+        calories:     0,
+        calorias:     0,
+        protein:      values.proteinG,
+        proteina:     values.proteinG,
+        carbs:        0,
+        carboidratos: 0,
+        fat:          0,
+        gordura:      0,
+        date:         today,
+        createdAt:    new Date().toISOString(),
+        savedAt:      Date.now(),
       });
       return { synced: true, syncType: 'meal', reason: `protein: ${values.proteinG}g` };
     } catch { return { synced: false, syncType: 'none', reason: 'store write failed' }; }
