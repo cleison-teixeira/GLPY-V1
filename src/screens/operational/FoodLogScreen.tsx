@@ -88,12 +88,12 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
   const [carbs,       setCarbs]       = useState('');
   const [fat,         setFat]         = useState('');
   const [todayMeals,  setTodayMeals]  = useState<MealEntry[]>(() => {
-    try { return glpyStore.meals.getAll() as unknown as MealEntry[]; }
+    try { return glpyStore.meals.getToday() as unknown as MealEntry[]; }
     catch { return []; }
   });
 
   function reloadTodayMeals() {
-    try { setTodayMeals(glpyStore.meals.getAll() as unknown as MealEntry[]); }
+    try { setTodayMeals(glpyStore.meals.getToday() as unknown as MealEntry[]); }
     catch { /* keep current */ }
   }
 

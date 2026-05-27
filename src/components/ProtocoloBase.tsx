@@ -459,8 +459,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
           {dias.map((_, i) => (
             <button
               key={i}
-              onClick={() => { setDiaAtual(i); setConcluido(false); setCheckinSelecionado(null); setMissoesMarcadas([]); }}
-              className={`h-2 flex-1 rounded-full transition-all ${i <= diaAtual ? "bg-primary" : "bg-border"}`}
+              onClick={() => {
+                if (i > diaAtual) return; // dia futuro — bloqueado até concluir o atual
+                setDiaAtual(i); setConcluido(false); setCheckinSelecionado(null); setMissoesMarcadas([]);
+              }}
+              className={`h-2 flex-1 rounded-full transition-all ${i <= diaAtual ? "bg-primary" : "bg-border opacity-40 cursor-not-allowed"}`}
             />
           ))}
         </div>

@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import {
   Star, ListChecks, Smile, TrendingUp, Lightbulb, Check, CheckCircle2,
-  Droplets, Utensils, Syringe, AlertCircle, Flame, Camera,
+  Droplets, Utensils, Syringe, AlertCircle, Flame,
 } from 'lucide-react';
 import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
@@ -63,7 +63,11 @@ function buildResumoItems(todayStr: string) {
     try {
       const p = glpyStore.treatment.getUltimaInjecao();
       const isToday = p?.savedAt && getLocalDateKey(new Date(p.savedAt)) === todayStr;
-      return isToday ? { value: 'Registrada', done: true } : { value: 'Pendente', done: false };
+      if (isToday) return { value: 'Registrada', done: true };
+      // Fallback: glpy_ultima_aplicacao (date string salvo por AlertaInjecao/Injecao)
+      const altDate = glpyStore.treatment.getUltimaAplicacao();
+      if (altDate === todayStr) return { value: 'Registrada', done: true };
+      return { value: 'Pendente', done: false };
     } catch { return { value: 'Pendente', done: false }; }
   })();
 
@@ -100,13 +104,12 @@ function buildResumoItems(todayStr: string) {
   })();
 
   return [
-    { id: 'agua',      label: 'Água',          ...agua,      Icon: Droplets    },
-    { id: 'refeicao',  label: 'Refeições',     ...refeicao,  Icon: Utensils    },
-    { id: 'aplicacao', label: 'Aplicação',     ...aplicacao, Icon: Syringe     },
-    { id: 'emocao',    label: 'Emoção',        ...emocao,    Icon: Smile       },
-    { id: 'atividade', label: 'Atividade',     ...atividade, Icon: Flame       },
-    { id: 'sintomas',  label: 'Sintomas',      ...sintomas,  Icon: AlertCircle },
-    { id: 'foto',      label: 'Foto corporal', value: 'Pendente', done: false,  Icon: Camera      },
+    { id: 'agua',      label: 'Água',      ...agua,      Icon: Droplets    },
+    { id: 'refeicao',  label: 'Refeições', ...refeicao,  Icon: Utensils    },
+    { id: 'aplicacao', label: 'Aplicação', ...aplicacao, Icon: Syringe     },
+    { id: 'emocao',    label: 'Emoção',    ...emocao,    Icon: Smile       },
+    { id: 'atividade', label: 'Atividade', ...atividade, Icon: Flame       },
+    { id: 'sintomas',  label: 'Sintomas',  ...sintomas,  Icon: AlertCircle },
   ];
 }
 
@@ -416,7 +419,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
   return (
     <GLPYScreen variant="light">
-      <GLPYHeader title="Check-in" onBack={onBack} />
+      <GLPYHeader title="Checklist do dia" onBack={onBack} />
 
       <div style={sectionGap}>
 
@@ -429,11 +432,11 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                 : <Star        size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
               }
             </div>
-            <span style={cardTitleStyle}>Check-in de hoje</span>
+            <span style={cardTitleStyle}>Checklist de hoje</span>
           </div>
           <p style={cardSubtextStyle}>
             {alreadyDoneToday
-              ? 'Check-in de hoje concluído. Você pode atualizar seu humor abaixo.'
+              ? 'Checklist de hoje concluído. Você pode atualizar seu humor abaixo.'
               : 'Revise sua rotina e conclua mais um passo da sua jornada.'}
           </p>
           <div style={summaryBlockStyle}>
@@ -443,7 +446,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>Progresso de hoje</span>
-              <span style={summaryValueStyle}>{doneCount} de 7 ações</span>
+              <span style={summaryValueStyle}>{doneCount} de {resumoItems.length} ações</span>
             </div>
             <div style={summaryRowStyle}>
               <span style={summaryLabelStyle}>XP do dia</span>
@@ -477,7 +480,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                   color:        lightColors.brand.greenDark,
                   marginBottom: 3,
                 }}>
-                  Check-in de hoje já concluído
+                  Checklist de hoje já concluído
                 </div>
                 <div style={{
                   fontFamily: fontFamily.primary,
@@ -619,7 +622,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
             }}>
               {alreadyDoneToday
                 ? 'Seu humor foi atualizado para hoje.'
-                : 'Check-in concluído. Mais um passo na sua evolução.'}
+                : 'Checklist concluído. Mais um passo na sua evolução.'}
             </p>
           </GLPYCard>
         )}
@@ -635,8 +638,8 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
           {checkInState === 'saving'
             ? 'Salvando...'
             : checkInState === 'saved'
-              ? (alreadyDoneToday ? 'Check-in atualizado ✓' : 'Check-in salvo ✓')
-              : (alreadyDoneToday ? 'Atualizar check-in de hoje' : 'Concluir check-in')}
+              ? (alreadyDoneToday ? 'Checklist atualizado ✓' : 'Checklist salvo ✓')
+              : (alreadyDoneToday ? 'Atualizar checklist de hoje' : 'Revisar checklist')}
         </GLPYButton>
 
       </div>

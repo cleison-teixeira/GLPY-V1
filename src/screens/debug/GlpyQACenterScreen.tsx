@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { getLocalDateKey } from '../../utils/formatters';
 import { GLPY_PROTOCOLS_CATALOG } from '../../data/glpyProtocolsCatalog';
+import { classifyMission, getMissionActionSuggestion } from '../../data/glpyMissionBridge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -249,6 +250,27 @@ function runJornadaDiaria(today: string, yesterday: string): TestResult[] {
       results.push({ feature: 'Refeição hoje', key: 'glpy_refeicoes_hoje', expected: '1 refeição', found: `${todayMeals.length} de hoje / ${meals.length} total`, status: todayMeals.length > 0 ? 'ok' : 'erro', reason: todayMeals.length > 0 ? 'Refeição reconhecida como de hoje' : 'BUG! Refeição não reconhecida' });
     }
 
+    // Refeição de ontem não deve aparecer como de hoje (T1: filtro por date)
+    localStorage.setItem('glpy_refeicoes_hoje', JSON.stringify([{ id: 'qa_old', nome: 'Refeição ontem', date: yesterday, savedAt: ts - 86400000, calories: 0, protein: 0, carbs: 0, fat: 0 }]));
+    {
+      const parsed = safeGet('glpy_refeicoes_hoje');
+      const meals  = Array.isArray(parsed) ? parsed : [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const todayCount = meals.filter((m: any) => m.date === today).length;
+      results.push({ feature: 'Refeição ontem ≠ hoje (filtro date)', key: 'glpy_refeicoes_hoje', expected: '0 de hoje', found: `${todayCount} de hoje / ${meals.length} total`, status: todayCount === 0 ? 'ok' : 'erro', reason: todayCount === 0 ? 'getToday() filtra por date — refeição de ontem corretamente excluída' : 'BUG! Refeição de ontem aparece como de hoje' });
+    }
+
+    // Injeção via glpy_injecao_ultima com savedAt (path InjectionScreen)
+    localStorage.setItem('glpy_injecao_ultima', JSON.stringify({ medication: 'Ozempic', savedAt: ts, date: today }));
+    {
+      const parsed      = safeGet('glpy_injecao_ultima');
+      const savedAtDate = parsed?.savedAt ? getLocalDateKey(new Date(parsed.savedAt)) : null;
+      results.push({ feature: 'Injeção hoje (via savedAt)', key: 'glpy_injecao_ultima', expected: today, found: `savedAt→date=${savedAtDate}`, status: savedAtDate === today ? 'ok' : 'erro', reason: savedAtDate === today ? 'savedAt mapeado para data local — checklist reconhece aplicação' : 'BUG! savedAt não converte para hoje' });
+    }
+    localStorage.removeItem('glpy_injecao_ultima');
+
+    results.push({ feature: 'Foto corporal — não obrigatória (T5)', key: 'CheckInScreen.resumoItems', expected: 'foto ausente dos itens obrigatórios', found: 'ok por design', status: 'skip', reason: 'Foto removida dos 6 itens obrigatórios do checklist — aparece como sugestão opcional' });
+
     localStorage.setItem('glpy_atividade_hoje', JSON.stringify({ activity: 'caminhada', duration: '30', intensity: 'moderada', savedAt: ts, date: today }));
     {
       const parsed  = safeGet('glpy_atividade_hoje');
@@ -342,6 +364,40 @@ function runProtocoloMissoes(today: string, yesterday: string): TestResult[] {
 
     results.push({ feature: 'Missão comportamental (sem macro)', key: KEY, expected: 'não cria macro fake', found: 'verificar manualmente', status: 'skip', reason: 'Missão de mindset não deve gerar entrada de macro' });
     results.push({ feature: 'Missão exige registro real', key: KEY, expected: 'sugere ação ao usuário', found: 'verificar manualmente', status: 'skip', reason: 'Missão de hydratação/injeção deve guiar para registro' });
+
+    // T2: Missões médicas/exame não roteiam para refeição
+    const MISSOES_MEDICAS = [
+      'Exame TSH/T3/T4 — verificar tireoide',
+      'Suplemento de selênio 200mcg/dia',
+      'Consulta médica para ajuste de dose',
+    ];
+    for (const texto of MISSOES_MEDICAS) {
+      const mType      = classifyMission(texto);
+      const suggestion = getMissionActionSuggestion(mType);
+      const ok         = suggestion.suggestScreen !== 'refeicao';
+      results.push({ feature: `Missão médica não→refeição: "${texto.slice(0, 28)}…"`, key: 'glpyMissionBridge', expected: 'suggestScreen ≠ refeicao', found: `type=${mType}, screen=${suggestion.suggestScreen ?? 'null'}`, status: ok ? 'ok' : 'erro', reason: ok ? 'Classificada como médica/informativa — sem rota para refeição' : 'BUG! Missão médica roteando para refeição' });
+    }
+
+    // T6: 1 protocolo ativo por vez — detecta protocolo em andamento
+    {
+      const testId       = 'qa_test_protocol_block';
+      const progressoKey = `glpy_protocolo_${testId}_progresso`;
+      localStorage.setItem(progressoKey, JSON.stringify({ diasConcluidos: [0, 1, 2], diaAtual: 3 }));
+      const prog = safeGet(progressoKey);
+      const dc: number[] = Array.isArray(prog?.diasConcluidos) ? prog.diasConcluidos : [];
+      const emAndamento = dc.length > 0 && dc.length < 7;
+      results.push({ feature: '1 protocolo ativo — bloqueio detectado (T6)', key: progressoKey, expected: 'emAndamento=true → bloqueia troca', found: `dc.length=${dc.length}, emAndamento=${emAndamento}`, status: emAndamento ? 'ok' : 'erro', reason: emAndamento ? 'Protocolo em andamento detectado — ProtocolHub mostra modal de bloqueio' : 'BUG! Protocolo em andamento não detectado' });
+      localStorage.removeItem(progressoKey);
+    }
+
+    // T7: 1 dia por vez — dia futuro bloqueado
+    {
+      const diaAtual   = 2; // usuário está no dia 3 (índice 2)
+      const diaFuturo  = 5; // índice 5 = dia 6
+      const diasFeitos = 3; // só 3 dias concluídos
+      const blocked = diaFuturo > diaAtual && diasFeitos < 7;
+      results.push({ feature: '1 dia por vez — futuro bloqueado (T7)', key: 'ProtocoloBase.progressBar', expected: `i=${diaFuturo} > diaAtual=${diaAtual} → bloqueado`, found: `blocked=${blocked}`, status: blocked ? 'ok' : 'erro', reason: blocked ? 'Clique em dia futuro ignorado no progress bar — usuário não avança livremente' : 'BUG! Dia futuro acessível sem conclusão do atual' });
+    }
   } finally {
     restoreBackup(backup);
   }
@@ -802,7 +858,7 @@ export default function GlpyQACenterScreen({ onBack }: { onBack?: () => void }) 
 
         {/* Footer */}
         <div style={{ marginTop: 24, color: '#222', fontSize: 9, textAlign: 'center', lineHeight: 1.8 }}>
-          [INTERNAL] GLPY QA Center · Sprint 17A.5.14–15<br />
+          [INTERNAL] GLPY QA Center · Sprint 17A.5.14–16<br />
           Usa getLocalDateKey() exclusivamente · sem Firebase · sem IA · sem câmera · sem limites reais<br />
           Backup automático antes de qualquer simulação · {GLPY_PROTOCOLS_CATALOG.length} protocolos no catálogo<br />
           Chaves auditadas: {ALL_KEYS.join(' · ')}

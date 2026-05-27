@@ -91,7 +91,8 @@ function estaDesbloqueado(_planoMinimo: string): boolean {
 }
 
 export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: string) => void }) {
-  const [confirmar, setConfirmar] = useState<Protocolo | null>(null);
+  const [confirmar,          setConfirmar]          = useState<Protocolo | null>(null);
+  const [protocoloBloqueado, setProtocoloBloqueado] = useState(false);
 
   // Em rotas /preview/* o modal de troca é desnecessário — navegação direta
   const isPreviewMode = window.location.pathname.startsWith('/preview');
@@ -105,6 +106,18 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
     }
     if (isPreviewMode || p.id === idAtivo) {
       onNavigate(p.rota);
+      return;
+    }
+    // Verifica se protocolo ativo está em andamento (>0 dias feitos, <7 concluídos)
+    const progressoAtivo = (() => {
+      try {
+        const raw = localStorage.getItem(`glpy_protocolo_${idAtivo}_progresso`);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    })();
+    const dcAtivo: number[] = Array.isArray(progressoAtivo?.diasConcluidos) ? progressoAtivo.diasConcluidos : [];
+    if (dcAtivo.length > 0 && dcAtivo.length < 7) {
+      setProtocoloBloqueado(true);
     } else {
       setConfirmar(p);
     }
@@ -228,6 +241,43 @@ export default function ProtocolHub({ onNavigate }: { onNavigate: (screen: strin
       </div>
 
       <BottomNav active="hub" onNavigate={onNavigate} />
+
+      {/* Modal de bloqueio — protocolo em andamento */}
+      <AnimatePresence>
+        {protocoloBloqueado && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4"
+            onClick={() => setProtocoloBloqueado(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm mb-2"
+            >
+              <div className="text-center mb-5">
+                <span className="text-5xl">⚡</span>
+                <h2 className="font-bold text-lg mt-3 text-[#0A1628]">Protocolo em andamento</h2>
+                <p className="text-sm text-text-muted mt-2 leading-relaxed">
+                  Você já tem um protocolo em andamento.<br />
+                  Termine este ciclo antes de iniciar outro.
+                </p>
+              </div>
+              <button
+                onClick={() => setProtocoloBloqueado(false)}
+                className="w-full py-3.5 rounded-2xl bg-primary text-white text-sm font-semibold"
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal de confirmação de troca */}
       <AnimatePresence>

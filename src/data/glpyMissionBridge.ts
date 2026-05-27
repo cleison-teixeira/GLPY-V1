@@ -60,6 +60,11 @@ const KEYWORD_RULES: Array<{ keywords: string[]; type: string }> = [
     type: MISSION_TYPES.MEAL_LOG_REQUIRED,
   },
   {
+    // Missões médicas/informativas — não geram rota para refeição
+    keywords: ['exame', 'tsh', 't3', 't4', 'tireoide', 'tiroide', 'selênio', 'selenio', 'suplemento', 'consulta médic', 'consulta medic', 'conversa médic', 'conversa medic', 'médico', 'medico'],
+    type: MISSION_TYPES.TREATMENT,
+  },
+  {
     keywords: ['proteína', 'proteina', 'refeição', 'refeicao', 'comer', 'aliment', 'nutrição', 'nutricao'],
     type: MISSION_TYPES.NUTRITION_BEHAVIOR,
   },
@@ -293,6 +298,9 @@ export function getMissionActionSuggestion(missionType: string): MissionActionSu
       return { suggestScreen: 'aplicacao', actionLabel: 'Registrar aplicação', canSyncReal: true };
     case MISSION_TYPES.BODY_PHOTO:
       return { suggestScreen: 'foto', actionLabel: 'Adicionar foto', canSyncReal: false };
+    case MISSION_TYPES.TREATMENT:
+    case MISSION_TYPES.SYMPTOM_TRACKING:
+      return { suggestScreen: null, actionLabel: 'Ver orientação', canSyncReal: false };
     case MISSION_TYPES.EMOTION:
     case MISSION_TYPES.FEAR_REFLECTION:
       return { suggestScreen: 'emocao', actionLabel: 'Registrar emoção', canSyncReal: false };
