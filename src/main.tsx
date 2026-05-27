@@ -334,9 +334,7 @@ if (path === '/admin') {
               savedAt:     Date.now(),
             };
             localStorage.setItem('glpy_medidas_corporais', JSON.stringify(medidas));
-            if (!glpyStore.progress.getInitialMeasurements()) {
-              glpyStore.progress.saveInitialMeasurements(medidas);
-            }
+            glpyStore.progress.ensureInitialMeasurements(medidas);
             window.location.href = getHomePath();
           }}
         />

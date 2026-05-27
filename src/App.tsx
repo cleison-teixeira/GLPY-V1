@@ -219,9 +219,18 @@ export default function App() {
           const toNum = (s: string) => { const n = parseFloat(s.replace(',', '.')); return (isNaN(n) || n <= 0) ? undefined : n; };
           const medidas = { waist: toNum(data.waist), hip: toNum(data.hip), abdomen: toNum(data.abdomen), chest: toNum(data.chest), arm: toNum(data.arm), thigh: toNum(data.thigh), calf: toNum(data.calf), cintura: toNum(data.waist), quadril: toNum(data.hip), busto: toNum(data.chest), braco: toNum(data.arm), coxa: toNum(data.thigh), panturrilha: toNum(data.calf), savedAt: Date.now() };
           localStorage.setItem('glpy_medidas_corporais', JSON.stringify(medidas));
-          if (!glpyStore.progress.getInitialMeasurements()) {
-            glpyStore.progress.saveInitialMeasurements(medidas);
-          }
+          const isFirstBaseline = glpyStore.progress.ensureInitialMeasurements(medidas);
+          const initial = glpyStore.progress.getInitialMeasurements() ?? {};
+          const fields = ['cintura', 'quadril', 'coxa', 'busto', 'panturrilha'] as const;
+          const totalDiff = fields.reduce((sum, k) => {
+            const cur = parseFloat(String(medidas[k] ?? '')), ini = parseFloat(String(initial[k] ?? ''));
+            return (!isNaN(cur) && !isNaN(ini) && ini > 0) ? sum + (ini - cur) : sum;
+          }, 0);
+          glpyBlackBox.addEvent({
+            type: EVENT_TYPES.MEASUREMENTS_UPDATED, category: CATEGORIES.PROGRESS, domain: DOMAINS.PROGRESS,
+            signal: SIGNALS.MEASUREMENTS_UPDATED, screen: 'BodyMeasurementsScreen', source: 'manual',
+            payload: { fieldsChanged: fields.filter(k => !!medidas[k]), hasInitialBaseline: !isFirstBaseline, totalCmDifference: parseFloat(totalDiff.toFixed(2)) },
+          });
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}

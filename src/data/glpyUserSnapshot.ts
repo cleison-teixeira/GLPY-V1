@@ -86,6 +86,14 @@ export interface TodaySnapshot {
   todayEventTypes: string[];
   hasSweetCraving: boolean;
   cravingText:     string | null;
+
+  // Evolução corporal
+  bodyMeasuresCurrent:  { cintura?: number; busto?: number; coxa?: number; quadril?: number; panturrilha?: number };
+  bodyMeasuresInitial:  { cintura?: number; busto?: number; coxa?: number; quadril?: number; panturrilha?: number };
+  bodyMeasuresDiffs:    { cintura?: number; busto?: number; coxa?: number; quadril?: number; panturrilha?: number; totalCm: number };
+  hasCurrentMeasurements: boolean;
+  hasInitialMeasurements: boolean;
+  hasBodyEvolution:       boolean;
 }
 
 export interface BehavioralInsights {
@@ -238,6 +246,39 @@ export function buildTodaySnapshot(): TodaySnapshot {
     } catch { return activeProto?.dia != null ? activeProto.dia + 1 : null; }
   })();
 
+  // Evolução corporal
+  const rawCurrent = safeGet(() => glpyStore.bodyMeasurements.get() ?? {}, {}) as Record<string, any>;
+  const rawInitial = safeGet(() => glpyStore.progress.getInitialMeasurements() ?? {}, {}) as Record<string, any>;
+  const toM = (v: any): number | undefined => { const n = parseFloat(String(v ?? '')); return (!isNaN(n) && n > 0) ? n : undefined; };
+  const bodyMeasuresCurrent = {
+    cintura:     toM(rawCurrent.cintura  ?? rawCurrent.waist),
+    busto:       toM(rawCurrent.busto    ?? rawCurrent.chest),
+    coxa:        toM(rawCurrent.coxa     ?? rawCurrent.thigh),
+    quadril:     toM(rawCurrent.quadril  ?? rawCurrent.hip),
+    panturrilha: toM(rawCurrent.panturrilha ?? rawCurrent.calf),
+  };
+  const bodyMeasuresInitial = {
+    cintura:     toM(rawInitial.cintura  ?? rawInitial.waist),
+    busto:       toM(rawInitial.busto    ?? rawInitial.chest),
+    coxa:        toM(rawInitial.coxa     ?? rawInitial.thigh),
+    quadril:     toM(rawInitial.quadril  ?? rawInitial.hip),
+    panturrilha: toM(rawInitial.panturrilha ?? rawInitial.calf),
+  };
+  const diffOf = (cur?: number, ini?: number): number | undefined =>
+    (cur !== undefined && ini !== undefined && ini > 0) ? parseFloat((ini - cur).toFixed(2)) : undefined;
+  const dCintura     = diffOf(bodyMeasuresCurrent.cintura,     bodyMeasuresInitial.cintura);
+  const dBusto       = diffOf(bodyMeasuresCurrent.busto,       bodyMeasuresInitial.busto);
+  const dCoxa        = diffOf(bodyMeasuresCurrent.coxa,        bodyMeasuresInitial.coxa);
+  const dQuadril     = diffOf(bodyMeasuresCurrent.quadril,     bodyMeasuresInitial.quadril);
+  const dPanturrilha = diffOf(bodyMeasuresCurrent.panturrilha, bodyMeasuresInitial.panturrilha);
+  const totalCm = [dCintura, dBusto, dCoxa, dQuadril, dPanturrilha]
+    .reduce((s: number, v) => s + (v ?? 0), 0 as number);
+  const bodyMeasuresDiffs = { cintura: dCintura, busto: dBusto, coxa: dCoxa, quadril: dQuadril, panturrilha: dPanturrilha, totalCm: parseFloat(totalCm.toFixed(2)) };
+  const hasCurrentMeasurements = Object.values(bodyMeasuresCurrent).some(v => v !== undefined);
+  const hasInitialMeasurements = Object.values(bodyMeasuresInitial).some(v => v !== undefined);
+  const hasBodyEvolution = hasCurrentMeasurements && hasInitialMeasurements &&
+    Object.values(bodyMeasuresDiffs).some(v => typeof v === 'number' && v !== 0);
+
   // Black Box — eventos de hoje
   const todayEvents: GlpyBlackBoxEvent[] = safeGet(() => glpyBlackBox.getTodayEvents(), []);
   const todayEventTypes = Array.from(new Set(todayEvents.map(e => e.type)));
@@ -267,6 +308,8 @@ export function buildTodaySnapshot(): TodaySnapshot {
     protocolId, protocolName, protocolDay, protocolTotal,
     missionsToday, missionsDoneCount, missionsPendingCount, protocolCheckinSelected,
     todayEventTypes, hasSweetCraving, cravingText,
+    bodyMeasuresCurrent, bodyMeasuresInitial, bodyMeasuresDiffs,
+    hasCurrentMeasurements, hasInitialMeasurements, hasBodyEvolution,
   };
 }
 
@@ -445,7 +488,36 @@ export function buildAIContextFromSnapshot(days = 7): string {
       lines.push('Atividade hoje: não registrada.');
     }
 
-    // 6. Emoção e estado
+    // 6. Evolução corporal
+    if (snap.hasCurrentMeasurements) {
+      const bodyLines: string[] = ['Evolução corporal:'];
+      const medFields: Array<[string, keyof typeof snap.bodyMeasuresCurrent]> = [
+        ['Cintura', 'cintura'], ['Busto', 'busto'], ['Coxa', 'coxa'], ['Quadril', 'quadril'], ['Panturrilha', 'panturrilha'],
+      ];
+      for (const [label, key] of medFields) {
+        const cur = snap.bodyMeasuresCurrent[key];
+        const ini = snap.bodyMeasuresInitial[key];
+        const dif = snap.bodyMeasuresDiffs[key];
+        if (cur === undefined) continue;
+        if (ini !== undefined && dif !== undefined && dif !== 0) {
+          const arrow = dif > 0 ? `↓ ${dif.toFixed(1)} cm` : `↑ ${Math.abs(dif).toFixed(1)} cm`;
+          bodyLines.push(`  ${label}: ${ini} cm → ${cur} cm (${arrow})`);
+        } else {
+          bodyLines.push(`  ${label}: ${cur} cm`);
+        }
+      }
+      if (snap.hasBodyEvolution && snap.bodyMeasuresDiffs.totalCm !== 0) {
+        bodyLines.push(`  Total reduzido: ${snap.bodyMeasuresDiffs.totalCm.toFixed(1)} cm`);
+      }
+      if (!snap.hasInitialMeasurements) {
+        bodyLines.push('  Medidas iniciais não registradas — sem base para comparação.');
+      }
+      lines.push(bodyLines.join('\n'));
+    } else {
+      lines.push('Evolução corporal: medidas não registradas.');
+    }
+
+    // 7. Emoção e estado
     const emotional: string[] = ['Estado emocional:'];
     if (snap.emotionMood)   emotional.push(`  Humor: ${snap.emotionMood}`);
     if (snap.emotionEnergy !== null) emotional.push(`  Energia: ${snap.emotionEnergy}/5`);
@@ -454,7 +526,7 @@ export function buildAIContextFromSnapshot(days = 7): string {
     if (emotional.length === 1) emotional.push('  Sem registro de humor hoje.');
     lines.push(emotional.join('\n'));
 
-    // 7. Sintomas/efeitos
+    // 8. Sintomas/efeitos
     if (snap.symptoms.length > 0) {
       lines.push(`Sintomas hoje: ${snap.symptoms.join(', ')}`);
     } else if (snap.noSymptoms) {
@@ -463,19 +535,19 @@ export function buildAIContextFromSnapshot(days = 7): string {
       lines.push('Sintomas hoje: não registrados.');
     }
 
-    // 8. Aplicação e check-in
+    // 9. Aplicação e check-in
     const adherence: string[] = [];
     adherence.push(`Aplicação GLP-1: ${snap.injectionDone ? 'registrada hoje' : (snap.injectionDate ? `última em ${snap.injectionDate}` : 'não registrada')}`);
     adherence.push(`Check-in de hoje: ${snap.checkInDone ? `concluído (${snap.dayFeeling || ''})` : 'pendente'}`);
     if (snap.checkInStreak > 0) adherence.push(`Sequência: ${snap.checkInStreak} dias`);
     lines.push(adherence.join(' | '));
 
-    // 9. Lacunas do dia
+    // 10. Lacunas do dia
     if (insights.gaps.length > 0) {
       lines.push('Lacunas de hoje:\n' + insights.gaps.map(g => `  [!] ${g}`).join('\n'));
     }
 
-    // 10. Sinais comportamentais ativos
+    // 11. Sinais comportamentais ativos
     const signals: string[] = [];
     if (insights.lowProteinRisk)          signals.push('low_protein_risk');
     if (insights.lowWaterRisk)            signals.push('low_water_risk');
@@ -492,7 +564,7 @@ export function buildAIContextFromSnapshot(days = 7): string {
       lines.push(`Sinais comportamentais ativos: ${signals.join(', ')}`);
     }
 
-    // 11. Resumo 7 dias
+    // 12. Resumo 7 dias
     const recentParts: string[] = [
       `Últimos ${recent.days} dias:`,
       `  Refeições: ${recent.daysWithMeals}/${recent.days} dias`,

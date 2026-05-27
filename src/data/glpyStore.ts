@@ -471,6 +471,19 @@ const progress = {
   saveLatestWeight(value: any): void          { writeJSON(KEYS.latestWeight, value); },
   getInitialMeasurements(): Record<string, any> | null { return readJSON<Record<string, any> | null>(KEYS.medidasIniciais, null); },
   saveInitialMeasurements(value: Record<string, any>): void { writeJSON(KEYS.medidasIniciais, value); },
+  // Salva medidas iniciais somente se não houver baseline com campos de medida válidos.
+  // Mais robusto que !getInitialMeasurements() — protege contra {} vazio que bloqueia a condição.
+  ensureInitialMeasurements(value: Record<string, any>): boolean {
+    const existing = readJSON<Record<string, any> | null>(KEYS.medidasIniciais, null);
+    const MEASURE_FIELDS = ['cintura', 'waist', 'quadril', 'hip', 'coxa', 'thigh', 'busto', 'chest', 'panturrilha', 'calf'];
+    const hasBaseline = existing != null && MEASURE_FIELDS.some(k => {
+      const v = parseFloat(String(existing[k] ?? ''));
+      return !isNaN(v) && v > 0;
+    });
+    if (hasBaseline) return false;
+    writeJSON(KEYS.medidasIniciais, value);
+    return true;
+  },
 };
 
 // ── Export ────────────────────────────────────────────────────────────────────

@@ -186,6 +186,7 @@ export const EVENT_TYPES = {
   TREATMENT_UPDATED:       'treatment_updated',
   INJECTION_LOGGED:        'injection_logged',
   WEIGHT_UPDATED:          'weight_updated',
+  MEASUREMENTS_UPDATED:    'measurements_updated',
   BODY_PHOTO_ADDED:        'body_photo_added',
   PROTOCOL_STARTED:        'protocol_started',
   PROTOCOL_DAY_OPENED:     'protocol_day_opened',

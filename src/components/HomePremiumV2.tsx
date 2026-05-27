@@ -532,13 +532,12 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     return false;
   })();
 
-  const [bodyMeasures] = useState<Record<string, string>>(() => {
-    return (glpyStore.bodyMeasurements.get() as unknown as Record<string, string>) ?? {};
+  const [bodyMeasures, setBodyMeasures] = useState<Record<string, any>>(() => {
+    return glpyStore.bodyMeasurements.get() ?? {};
   });
 
-  const [bodyMeasuresIniciais] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem('glpy_medidas_iniciais') || '{}') ?? {}; }
-    catch { return {}; }
+  const [bodyMeasuresIniciais, setBodyMeasuresIniciais] = useState<Record<string, any>>(() => {
+    return glpyStore.progress.getInitialMeasurements() ?? {};
   });
   const [suplementsCount, setSuplementsCount] = useState<number>(mockHomeData.performance.suplements.takenToday);
 
@@ -564,6 +563,20 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     return () => {
       window.removeEventListener('storage', handleUpdateActivity);
       window.removeEventListener('local-storage-change', handleUpdateActivity);
+    };
+  }, []);
+
+  // Medidas corporais reativas — atualiza quando volta da tela de medidas
+  useEffect(() => {
+    const updateMeasures = () => {
+      setBodyMeasures(glpyStore.bodyMeasurements.get() ?? {});
+      setBodyMeasuresIniciais(glpyStore.progress.getInitialMeasurements() ?? {});
+    };
+    window.addEventListener('local-storage-change', updateMeasures);
+    window.addEventListener('storage', updateMeasures);
+    return () => {
+      window.removeEventListener('local-storage-change', updateMeasures);
+      window.removeEventListener('storage', updateMeasures);
     };
   }, []);
 
