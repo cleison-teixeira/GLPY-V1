@@ -489,6 +489,110 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
     }
 
     results.push({ feature: 'Webhook HeroSpark — endpoint', key: '/api/herospark/webhook', expected: 'POST /api/herospark/webhook', found: 'implementado (Sprint 17B.1)', status: 'skip', reason: 'Testar manualmente: curl -X POST https://glpy.com.br/api/herospark/webhook?token=glpy_herospark_2026' });
+
+    // ── 7.6 Simulação Firebase sync — plano.tipo → glpy_plano (Sprint 17B.2) ──
+    // Replica a lógica de syncFromFirestore sem chamar Firebase real.
+    // dataExpiracao simulada como objeto com .toDate() igual ao que Firestore Timestamp expõe.
+    function simulateFirestoreSync(planoDoc: Record<string, unknown>): void {
+      if (typeof planoDoc === 'object' && planoDoc !== null) {
+        const expTs = planoDoc.dataExpiracao as { toDate?: () => Date } | null | undefined;
+        if (expTs?.toDate) {
+          if (expTs.toDate() < new Date()) {
+            localStorage.setItem('glpy_plano', 'starter');
+            return;
+          }
+        }
+        if (planoDoc.tipo) localStorage.setItem('glpy_plano', String(planoDoc.tipo).trim().toLowerCase());
+      } else if (typeof planoDoc === 'string') {
+        localStorage.setItem('glpy_plano', planoDoc.trim().toLowerCase());
+      }
+    }
+
+    const firestoreSyncCases: Array<{
+      label: string;
+      planoDoc: Record<string, unknown>;
+      expectedPlano: string;
+      expectedIA: number;
+      expectedFoto: number;
+      detail: string;
+    }> = [
+      {
+        label: 'Firebase sync — fundador ativo (offer 524346)',
+        planoDoc: { tipo: 'fundador', status: 'active', origem: 'herospark', heroSparkOfferId: '524346' },
+        expectedPlano: 'fundador', expectedIA: 30, expectedFoto: 5,
+        detail: 'offer 524346 aprovado → tipo=fundador → IA 30, Foto 5',
+      },
+      {
+        label: 'Firebase sync — pro ativo',
+        planoDoc: { tipo: 'pro', status: 'active', origem: 'herospark' },
+        expectedPlano: 'pro', expectedIA: 99, expectedFoto: 19,
+        detail: 'pro → IA 99, Foto 19',
+      },
+      {
+        label: 'Firebase sync — top ativo',
+        planoDoc: { tipo: 'top', status: 'active', origem: 'herospark' },
+        expectedPlano: 'top', expectedIA: 999, expectedFoto: 999,
+        detail: 'top → sem limite prático',
+      },
+      {
+        label: 'Firebase sync — cancelado (webhook rebaixou tipo→starter)',
+        planoDoc: { tipo: 'starter', status: 'canceled', origem: 'herospark' },
+        expectedPlano: 'starter', expectedIA: 30, expectedFoto: 5,
+        detail: 'webhook rebaixa tipo para starter antes de salvar — sync lê starter',
+      },
+      {
+        label: 'Firebase sync — expirado (dataExpiracao no passado)',
+        planoDoc: { tipo: 'pro', status: 'active', dataExpiracao: { toDate: () => new Date('2024-01-01T00:00:00Z') } },
+        expectedPlano: 'starter', expectedIA: 30, expectedFoto: 5,
+        detail: 'dataExpiracao < hoje → syncFromFirestore rebaixa para starter',
+      },
+    ];
+
+    for (const c of firestoreSyncCases) {
+      localStorage.removeItem('glpy_plano');
+      simulateFirestoreSync(c.planoDoc);
+      const plano = localStorage.getItem('glpy_plano') ?? 'starter';
+      const ia    = LIMITES_IA[plano]   ?? 10;
+      const foto  = LIMITES_FOTO[plano] ?? 3;
+      const ok = plano === c.expectedPlano && ia === c.expectedIA && foto === c.expectedFoto;
+      results.push({
+        feature: c.label, key: 'glpy_plano',
+        expected: `plano=${c.expectedPlano}, IA=${c.expectedIA}/dia, Foto=${c.expectedFoto}/dia`,
+        found:    `plano=${plano}, IA=${ia}/dia, Foto=${foto}/dia`,
+        status:   ok ? 'ok' : 'erro',
+        reason:   ok ? c.detail : `BUG: plano=${plano}(esp ${c.expectedPlano}), ia=${ia}(esp ${c.expectedIA}), foto=${foto}(esp ${c.expectedFoto})`,
+      });
+    }
+
+    // ── 7.7 Acesso por plano — hasActiveAccess lógica local ─────────────────
+    // Testa a lógica de acesso isolada de DEV_ACCESS_OPEN (que sempre retorna true em dev).
+    const VALID_PLANS_LOCAL = new Set(['starter', 'fundador', 'essencial', 'pro', 'top', 'plus', 'vitalicio', 'founder', 'premium']);
+    const accessCases: Array<{ label: string; plano: string | null; expectedAccess: boolean }> = [
+      { label: 'Fundador ativo → acesso liberado',  plano: 'fundador',  expectedAccess: true  },
+      { label: 'Pro ativo → acesso liberado',        plano: 'pro',       expectedAccess: true  },
+      { label: 'Starter (free) → acesso liberado',  plano: 'starter',   expectedAccess: true  },
+      { label: 'Cancelado → bloqueado',             plano: 'cancelado', expectedAccess: false },
+      { label: 'Expirado → bloqueado',              plano: 'expirado',  expectedAccess: false },
+      { label: 'Sem plano (null) → bloqueado',      plano: null,        expectedAccess: false },
+    ];
+
+    for (const c of accessCases) {
+      if (c.plano) localStorage.setItem('glpy_plano', c.plano);
+      else localStorage.removeItem('glpy_plano');
+      const raw = localStorage.getItem('glpy_plano');
+      const hasAccess = !!raw && !!raw.trim() && VALID_PLANS_LOCAL.has(raw.trim().toLowerCase());
+      const ok = hasAccess === c.expectedAccess;
+      results.push({
+        feature: c.label, key: 'glpy_plano',
+        expected: c.expectedAccess ? 'acesso liberado' : 'bloqueado',
+        found:    hasAccess ? 'acesso liberado' : 'bloqueado',
+        status:   ok ? 'ok' : 'erro',
+        reason:   ok
+          ? `plano="${c.plano ?? 'null'}" → hasAccess=${hasAccess} ✓`
+          : `BUG! plano="${c.plano ?? 'null'}" → hasAccess=${hasAccess} (esperado ${c.expectedAccess})`,
+      });
+    }
+
   } finally {
     restoreBackup(backup);
   }
