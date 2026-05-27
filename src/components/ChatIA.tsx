@@ -11,6 +11,8 @@ import {
   calculateGLPYDailyTargets, calculateDailyRemaining, buildDailyTargetsForAI,
   type GLPYTargetsInput, type GLPYDailyConsumed,
 } from "../core/glpyDailyTargets";
+import { buildAIContextFromSnapshot } from "../data/glpyUserSnapshot";
+import { detectCravingSignal } from "../data/glpyMissionBridge";
 
 const LIMITES_INICIAIS: Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
 
@@ -172,6 +174,16 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     : `${saudacao}, ${nome}! 👋\n\nSou a GLPY.IA, sua especialista em GLP-1. Pode me perguntar sobre alimentação, sintomas, motivação ou qualquer dúvida sobre seu tratamento.\n\nComo posso ajudar?`;
 
   const buildSystemPrompt = (ctx: ContextoIA | null): string => {
+    // Bloco prioritário: User Snapshot lê das fontes canônicas reais (glpyStore)
+    // Resolve o problema de protocolo/refeições/água invisíveis para a IA
+    let snapshotBlock = "";
+    try { snapshotBlock = buildAIContextFromSnapshot(7); } catch (_) { /* non-blocking */ }
+
+    // Bloco legado: glpyLocalIntelligence + daily targets (preservado integralmente)
+    let legacyBlock = "";
+    try { legacyBlock = buildEnrichedGLPYContext(); } catch (_) { /* non-blocking */ }
+
+    // Bloco Firestore check-in (preservado, mas protocolo_ativo não sobrescreve snapshot)
     let checkinBlock = "";
     if (ctx) {
       const hoje = new Date().toISOString().slice(0, 10);
@@ -186,15 +198,16 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
         if (ctx.agua && parseFloat(ctx.agua) < 1)
           regras.push("Lembrar hidratação a CADA resposta — usuário bebeu menos de 1L hoje.");
 
+        // Nota: campo protocolo_ativo do Firestore pode estar desatualizado.
+        // O User Snapshot acima tem prioridade para protocolo e dados do dia.
         checkinBlock = `
 
-CHECK-IN DE HOJE: fome ${ctx.fome}/10, energia ${ctx.energia}/10, humor ${ctx.humor}, sintomas: ${ctx.sintomas.join(", ") || "nenhum"}, água: ${ctx.agua ?? "não informada"}.
-PROTOCOLO ATIVO: ${ctx.protocolo_ativo ?? "nenhum"}, dia ${ctx.dia_protocolo}/7.${regras.length > 0 ? `\nREGRAS ATIVAS (aplicar em toda resposta):\n${regras.map(r => `- ${r}`).join("\n")}` : ""}`;
+CHECK-IN FIRESTORE (complementar): fome ${ctx.fome}/10, energia ${ctx.energia}/10, humor ${ctx.humor}, sintomas: ${ctx.sintomas.join(", ") || "nenhum"}.${regras.length > 0 ? `\nREGRAS ATIVAS (aplicar em toda resposta):\n${regras.map(r => `- ${r}`).join("\n")}` : ""}`;
       }
     }
 
     return `Você é GLPY.IA — uma coach clínica acolhedora do app GLPY, especialista em apoio nutricional e comportamental para quem usa GLP-1 (Ozempic, Mounjaro, Saxenda, Wegovy). Seu tom é humano, simples, seguro e motivador — nunca técnico demais, nunca parece relatório.
-${buildEnrichedGLPYContext()}${checkinBlock}
+${snapshotBlock}${legacyBlock}${checkinBlock}
 
 FORMATO — REGRAS ABSOLUTAS:
 NUNCA use markdown. Isso significa: sem ** negrito **, sem * itálico *, sem ~~ tachado ~~, sem # títulos, sem ## subtítulos, sem tabelas, sem blocos de código, sem hífens de lista markdown.
@@ -217,9 +230,10 @@ Nunca diagnostique. Nunca prescreva. Nunca sugira ajuste de dose. Nunca afirme c
 Use: "pode estar relacionado", "é comum algumas pessoas relatarem", "vale observar".
 Se sintoma for intenso ou persistente: "Se persistir ou piorar, procure orientação médica."
 
-MISSÕES: cite protocolo, dia atual e as 3 missões. Celebre o que foi feito. Incentive o que falta com leveza.
-PROTEÍNA / ÁGUA: cite quanto consumiu e quanto falta (use os números do contexto). Sugira 1 ação simples agora.
-NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve, evitar volume grande. Alerta médico se persistir.`;
+PROTOCOLO: use SEMPRE o protocolo do User Snapshot acima (fonte: glpyStore local). Cite nome do protocolo, dia atual e missões. Celebre o que foi feito. Incentive o que falta com leveza.
+PROTEÍNA / ÁGUA: cite quanto consumiu (dados do snapshot) e quanto falta. Sugira 1 ação simples agora.
+NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve, evitar volume grande. Alerta médico se persistir.
+CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira alternativas proteicas para controlar sem culpa.`;
   };
 
   const [messages, setMessages] = useState<Message[]>([
@@ -293,6 +307,15 @@ NÁUSEA / CANSAÇO: reconheça, sugira água em pequenos goles, refeição leve,
       signal: SIGNALS.AI_MESSAGE_SENT, screen: 'ChatIA', source: 'manual',
       payload: { used: msgsUsadas + 1, limit: limiteIA },
     });
+    // Detecta craving no texto do usuário e registra como sinal comportamental (sem salvar o texto)
+    const cravingSignal = detectCravingSignal(text);
+    if (cravingSignal) {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.CRAVING_REPORTED, category: CATEGORIES.SYMPTOM, domain: DOMAINS.PSYCHOLOGY,
+        signal: cravingSignal, screen: 'ChatIA', source: 'user_message',
+        payload: { signal: cravingSignal },
+      });
+    }
 
     try {
       const history = messages.map(m => ({

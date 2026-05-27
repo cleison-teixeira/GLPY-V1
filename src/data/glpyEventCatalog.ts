@@ -100,6 +100,16 @@ export const SIGNALS = {
   HAIR_LOSS:                     'hair_loss',
   APPETITE_SUPPRESSED:           'appetite_suppressed',
   MUSCLE_LOSS_RISK:              'muscle_loss_risk',
+  // Craving
+  CRAVING_REPORTED:              'craving_reported',
+  SWEET_CRAVING:                 'sweet_craving',
+  SUGAR_CRAVING:                 'sugar_craving',
+  HUNGER_CRAVING:                'hunger_craving',
+  // Mission sync
+  MISSION_SYNCED_TO_MEAL:        'mission_synced_to_meal',
+  MISSION_SYNCED_TO_WATER:       'mission_synced_to_water',
+  MISSION_SYNCED_TO_ACTIVITY:    'mission_synced_to_activity',
+  MISSION_WITHOUT_REAL_RECORD:   'mission_without_real_record',
   // Treatment / Injection
   MEDICATION_UPDATED:            'medication_updated',
   DOSE_UPDATED:                  'dose_updated',
@@ -157,6 +167,7 @@ export const SIGNALS = {
 } as const;
 
 // ── Tipos de evento ──────────────────────────────────────────────────────────
+// (EVENT_TYPES must be kept in sync with SIGNALS above)
 
 export const EVENT_TYPES = {
   MEAL_SAVED:              'meal_saved',
@@ -182,9 +193,14 @@ export const EVENT_TYPES = {
   AI_MESSAGE_SENT:         'ai_message_sent',
   AI_RESPONSE_RECEIVED:    'ai_response_received',
   AI_LIMIT_REACHED:        'ai_limit_reached',
-  XP_ADDED:                'xp_added',
-  STREAK_UPDATED:          'streak_updated',
-  LEVEL_UPDATED:           'level_updated',
+  XP_ADDED:                    'xp_added',
+  STREAK_UPDATED:              'streak_updated',
+  LEVEL_UPDATED:               'level_updated',
+  CRAVING_REPORTED:            'craving_reported',
+  MISSION_SYNCED_TO_MEAL:      'mission_synced_to_meal',
+  MISSION_SYNCED_TO_WATER:     'mission_synced_to_water',
+  MISSION_SYNCED_TO_ACTIVITY:  'mission_synced_to_activity',
+  MISSION_WITHOUT_REAL_RECORD: 'mission_without_real_record',
 } as const;
 
 // ── Mapeamento de humor → sinal ───────────────────────────────────────────────

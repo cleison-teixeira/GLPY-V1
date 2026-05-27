@@ -10,7 +10,7 @@ import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalI
 import { glpyStore } from "../data/glpyStore";
 import { glpyBlackBox } from "../data/glpyBlackBox";
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
-import { classifyMission, missionTypeToSignal } from "../data/glpyMissionBridge";
+import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal } from "../data/glpyMissionBridge";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -247,6 +247,37 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
         signal: missionTypeToSignal(missionType), screen: 'ProtocoloBase', source: 'protocol_mission',
         payload: { protocolId: protocoloId, day: dia.n, missionId, missionType },
       });
+      // Sinergia real: sincroniza com glpyStore apenas quando há valor numérico explícito no texto
+      const missionTextFormatted = formatMissao(missionTitle);
+      const syncResult = syncMissionToStore(missionType, missionTextFormatted, true);
+      if (syncResult.synced && syncResult.syncType === 'meal') {
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.MISSION_SYNCED_TO_MEAL, category: CATEGORIES.MISSION, domain: DOMAINS.NUTRITION,
+          signal: SIGNALS.MISSION_SYNCED_TO_MEAL, screen: 'ProtocoloBase', source: 'protocol_mission',
+          payload: { protocolId: protocoloId, day: dia.n, missionId, reason: syncResult.reason },
+        });
+        window.dispatchEvent(new Event('local-storage-change'));
+      } else if (syncResult.synced && syncResult.syncType === 'water') {
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.MISSION_SYNCED_TO_WATER, category: CATEGORIES.MISSION, domain: DOMAINS.METABOLISM,
+          signal: SIGNALS.MISSION_SYNCED_TO_WATER, screen: 'ProtocoloBase', source: 'protocol_mission',
+          payload: { protocolId: protocoloId, day: dia.n, missionId, reason: syncResult.reason },
+        });
+        window.dispatchEvent(new Event('local-storage-change'));
+      } else if (syncResult.synced && syncResult.syncType === 'activity') {
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.MISSION_SYNCED_TO_ACTIVITY, category: CATEGORIES.MISSION, domain: DOMAINS.MOVEMENT,
+          signal: SIGNALS.MISSION_SYNCED_TO_ACTIVITY, screen: 'ProtocoloBase', source: 'protocol_mission',
+          payload: { protocolId: protocoloId, day: dia.n, missionId, reason: syncResult.reason },
+        });
+        window.dispatchEvent(new Event('local-storage-change'));
+      } else if (!syncResult.synced) {
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.MISSION_WITHOUT_REAL_RECORD, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
+          signal: SIGNALS.MISSION_WITHOUT_REAL_RECORD, screen: 'ProtocoloBase', source: 'protocol_mission',
+          payload: { protocolId: protocoloId, day: dia.n, missionId, missionType },
+        });
+      }
     } else {
       glpyBlackBox.addEvent({
         type: EVENT_TYPES.MISSION_UNCHECKED, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
@@ -268,6 +299,15 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const handleSelectCheckin = (option: string) => {
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
+    // Detecta craving no texto da opção selecionada e emite evento comportamental
+    const cravingSignal = detectCravingSignal(option);
+    if (cravingSignal) {
+      glpyBlackBox.addEvent({
+        type: EVENT_TYPES.CRAVING_REPORTED, category: CATEGORIES.SYMPTOM, domain: DOMAINS.PSYCHOLOGY,
+        signal: cravingSignal, screen: 'ProtocoloBase', source: 'protocol_checkin',
+        payload: { protocolId: protocoloId, day: dia.n },
+      });
+    }
   };
 
   const handleConcluir = () => {
