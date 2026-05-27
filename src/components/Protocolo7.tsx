@@ -110,7 +110,7 @@ const DIAS: Dia[] = [
     explicacao: "A distribuição proteica ao longo do dia (protein distribution hypothesis) foi validada por múltiplos estudos. 4 refeições de 25-30g proteína ativam mais síntese muscular total que 2 refeições de 50-60g. O músculo responde a cada dose acima do limiar leucina — repetição de estímulo é a estratégia vencedora.",
     missoes: [
       { texto: "Dividir a proteína em 4 momentos do dia", sub: "~{proteina}g total ÷ 4 = por refeição" },
-      { texto: "Proteína pré-treino (60 min antes)", sub: "Aminoácidos disponíveis no sangue durante o esforço" },
+      { texto: "Proteína pré-treino", sub: "Aminoácidos disponíveis no sangue durante o esforço" },
       { texto: "Caseína ou cottage 30 min antes de dormir", sub: "Proteína de digestão lenta = síntese noturna de 7h" },
     ],
     checkin: ["Distribuí proteína em 4 refeições", "Proteína pré-treino feita", "Caseína antes de dormir", "Distribuição melhorou minha energia"],
@@ -131,7 +131,7 @@ const DIAS: Dia[] = [
     missoes: [
       { texto: "10 agachamentos + 10 flexões + 15 elevações de quadril", sub: "Ativa glúteo, quadríceps, peito e core — máxima eficiência" },
       { texto: "Progressão: adicionar 1 repetição por semana", sub: "Sobrecarga progressiva é o sinal de crescimento muscular" },
-      { texto: "Proteína dentro de 45 min após o exercício", sub: "Janela anabólica: absorção muscular de aminoácidos 3x maior" },
+      { texto: "Proteína logo após o exercício", sub: "Janela anabólica: absorção muscular de aminoácidos 3x maior" },
     ],
     checkin: ["Fiz o circuito de 20 min", "Senti os músculos trabalhando", "Proteína pós-treino tomada", "Difícil fazer com pouca energia"],
     ia: {

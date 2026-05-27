@@ -471,8 +471,7 @@ function computeProtocols(today: string, yesterday: string): ProtocolsRunResult 
       // 17. Sem Firebase → OK (catálogo é módulo de dados puro)
       // 18. Sem IA → OK (catálogo não chama modelo)
 
-      // Protocolo 4 usa renderer customizado (AntiRebote.tsx) — informativo
-      if (meta.usesCustomRenderer) warns.push('usa renderer customizado (AntiRebote.tsx) — OK por design');
+      // Protocolo 4 usa renderer customizado (AntiRebote.tsx) — informativo (não conta como warn)
 
       const risco  = errors.length > 0 ? 'ALTO' : warns.length > 0 ? 'baixo' : 'zero';
       const status: 'ok' | 'erro' | 'warn' | 'skip' = errors.length > 0 ? 'erro' : warns.length > 0 ? 'warn' : 'ok';
