@@ -520,6 +520,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/preview/glpy-qa-center') {
+  import('./screens/debug/GlpyQACenterScreen.tsx').then(({ default: GlpyQACenterScreen }) => {
+    root.render(
+      <StrictMode>
+        <GlpyQACenterScreen onBack={() => { window.location.href = '/preview'; }} />
+      </StrictMode>,
+    );
+  });
 } else if (path === '/preview/protocolo1') {
   import('./components/Protocolo1.tsx').then(({ default: Protocolo1 }) => {
     root.render(
