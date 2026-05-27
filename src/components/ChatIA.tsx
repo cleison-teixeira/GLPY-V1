@@ -250,6 +250,11 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Altura inicial do viewport (antes do teclado abrir) — usada para detectar keyboard open
+  const baseViewportHeight = useRef<number>(
+    typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 600
+  );
 
   const plano = localStorage.getItem("glpy_plano") || "starter";
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
@@ -291,6 +296,38 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
     document.documentElement.scrollLeft = 0;
     document.body.scrollLeft = 0;
   }, []);
+
+  // Sprint 17A.2.1 — visualViewport: ajusta container ao viewport real quando teclado iOS abre.
+  // Também aciona local-storage-change para que o BottomNav leia a foto de perfil na montagem.
+  useEffect(() => {
+    // Força o BottomNav a reler a foto de perfil do localStorage na primeira montagem
+    window.dispatchEvent(new Event('local-storage-change'));
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+    baseViewportHeight.current = vv.height;
+
+    const sync = () => {
+      // Ajusta a altura do container ao viewport visível (exclui teclado e barra do browser)
+      if (containerRef.current) {
+        containerRef.current.style.height = `${vv.height}px`;
+      }
+      // Keyboard open = viewport encolheu mais de 150px em relação ao valor base
+      const isOpen = baseViewportHeight.current - vv.height > 150;
+      setKeyboardOpen(isOpen);
+      if (isOpen) {
+        // Rola para o fim das mensagens quando teclado abre
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
+    };
+
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -385,7 +422,11 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
   const limitReached = msgsUsadas >= limiteIA;
 
   return (
-    <div className="h-[100dvh] w-full max-w-full min-w-0 bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col overflow-hidden overflow-x-hidden md:max-w-[430px] md:mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]">
+    <div
+      ref={containerRef}
+      style={{ height: '100dvh' }}
+      className="w-full max-w-full min-w-0 bg-gradient-to-b from-[#E2F1E8] to-[#F3F7F5] text-text-main flex flex-col overflow-hidden overflow-x-hidden md:max-w-[430px] md:mx-auto md:rounded-[40px] md:ring-1 md:ring-black/10 md:shadow-[0_24px_64px_rgba(0,0,0,0.14)]"
+    >
 
       {/* Header compacto */}
       <header className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-[#E2EBE7] z-10">
@@ -492,13 +533,14 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
               onFocus={() => {
-                setKeyboardOpen(true);
+                // Fallback para browsers sem visualViewport (ex: Chrome desktop)
+                if (!window.visualViewport) setKeyboardOpen(true);
                 window.scrollTo({ left: 0, top: window.scrollY });
                 document.documentElement.scrollLeft = 0;
                 document.body.scrollLeft = 0;
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
               }}
-              onBlur={() => setTimeout(() => setKeyboardOpen(false), 150)}
+              onBlur={() => { if (!window.visualViewport) setTimeout(() => setKeyboardOpen(false), 150); }}
               disabled={limitReached}
               placeholder={limitReached ? 'Limite mensal atingido' : 'Pergunte qualquer coisa...'}
               className="flex-1 min-w-0 w-full box-border py-3 pl-4 pr-14 bg-white border border-[#E2EBE7] rounded-3xl text-base focus:outline-none focus:border-primary transition min-h-[48px] max-h-[120px] resize-none overflow-y-auto disabled:opacity-60 disabled:cursor-not-allowed"
@@ -514,14 +556,20 @@ CRAVING: se o snapshot indicar sweet_craving, reconheça com empatia e sugira al
           </div>
         </div>
 
-        {/* Espaço reservado para o BottomNav fixo + safe-area */}
-        {!keyboardOpen && (
-          <div style={{ height: 'calc(72px + env(safe-area-inset-bottom, 0px))' }} aria-hidden="true" />
-        )}
+        {/* Espaço reservado para o BottomNav fixo + safe-area.
+            Mantido montado (hidden via CSS) para não remontar o BottomNav e preservar o estado da foto de perfil. */}
+        <div
+          className={keyboardOpen ? 'hidden' : ''}
+          style={{ height: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}
+          aria-hidden="true"
+        />
 
       </div>
 
-      {!keyboardOpen && <BottomNav active="hub" onNavigate={onNavigate} />}
+      {/* BottomNav mantido montado (hidden via CSS) — evita perda do estado da foto de perfil ao abrir/fechar teclado */}
+      <div className={keyboardOpen ? 'hidden' : ''} aria-hidden={keyboardOpen}>
+        <BottomNav active="hub" onNavigate={onNavigate} />
+      </div>
 
       {/* Modal limite atingido */}
       <AnimatePresence>
