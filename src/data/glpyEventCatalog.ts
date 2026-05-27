@@ -110,6 +110,8 @@ export const SIGNALS = {
   MISSION_SYNCED_TO_WATER:       'mission_synced_to_water',
   MISSION_SYNCED_TO_ACTIVITY:    'mission_synced_to_activity',
   MISSION_WITHOUT_REAL_RECORD:   'mission_without_real_record',
+  MISSION_REQUIRES_REAL_RECORD:  'mission_requires_real_record',
+  MISSION_ACTION_SUGGESTED:      'mission_action_suggested',
   // Treatment / Injection
   MEDICATION_UPDATED:            'medication_updated',
   DOSE_UPDATED:                  'dose_updated',
@@ -197,10 +199,12 @@ export const EVENT_TYPES = {
   STREAK_UPDATED:              'streak_updated',
   LEVEL_UPDATED:               'level_updated',
   CRAVING_REPORTED:            'craving_reported',
-  MISSION_SYNCED_TO_MEAL:      'mission_synced_to_meal',
-  MISSION_SYNCED_TO_WATER:     'mission_synced_to_water',
-  MISSION_SYNCED_TO_ACTIVITY:  'mission_synced_to_activity',
-  MISSION_WITHOUT_REAL_RECORD: 'mission_without_real_record',
+  MISSION_SYNCED_TO_MEAL:        'mission_synced_to_meal',
+  MISSION_SYNCED_TO_WATER:       'mission_synced_to_water',
+  MISSION_SYNCED_TO_ACTIVITY:    'mission_synced_to_activity',
+  MISSION_WITHOUT_REAL_RECORD:   'mission_without_real_record',
+  MISSION_REQUIRES_REAL_RECORD:  'mission_requires_real_record',
+  MISSION_ACTION_SUGGESTED:      'mission_action_suggested',
 } as const;
 
 // ── Mapeamento de humor → sinal ───────────────────────────────────────────────

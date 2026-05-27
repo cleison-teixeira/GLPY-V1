@@ -268,6 +268,45 @@ export function syncMissionToStore(
   return { synced: false, syncType: 'none', reason: 'no explicit numeric value in mission text' };
 }
 
+// ── Sugestão de ação por tipo de missão ──────────────────────────────────────
+
+export interface MissionActionSuggestion {
+  suggestScreen: string | null; // chave de navegação compatível com App.tsx
+  actionLabel:   string | null;
+  canSyncReal:   boolean;
+}
+
+/**
+ * Retorna sugestão de tela de registro para um dado missionType.
+ * Regras: apenas screen keys que existem em App.tsx são retornadas.
+ * MISSION_TYPES.ACTIVITY → suggestScreen null (não existe case 'atividade' em App.tsx).
+ */
+export function getMissionActionSuggestion(missionType: string): MissionActionSuggestion {
+  switch (missionType) {
+    case MISSION_TYPES.NUTRITION_BEHAVIOR:
+    case MISSION_TYPES.MEAL_LOG_REQUIRED:
+      return { suggestScreen: 'refeicao', actionLabel: 'Registrar refeição', canSyncReal: true };
+    case MISSION_TYPES.HYDRATION:
+      return { suggestScreen: 'agua', actionLabel: 'Registrar água', canSyncReal: true };
+    case MISSION_TYPES.INJECTION:
+      return { suggestScreen: 'aplicacao', actionLabel: 'Registrar aplicação', canSyncReal: true };
+    case MISSION_TYPES.BODY_PHOTO:
+      return { suggestScreen: 'foto', actionLabel: 'Adicionar foto', canSyncReal: false };
+    case MISSION_TYPES.EMOTION:
+    case MISSION_TYPES.FEAR_REFLECTION:
+      return { suggestScreen: 'emocao', actionLabel: 'Registrar emoção', canSyncReal: false };
+    case MISSION_TYPES.CHECKIN:
+      return { suggestScreen: 'checkin', actionLabel: 'Ir para check-in', canSyncReal: false };
+    case MISSION_TYPES.PROGRESS:
+      return { suggestScreen: 'progress', actionLabel: 'Ver progresso', canSyncReal: false };
+    case MISSION_TYPES.ACTIVITY:
+      // Sem case 'atividade' em App.tsx — apenas BlackBox, sem navegação
+      return { suggestScreen: null, actionLabel: null, canSyncReal: true };
+    default:
+      return { suggestScreen: null, actionLabel: null, canSyncReal: false };
+  }
+}
+
 // ── Detecção de craving ───────────────────────────────────────────────────────
 
 const CRAVING_KEYWORDS = [

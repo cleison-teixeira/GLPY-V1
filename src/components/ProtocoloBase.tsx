@@ -10,7 +10,7 @@ import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalI
 import { glpyStore } from "../data/glpyStore";
 import { glpyBlackBox } from "../data/glpyBlackBox";
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
-import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal } from "../data/glpyMissionBridge";
+import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal, getMissionActionSuggestion } from "../data/glpyMissionBridge";
 
 function calcMetas(peso: number, altura: number) {
   const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
@@ -282,6 +282,15 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
           payload: { protocolId: protocoloId, day: dia.n, missionId, missionType },
         });
       }
+      // Registra sugestão de navegação quando missão não criou registro automático
+      const actionSuggestion = getMissionActionSuggestion(missionType);
+      if (actionSuggestion.suggestScreen && !syncResult.synced) {
+        glpyBlackBox.addEvent({
+          type: EVENT_TYPES.MISSION_REQUIRES_REAL_RECORD, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
+          signal: SIGNALS.MISSION_REQUIRES_REAL_RECORD, screen: 'ProtocoloBase', source: 'protocol_mission',
+          payload: { protocolId: protocoloId, day: dia.n, missionId, missionType, suggestScreen: actionSuggestion.suggestScreen },
+        });
+      }
     } else {
       glpyBlackBox.addEvent({
         type: EVENT_TYPES.MISSION_UNCHECKED, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
@@ -535,17 +544,43 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <div className="space-y-2.5">
                 {dia.missoes.map((m, i) => {
                   const done = missoesMarcadas.includes(i);
+                  const mType = classifyMission(m.texto);
+                  const suggestion = getMissionActionSuggestion(mType);
                   return (
-                    <motion.button key={i} whileTap={{ scale: 0.98 }} onClick={() => toggleMissao(i)}
-                      className={`w-full flex gap-3 p-3 rounded-xl border text-left transition-all ${done ? "bg-primary/5 border-primary/20" : "bg-[#F4F6F8] border-transparent"}`}>
-                      {done
-                        ? <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        : <Circle className="w-5 h-5 text-border flex-shrink-0 mt-0.5" />}
-                      <div>
-                        <p className={`text-sm font-semibold ${done ? "line-through text-text-muted" : "text-text-main"}`}>{m.texto}</p>
-                        <p className="text-xs text-text-muted mt-0.5">{formatMissao(m.sub)}</p>
-                      </div>
-                    </motion.button>
+                    <div key={i}>
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={() => toggleMissao(i)}
+                        className={`w-full flex gap-3 p-3 rounded-xl border text-left transition-all ${done ? "bg-primary/5 border-primary/20" : "bg-[#F4F6F8] border-transparent"}`}>
+                        {done
+                          ? <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                          : <Circle className="w-5 h-5 text-border flex-shrink-0 mt-0.5" />}
+                        <div>
+                          <p className={`text-sm font-semibold ${done ? "line-through text-text-muted" : "text-text-main"}`}>{m.texto}</p>
+                          <p className="text-xs text-text-muted mt-0.5">{formatMissao(m.sub)}</p>
+                        </div>
+                      </motion.button>
+                      <AnimatePresence>
+                        {done && suggestion.suggestScreen && (
+                          <motion.button
+                            key={`action-${i}`}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            onClick={() => {
+                              glpyBlackBox.addEvent({
+                                type: EVENT_TYPES.MISSION_ACTION_SUGGESTED, category: CATEGORIES.MISSION, domain: DOMAINS.ADHERENCE,
+                                signal: SIGNALS.MISSION_ACTION_SUGGESTED, screen: 'ProtocoloBase', source: 'protocol_mission',
+                                payload: { missionType: mType, suggestScreen: suggestion.suggestScreen },
+                              });
+                              onNavigate(suggestion.suggestScreen!);
+                            }}
+                            className="mt-1.5 ml-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full hover:bg-primary/15 transition-colors"
+                          >
+                            → {suggestion.actionLabel}
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   );
                 })}
               </div>
