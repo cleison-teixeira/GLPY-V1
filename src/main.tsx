@@ -6,6 +6,13 @@ import { glpyStore } from './data/glpyStore';
 import { getLocalDateKey } from './utils/formatters';
 import './index.css';
 
+// Captura beforeinstallprompt o mais cedo possível, antes de qualquer componente montar
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  (window as Window & { __glpyInstallPrompt?: Event }).__glpyInstallPrompt = e;
+  console.log('[GLPY PWA] beforeinstallprompt capturado');
+});
+
 const root = createRoot(document.getElementById('root')!);
 const path = window.location.pathname;
 const getHomePath = () => {

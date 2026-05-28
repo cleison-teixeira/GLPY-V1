@@ -99,6 +99,8 @@ function PlatformBlock({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+type GlpyWindow = Window & { __glpyInstallPrompt?: Event };
+
 export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptProps) {
   const [platform] = useState<Platform>(() => detectPlatform());
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -108,12 +110,22 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
   const androidRef = useRef<HTMLDivElement>(null);
   const desktopRef = useRef<HTMLDivElement>(null);
 
-  // Capture beforeinstallprompt (Android/Chrome)
+  // Lê o prompt capturado globalmente (caso beforeinstallprompt tenha disparado antes do mount)
+  // e também ouve novos disparos
   useEffect(() => {
+    const globalPrompt = (window as GlpyWindow).__glpyInstallPrompt;
+    if (globalPrompt) {
+      capturedRef.current = globalPrompt as BeforeInstallPromptEvent;
+      setDeferredPrompt(globalPrompt as BeforeInstallPromptEvent);
+      console.log('[GLPY PWA] deferredPrompt recuperado do window');
+    }
+
     function handleBeforeInstall(e: Event) {
       e.preventDefault();
       capturedRef.current = e as BeforeInstallPromptEvent;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      (window as GlpyWindow).__glpyInstallPrompt = e;
+      console.log('[GLPY PWA] beforeinstallprompt capturado pelo componente');
     }
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -131,25 +143,30 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
+  async function handleNativeInstall() {
+    if (!deferredPrompt) return;
+    console.log('[GLPY PWA] prompt() chamado');
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('[GLPY PWA] userChoice:', outcome);
+    if (outcome === 'accepted') {
+      saveStatus('installed');
+      localStorage.setItem('glpy_install_installed_at', String(Date.now()));
+    } else {
+      saveStatus('dismissed');
+      localStorage.setItem('glpy_install_prompt_dismissed_at', String(Date.now()));
+    }
+    setDeferredPrompt(null);
+    capturedRef.current = null;
+    delete (window as GlpyWindow).__glpyInstallPrompt;
+    onClose();
+  }
+
   async function handlePrimaryAction() {
     if (platform === 'android') {
-      if (deferredPrompt) {
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          saveStatus('installed');
-          localStorage.setItem('glpy_install_installed_at', String(Date.now()));
-        } else {
-          saveStatus('dismissed');
-          localStorage.setItem('glpy_install_prompt_dismissed_at', String(Date.now()));
-        }
-        setDeferredPrompt(null);
-        capturedRef.current = null;
-        onClose();
-      }
+      await handleNativeInstall();
       return;
     }
-
     if (platform === 'ios') {
       handleShowSteps();
       saveStatus('instructed');
@@ -350,23 +367,48 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
               {/* Buttons */}
               <div className="space-y-3 pt-1">
 
-                {/* Primary — only on iOS and Android */}
-                {platform !== 'desktop' && (
+                {/* Android com prompt nativo disponível */}
+                {platform === 'android' && deferredPrompt && (
+                  <button
+                    onClick={handleNativeInstall}
+                    className="w-full bg-[#00C27A] text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-[#00C27A]/25 hover:bg-[#00C27A]/90 active:scale-[0.98] transition-all"
+                  >
+                    Instalar GLPY
+                  </button>
+                )}
+
+                {/* Android sem prompt nativo: fallback manual */}
+                {platform === 'android' && !deferredPrompt && (
+                  <div className="bg-[#F4F8F6] border border-[#D1D9E0] rounded-2xl px-4 py-4 flex items-start gap-3">
+                    <Plus className="w-5 h-5 text-[#00C27A] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-[#0A1628] mb-1">Como instalar manualmente</p>
+                      <p className="text-xs text-[#6B7A8D] leading-relaxed">
+                        Toque nos <span className="font-semibold text-[#0A1628]">⋮ três pontos</span> do Chrome → <span className="font-semibold text-[#0A1628]">Adicionar à tela inicial</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* iOS: botão de instrução */}
+                {platform === 'ios' && (
                   <button
                     onClick={handlePrimaryAction}
                     className="w-full bg-[#00C27A] text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-[#00C27A]/25 hover:bg-[#00C27A]/90 active:scale-[0.98] transition-all"
                   >
-                    {platform === 'android' ? 'Instalar GLPY' : 'Ver como adicionar no iPhone'}
+                    Ver como adicionar no iPhone
                   </button>
                 )}
 
-                {/* Secondary — always shown */}
-                <button
-                  onClick={handleShowSteps}
-                  className="w-full bg-[#F4F6F8] text-[#0A1628] font-semibold py-3.5 rounded-2xl text-sm hover:bg-[#E8EDF2] active:scale-[0.98] transition-all"
-                >
-                  Ver passo a passo
-                </button>
+                {/* Secondary — iOS e Android */}
+                {platform !== 'desktop' && (
+                  <button
+                    onClick={handleShowSteps}
+                    className="w-full bg-[#F4F6F8] text-[#0A1628] font-semibold py-3.5 rounded-2xl text-sm hover:bg-[#E8EDF2] active:scale-[0.98] transition-all"
+                  >
+                    Ver passo a passo
+                  </button>
+                )}
 
                 {/* Tertiary — always shown */}
                 <button
