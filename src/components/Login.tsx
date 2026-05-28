@@ -159,7 +159,7 @@ export default function Login() {
                   value={nome}
                   onChange={e => { setNome(e.target.value); limpar(); }}
                   placeholder="Seu nome"
-                  className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
+                  className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
                   autoComplete="name"
                 />
               </motion.div>
@@ -174,7 +174,7 @@ export default function Login() {
               value={email}
               onChange={e => { setEmail(e.target.value); limpar(); }}
               placeholder="seu@email.com"
-              className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
+              className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
               autoComplete="email"
               inputMode="email"
             />
@@ -189,7 +189,7 @@ export default function Login() {
                 value={senha}
                 onChange={e => { setSenha(e.target.value); limpar(); }}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
+                className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
                 autoComplete={modo === "login" ? "current-password" : "new-password"}
               />
               <button
@@ -218,7 +218,7 @@ export default function Login() {
                     value={confirmar}
                     onChange={e => { setConfirmar(e.target.value); limpar(); }}
                     placeholder="Repita a senha"
-                    className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
+                    className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
                     autoComplete="new-password"
                   />
                   <button

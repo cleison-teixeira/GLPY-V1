@@ -12,11 +12,12 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   sendPasswordResetEmail,
   User,
 } from 'firebase/auth';
-import { auth } from '../../firebase.js';
+import { auth, googleProvider } from '../../firebase.js';
 import { syncFromFirestore } from '../../services/firestore';
 import glpyLogoLight from '@/assets/logos/logo-light.png';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } from 'lucide-react';
@@ -91,11 +92,16 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     verificarPlano();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 2. Verificar plano via endpoint server-side ───────────────────────────
+  // ── 2. Verificar plano via endpoint server-side (com timeout 10s) ──────────
   async function verificarPlano() {
     setCheckStatus('loading');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
     try {
-      const resp = await fetch(`/api/acesso/check?email=${encodeURIComponent(email!)}&token=${token}`);
+      const resp = await fetch(
+        `/api/acesso/check?email=${encodeURIComponent(email!)}&token=${token}`,
+        { signal: controller.signal },
+      );
       const json = await resp.json();
 
       if (!json.ok) {
@@ -109,8 +115,14 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
 
       setPlanoNome(PLANO_LABEL[json.plano] ?? json.plano ?? 'GLPY');
       setCheckStatus('plano_ativo');
-    } catch {
+    } catch (err: unknown) {
+      // AbortError = timeout — informa usuário para tentar novamente
       setCheckStatus('erro');
+      if ((err as { name?: string })?.name !== 'AbortError') {
+        console.error('[acesso/check] fetch error:', err);
+      }
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -178,6 +190,38 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     setLoginStep('inicial');
     setSenha('');
     setErroAuth(null);
+  }
+
+  // ── 7. Google login em /acesso — valida e-mail da compra ─────────────────
+  async function handleGoogleLogin() {
+    if (!email) return;
+    setErroAuth(null);
+    setLoginStep('enviando');
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const googleEmail = result.user.email?.toLowerCase() ?? '';
+
+      if (googleEmail !== email) {
+        // E-mail Google diferente do e-mail da compra — sair e orientar
+        await signOut(auth);
+        setErroAuth(
+          `Você entrou com ${result.user.email}, mas este acesso foi comprado com ${email}. Use o Google com o e-mail correto ou entre com senha.`
+        );
+        setLoginStep('inicial');
+        return;
+      }
+
+      // Mesmo e-mail — sucesso, o useEffect de redirecionamento cuida do resto
+      setLoginStep('sucesso');
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code ?? '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setLoginStep('inicial');
+      } else {
+        setErroAuth('Não foi possível entrar com o Google. Tente novamente.');
+        setLoginStep('inicial');
+      }
+    }
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -366,7 +410,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         {/* Área dinâmica por loginStep */}
         <AnimatePresence mode="wait">
 
-          {/* ── Inicial: criar / entrar ───────────────────────────────── */}
+          {/* ── Inicial: criar / entrar / Google ────────────────────────── */}
           {(loginStep === 'inicial') && (
             <motion.div key="inicial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
               <p className="text-xs text-text-muted text-center leading-relaxed">
@@ -379,6 +423,27 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                   <p className="text-xs leading-relaxed">{erroAuth}</p>
                 </div>
               )}
+
+              {/* Botão Google — valida se é o mesmo e-mail da compra */}
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-border rounded-2xl font-semibold text-sm text-[#0A1628] hover:border-primary/40 hover:bg-primary/5 transition"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Entrar com Google
+              </button>
+
+              {/* Separador */}
+              <div className="flex items-center gap-3">
+                <div className="flex-grow h-px bg-border" />
+                <span className="text-xs text-text-muted font-medium">ou com senha</span>
+                <div className="flex-grow h-px bg-border" />
+              </div>
 
               <button
                 onClick={handleCriarSenha}
@@ -478,7 +543,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                   type="email"
                   value={email ?? ''}
                   readOnly
-                  className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-sm text-[#0A1628] cursor-not-allowed opacity-80"
+                  className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-base text-[#0A1628] cursor-not-allowed opacity-80"
                 />
               </div>
 
@@ -492,7 +557,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                     placeholder="Digite sua senha"
                     autoComplete="current-password"
                     autoFocus
-                    className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:bg-white transition"
+                    className="w-full px-4 py-3 pr-11 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
                   />
                   <button type="button" onClick={() => setVerSenha(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">
                     {verSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

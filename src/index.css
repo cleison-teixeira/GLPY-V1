@@ -34,7 +34,7 @@ html, body {
   text-sm do Tailwind (14px) dispara o zoom — forçamos 16px globalmente.
 */
 input, select, textarea {
-  font-size: 16px;
+  font-size: 16px !important;
 }
 /* ======================== */
 
