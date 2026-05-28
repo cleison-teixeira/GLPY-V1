@@ -289,6 +289,9 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         >
           {children}
         </motion.div>
+        <p className="text-[10px] text-white/30 mt-4 text-center max-w-xs leading-relaxed">
+          O GLPY é uma ferramenta educativa e de acompanhamento comportamental. Não substitui orientação médica, nutricional ou psicológica.
+        </p>
       </div>
     );
   }
