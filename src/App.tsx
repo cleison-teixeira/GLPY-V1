@@ -85,7 +85,11 @@ export default function App() {
           const { primeiroAcesso } = await syncFromFirestore();
           console.log('primeiroAcesso:', primeiroAcesso);
           if (primeiroAcesso) {
-            setTelaAtual('onboarding');
+            if (hasActiveAccess()) {
+              setTelaAtual('onboarding');
+            } else {
+              setTelaAtual('planos');
+            }
           } else {
             // Bloqueia acesso sem plano ativo (verificado via Firestore → accessControl)
             if (!hasActiveAccess() && onboardingDone) {

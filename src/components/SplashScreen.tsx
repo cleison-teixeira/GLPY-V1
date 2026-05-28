@@ -19,7 +19,7 @@ export default function SplashScreen({ onNext, onDashboard }: { onNext: () => vo
         className="text-center"
       >
         <div className="flex items-center justify-center mb-4">
-          <img src={glpyLogoLight} alt="GLPY" className="h-16 object-contain" />
+          <img src={glpyLogoLight} alt="GLPY" className="h-10 w-auto max-w-[180px] object-contain" />
         </div>
         <p className="text-xl text-text-muted mb-12 max-w-xs">
           Sua jornada metabólica inteligente.

@@ -13,9 +13,10 @@
 
 export const HEROSPARK_OFFER_MAP: Record<string, string> = {
   '524346': 'fundador',   // GLPY Fundador — R$19,90/mês
-  // futuros:
-  // 'XXXXXX': 'essencial',
-  // 'XXXXXX': 'pro',
+  // TODO Sprint 17B.6: substituir pelo offer_id real do HeroSpark ao lançar Essencial
+  // 'ESSENCIAL_OFFER_ID_AQUI': 'essencial',   // GLPY Essencial — R$29,90/mês
+  // TODO Sprint 17B.7: substituir pelo offer_id real do HeroSpark ao lançar Pro
+  // 'PRO_OFFER_ID_AQUI': 'pro',               // GLPY Pro — R$59,90/mês
 };
 
 export function planFromOfferId(offerId: string | number | undefined): string | null {
