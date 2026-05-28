@@ -37,9 +37,23 @@ function detectPlatform(): Platform {
 }
 
 export function shouldSuppressInstallPrompt(): boolean {
+  // Se já está em standalone (instalado e aberto pelo ícone), suprimir sempre
+  if (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  ) {
+    console.log('[GLPY PWA] standalone detectado — suprimido');
+    return true;
+  }
+  // Se Chrome sinalizou que pode instalar agora, nunca suprimir — Chrome tem prioridade
+  if ((window as Window & { __glpyInstallPrompt?: Event }).__glpyInstallPrompt) {
+    console.log('[GLPY PWA] beforeinstallprompt disponível — não suprimido');
+    return false;
+  }
   const status = localStorage.getItem('glpy_install_prompt_status');
-  if (status === 'installed') return true;
   const dismissedAt = localStorage.getItem('glpy_install_prompt_dismissed_at');
+  console.log('[GLPY PWA] suppress check — status:', status, '| dismissedAt:', dismissedAt);
+  if (status === 'installed') return true;
   if (!dismissedAt) return false;
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
   return Date.now() - parseInt(dismissedAt, 10) < sevenDaysMs;

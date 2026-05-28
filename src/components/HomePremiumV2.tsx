@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase.js";
 import InstallAppPrompt, { shouldSuppressInstallPrompt } from './InstallAppPrompt';
 import {
   Bell,
@@ -2003,6 +2005,31 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   <h3 className="text-base font-extrabold text-[#0A1628]">{userName}</h3>
                   <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">Membro Premium Fundador</p>
                 </div>
+              </div>
+
+              {/* Card conta + logout — visível para testes de troca de perfil */}
+              <div className="bg-white rounded-2xl border border-[#E2EBE7] p-4 shadow-xs space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#00C27A]" />
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#3D5A70]">Conta conectada</span>
+                </div>
+                <p className="text-sm font-bold text-[#0A1628] truncate">
+                  {(() => {
+                    try { return JSON.parse(localStorage.getItem('glpy_user') || '{}').email || auth.currentUser?.email || '—'; }
+                    catch { return auth.currentUser?.email || '—'; }
+                  })()}
+                </p>
+                <button
+                  onClick={async () => {
+                    await signOut(auth);
+                    localStorage.removeItem('glpy_user');
+                    window.location.replace('/');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 border border-red-100 text-red-500 font-bold text-sm rounded-xl active:scale-[0.98] transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v1" /></svg>
+                  Sair da conta
+                </button>
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-xs space-y-1">
