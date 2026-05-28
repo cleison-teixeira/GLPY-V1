@@ -276,7 +276,15 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
   const data = await loadUserData();
   // Sprint 17B.5.6 — usuário sem documento no Firestore é tratado como primeiro acesso.
   // Cobre o caso de registro via Firebase Auth sem passar pelo Admin (criarUsuarioNovo).
-  if (!data) return { primeiroAcesso: true };
+  if (!data) {
+    // Sprint 17B.9 — limpa plano herdado de sessão anterior para impedir acesso indevido
+    localStorage.removeItem('glpy_plano');
+    localStorage.removeItem('glpy_access_control');
+    return { primeiroAcesso: true };
+  }
+
+  // Sprint 17B.9 — limpa antes de repopular para nunca herdar plano de sessão anterior
+  localStorage.removeItem('glpy_plano');
 
   if (data.onboarding) {
     localStorage.setItem("glpy_onboarding", JSON.stringify(data.onboarding));
