@@ -1,5 +1,6 @@
 // GLPY — AcessoScreen
-// Sprint 17B.5 — Tela pós-compra com e-mail de compra travado
+// Sprint 17B.5  — Tela pós-compra com e-mail de compra travado
+// Sprint 17B.11 — Tratamento de {{buyer_email}} ausente + WhatsApp real
 //
 // Rota: /acesso?email={{buyer_email}}&token=GLPY2026
 // Responsabilidades:
@@ -7,6 +8,7 @@
 //   2. Confirmar plano ativo via /api/acesso/check (server-side — não confia só na URL)
 //   3. Exibir estado correto: confirmado / aguardando / não encontrado / token inválido
 //   4. Logar usuário com e-mail travado — nunca libera plano baseado apenas na URL
+//   5. Sprint 17B.11: detecta {{buyer_email}} não substituído e pede e-mail manualmente
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,8 +26,16 @@ import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } fr
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
-type CheckStatus = 'loading' | 'token_invalido' | 'plano_ativo' | 'aguardando' | 'nao_encontrado' | 'erro';
-type LoginStep   = 'inicial' | 'form_senha' | 'enviando' | 'sucesso' | 'reset_enviado' | 'enviando_reset';
+type CheckStatus =
+  | 'loading'
+  | 'token_invalido'
+  | 'email_ausente'
+  | 'plano_ativo'
+  | 'aguardando'
+  | 'nao_encontrado'
+  | 'erro';
+
+type LoginStep = 'inicial' | 'form_senha' | 'enviando' | 'sucesso' | 'reset_enviado' | 'enviando_reset';
 
 interface AcessoScreenProps {
   user:        User | null;
@@ -42,6 +52,21 @@ function parseParams(): { email: string | null; token: string | null } {
   };
 }
 
+// Sprint 17B.11: detecta e-mail literal não substituído (ex: "{{buyer_email}}")
+function isPlaceholderEmail(email: string | null): boolean {
+  if (!email || !email.trim()) return false;
+  return email.includes('{{') || email.includes('}}');
+}
+
+// ── Suporte WhatsApp ──────────────────────────────────────────────────────────
+
+const SUPORTE_WHATSAPP = '5548988371216';
+
+function suporteUrl(emailHint?: string | null): string {
+  const msg = `Olá, acabei de comprar o GLPY e preciso de ajuda para liberar meu acesso. Meu e-mail de compra é: ${emailHint ?? ''}`;
+  return `https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+}
+
 // ── Planos — label amigável ────────────────────────────────────────────────────
 
 const PLANO_LABEL: Record<string, string> = {
@@ -54,11 +79,11 @@ const PLANO_LABEL: Record<string, string> = {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const ERROS_AUTH: Record<string, string> = {
-  'auth/wrong-password':      'Senha incorreta.',
-  'auth/invalid-credential':  'Email ou senha incorretos.',
-  'auth/too-many-requests':   'Muitas tentativas. Tente novamente mais tarde.',
+  'auth/wrong-password':         'Senha incorreta.',
+  'auth/invalid-credential':     'Email ou senha incorretos.',
+  'auth/too-many-requests':      'Muitas tentativas. Tente novamente mais tarde.',
   'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
-  'auth/user-disabled':       'Esta conta foi desativada. Entre em contato com o suporte.',
+  'auth/user-disabled':          'Esta conta foi desativada. Entre em contato com o suporte.',
 };
 
 function traduzirErroAuth(code: string): string {
@@ -68,7 +93,14 @@ function traduzirErroAuth(code: string): string {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
-  const { email, token } = parseParams();
+  const { email: emailParam, token } = parseParams();
+
+  // Sprint 17B.11: emailEfetivo é null quando {{buyer_email}} não foi substituído.
+  // Será populado quando o usuário digitar o e-mail manualmente.
+  const [emailEfetivo, setEmailEfetivo] = useState<string | null>(
+    isPlaceholderEmail(emailParam) ? null : emailParam,
+  );
+  const [emailManual, setEmailManual] = useState('');
 
   const [checkStatus, setCheckStatus] = useState<CheckStatus>('loading');
   const [planoNome,   setPlanoNome]   = useState<string | null>(null);
@@ -79,27 +111,30 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   const [reenviando,  setReenviando]  = useState(false);
   const [reenviado,   setReenviado]   = useState(false);
 
-  // ── 1. Validar token localmente ───────────────────────────────────────────
+  // ── 1. Validar token e detectar e-mail inválido/ausente ──────────────────
   useEffect(() => {
     if (token !== 'GLPY2026') {
       setCheckStatus('token_invalido');
       return;
     }
-    if (!email) {
-      setCheckStatus('nao_encontrado');
+    // Sprint 17B.11: detecta {{buyer_email}} literal ou e-mail ausente
+    if (!emailParam || isPlaceholderEmail(emailParam)) {
+      setCheckStatus('email_ausente');
       return;
     }
     verificarPlano();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 2. Verificar plano via endpoint server-side (com timeout 10s) ──────────
-  async function verificarPlano() {
+  async function verificarPlano(emailOverride?: string) {
+    const emailToUse = emailOverride ?? emailEfetivo;
+    if (!emailToUse) return;
     setCheckStatus('loading');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
       const resp = await fetch(
-        `/api/acesso/check?email=${encodeURIComponent(email!)}&token=${token}`,
+        `/api/acesso/check?email=${encodeURIComponent(emailToUse)}&token=${token}`,
         { signal: controller.signal },
       );
       const json = await resp.json();
@@ -110,13 +145,12 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         return;
       }
 
-      if (!json.found) { setCheckStatus('nao_encontrado'); return; }
-      if (!json.active) { setCheckStatus('aguardando'); return; }
+      if (!json.found)  { setCheckStatus('nao_encontrado'); return; }
+      if (!json.active) { setCheckStatus('aguardando');     return; }
 
       setPlanoNome(PLANO_LABEL[json.plano] ?? json.plano ?? 'GLPY');
       setCheckStatus('plano_ativo');
     } catch (err: unknown) {
-      // AbortError = timeout — informa usuário para tentar novamente
       setCheckStatus('erro');
       if ((err as { name?: string })?.name !== 'AbortError') {
         console.error('[acesso/check] fetch error:', err);
@@ -129,23 +163,22 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   // ── 3. Usuário já autenticado — mesmo email → sincronizar e sair da rota ──
   useEffect(() => {
     if (checkStatus !== 'plano_ativo' || authLoading || !user) return;
-    if (user.email?.toLowerCase() !== email) return; // e-mail diferente — tratado no JSX
-    // Mesmo e-mail — sincronizar plano e redirecionar
+    if (user.email?.toLowerCase() !== emailEfetivo) return;
     syncFromFirestore()
       .catch(() => {})
       .finally(() => {
         window.history.replaceState({}, '', '/');
-        window.location.reload(); // App.tsx vai renderizar o dashboard
+        window.location.reload();
       });
   }, [checkStatus, authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 4. Criar senha — envia link seguro via Firebase ──────────────────────
   async function handleCriarSenha() {
-    if (!email) return;
+    if (!emailEfetivo) return;
     setErroAuth(null);
     setLoginStep('enviando_reset');
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, emailEfetivo);
       setReenviado(false);
       setLoginStep('reset_enviado');
     } catch {
@@ -155,11 +188,11 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   }
 
   async function handleReenviarLink() {
-    if (!email || reenviando) return;
+    if (!emailEfetivo || reenviando) return;
     setReenviando(true);
     setReenviado(false);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, emailEfetivo);
       setReenviado(true);
     } catch {
       setErroAuth('Erro ao reenviar o link. Tente novamente.');
@@ -171,11 +204,11 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   // ── 5. Login com e-mail travado ───────────────────────────────────────────
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    if (!email || !senha) return;
+    if (!emailEfetivo || !senha) return;
     setErroAuth(null);
     setLoginStep('enviando');
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
+      await signInWithEmailAndPassword(auth, emailEfetivo, senha);
       setLoginStep('sucesso');
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? '';
@@ -194,24 +227,22 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
 
   // ── 7. Google login em /acesso — valida e-mail da compra ─────────────────
   async function handleGoogleLogin() {
-    if (!email) return;
+    if (!emailEfetivo) return;
     setErroAuth(null);
     setLoginStep('enviando');
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const googleEmail = result.user.email?.toLowerCase() ?? '';
 
-      if (googleEmail !== email) {
-        // E-mail Google diferente do e-mail da compra — sair e orientar
+      if (googleEmail !== emailEfetivo) {
         await signOut(auth);
         setErroAuth(
-          `Você entrou com ${result.user.email}, mas este acesso foi comprado com ${email}. Use o Google com o e-mail correto ou entre com senha.`
+          `Você entrou com ${result.user.email}, mas este acesso foi comprado com ${emailEfetivo}. Use o Google com o e-mail correto ou entre com senha.`,
         );
         setLoginStep('inicial');
         return;
       }
 
-      // Mesmo e-mail — sucesso, o useEffect de redirecionamento cuida do resto
       setLoginStep('sucesso');
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? '';
@@ -222,6 +253,19 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         setLoginStep('inicial');
       }
     }
+  }
+
+  // ── 8. Sprint 17B.11: Submeter e-mail digitado manualmente ───────────────
+  async function handleEmailManual(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = emailManual.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@')) {
+      setErroAuth('Digite um e-mail válido.');
+      return;
+    }
+    setErroAuth(null);
+    setEmailEfetivo(trimmed);
+    await verificarPlano(trimmed);
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -272,14 +316,66 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           </p>
         </div>
         <a
-          href="https://wa.me/5511999999999"
+          href={suporteUrl(emailEfetivo)}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full block text-center bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md"
         >
           Falar com suporte
         </a>
-      </>
+      </>,
+    );
+  }
+
+  // Sprint 17B.11: e-mail ausente ou literal {{buyer_email}} — pede manualmente
+  if (checkStatus === 'email_ausente') {
+    return renderCard(
+      <>
+        <div className="flex flex-col items-center gap-2 mb-5">
+          <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+          <h1 className="font-bold text-xl text-[#0A1628] text-center">Pagamento confirmado</h1>
+          <p className="text-sm text-text-muted text-center leading-relaxed">
+            Recebemos sua compra, mas não conseguimos identificar automaticamente o e-mail nesta página.
+            Digite abaixo o mesmo e-mail usado na compra para liberar seu acesso.
+          </p>
+        </div>
+        <form onSubmit={handleEmailManual} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-text-muted mb-1.5">E-mail usado na compra</label>
+            <input
+              type="email"
+              value={emailManual}
+              onChange={e => { setEmailManual(e.target.value); setErroAuth(null); }}
+              placeholder="seu@email.com"
+              inputMode="email"
+              autoComplete="email"
+              autoFocus
+              className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-base focus:outline-none focus:border-primary focus:bg-white transition"
+            />
+          </div>
+          {erroAuth && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <p className="text-xs leading-relaxed">{erroAuth}</p>
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={!emailManual.trim()}
+            className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:bg-primary/90 transition disabled:opacity-60"
+          >
+            Liberar meu acesso
+          </button>
+        </form>
+        <a
+          href={suporteUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-xs text-text-muted hover:text-primary mt-4 transition"
+        >
+          Precisa de ajuda? Falar com suporte
+        </a>
+      </>,
     );
   }
 
@@ -289,20 +385,30 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         <div className="flex flex-col items-center gap-3 mb-6">
           <HelpCircle className="w-12 h-12 text-orange-400" />
           <h1 className="font-bold text-xl text-[#0A1628] text-center">Assinatura não encontrada</h1>
-          <p className="text-sm text-text-muted text-center">
-            Não encontramos uma assinatura ativa para <strong className="text-[#0A1628]">{email}</strong>.
-            Confirme se está usando o mesmo e-mail da compra.
+          <p className="text-sm text-text-muted text-center leading-relaxed">
+            Não encontramos uma assinatura ativa para este e-mail. Confira se digitou o mesmo e-mail usado na compra ou fale com o suporte.
           </p>
+          {emailEfetivo && (
+            <p className="text-xs text-slate-400 text-center break-all">
+              E-mail verificado: <strong className="text-[#0A1628]">{emailEfetivo}</strong>
+            </p>
+          )}
         </div>
         <a
-          href="https://wa.me/5511999999999"
+          href={suporteUrl(emailEfetivo)}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full block text-center bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md"
         >
           Falar com suporte
         </a>
-      </>
+        <button
+          onClick={() => { setEmailManual(''); setErroAuth(null); setCheckStatus('email_ausente'); }}
+          className="w-full text-center text-xs text-text-muted hover:text-primary py-2 mt-2 transition"
+        >
+          Tentar com outro e-mail
+        </button>
+      </>,
     );
   }
 
@@ -317,12 +423,12 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           </p>
         </div>
         <button
-          onClick={verificarPlano}
+          onClick={() => verificarPlano()}
           className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md hover:bg-primary/90 transition"
         >
           Verificar novamente
         </button>
-      </>
+      </>,
     );
   }
 
@@ -335,19 +441,19 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           <p className="text-sm text-text-muted text-center">Não conseguimos verificar seu acesso. Tente novamente.</p>
         </div>
         <button
-          onClick={verificarPlano}
+          onClick={() => verificarPlano()}
           className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md"
         >
           Tentar novamente
         </button>
-      </>
+      </>,
     );
   }
 
   // ── Estado: plano_ativo ────────────────────────────────────────────────────
 
   // Usuário autenticado com e-mail diferente
-  if (user && user.email?.toLowerCase() !== email) {
+  if (user && user.email?.toLowerCase() !== emailEfetivo) {
     return renderCard(
       <>
         <div className="flex flex-col items-center gap-3 mb-6">
@@ -356,7 +462,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           <p className="text-sm text-text-muted text-center leading-relaxed">
             Você está conectado como <strong className="text-[#0A1628]">{user.email}</strong>, mas este
             acesso foi comprado com{' '}
-            <strong className="text-primary">{email}</strong>.
+            <strong className="text-primary">{emailEfetivo}</strong>.
             Para liberar automaticamente, entre com o e-mail da compra.
           </p>
         </div>
@@ -372,12 +478,12 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         >
           Continuar com minha conta atual
         </button>
-      </>
+      </>,
     );
   }
 
   // Usuário autenticado com mesmo e-mail → loading (o useEffect acima vai redirecionar)
-  if (user && user.email?.toLowerCase() === email) {
+  if (user && user.email?.toLowerCase() === emailEfetivo) {
     return (
       <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center gap-5">
         {renderLogo()}
@@ -404,14 +510,14 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           <p className="text-sm text-text-muted text-center leading-relaxed">
             Seu acesso ao <strong className="text-primary">{planoNome}</strong> está liberado para:
           </p>
-          <p className="text-sm font-bold text-[#0A1628] text-center break-all">{email}</p>
+          <p className="text-sm font-bold text-[#0A1628] text-center break-all">{emailEfetivo}</p>
         </div>
 
         {/* Área dinâmica por loginStep */}
         <AnimatePresence mode="wait">
 
           {/* ── Inicial: criar / entrar / Google ────────────────────────── */}
-          {(loginStep === 'inicial') && (
+          {loginStep === 'inicial' && (
             <motion.div key="inicial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
               <p className="text-xs text-text-muted text-center leading-relaxed">
                 Para proteger sua conta, crie ou redefina sua senha de acesso.
@@ -424,7 +530,6 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 </div>
               )}
 
-              {/* Botão Google — valida se é o mesmo e-mail da compra */}
               <button
                 onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-border rounded-2xl font-semibold text-sm text-[#0A1628] hover:border-primary/40 hover:bg-primary/5 transition"
@@ -438,7 +543,6 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 Entrar com Google
               </button>
 
-              {/* Separador */}
               <div className="flex items-center gap-3">
                 <div className="flex-grow h-px bg-border" />
                 <span className="text-xs text-text-muted font-medium">ou com senha</span>
@@ -479,7 +583,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
               <p className="text-sm font-bold text-[#0A1628] text-center">Link enviado!</p>
               <p className="text-xs text-text-muted text-center leading-relaxed">
                 Enviamos um link seguro para você criar sua senha em{' '}
-                <strong className="text-primary">{email}</strong>.
+                <strong className="text-primary">{emailEfetivo}</strong>.
               </p>
               <p className="text-xs text-text-muted text-center leading-relaxed">
                 Verifique sua <strong>caixa de entrada</strong>, <strong>spam</strong>,{' '}
@@ -497,9 +601,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
               )}
 
               {reenviado && (
-                <p className="text-xs text-emerald-600 font-semibold text-center">
-                  Link reenviado com sucesso!
-                </p>
+                <p className="text-xs text-emerald-600 font-semibold text-center">Link reenviado com sucesso!</p>
               )}
 
               <button
@@ -541,7 +643,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                 <label className="block text-xs font-semibold text-text-muted mb-1.5">E-mail da compra</label>
                 <input
                   type="email"
-                  value={email ?? ''}
+                  value={emailEfetivo ?? ''}
                   readOnly
                   className="w-full px-4 py-3 bg-[#F4F6F8] border border-border rounded-xl text-base text-[#0A1628] cursor-not-allowed opacity-80"
                 />
