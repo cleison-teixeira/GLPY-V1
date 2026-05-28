@@ -83,22 +83,17 @@ export default function App() {
         }));
         try {
           const { primeiroAcesso } = await syncFromFirestore();
-          console.log('primeiroAcesso:', primeiroAcesso);
           if (primeiroAcesso) {
-            if (hasActiveAccess()) {
-              setTelaAtual('onboarding');
-            } else {
-              setTelaAtual('planos');
-            }
+            // Novo usuário: plano necessário antes de entrar no onboarding
+            setTelaAtual(hasActiveAccess() ? 'onboarding' : 'planos');
           } else {
-            // Bloqueia acesso sem plano ativo (verificado via Firestore → accessControl)
-            if (!hasActiveAccess() && onboardingDone) {
-              setTelaAtual('planos');
-            }
+            // Usuário de retorno: sync concluído — rota definitiva baseada no plano
+            setTelaAtual(hasActiveAccess() ? 'dashboard' : 'planos');
           }
         } catch {
-          if (!hasActiveAccess() && onboardingDone) {
-            setTelaAtual('planos');
+          // Sync falhou (rede/Firestore) — não bloquear usuário com plano em cache ou histórico
+          if (!hasActiveAccess()) {
+            setTelaAtual(onboardingDone ? 'dashboard' : 'planos');
           }
         }
       } else {

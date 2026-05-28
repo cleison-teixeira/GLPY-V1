@@ -96,7 +96,7 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center gap-2 mb-8"
       >
-        <img src={glpyLogoLight} alt="GLPY" className="h-12 object-contain" />
+        <img src={glpyLogoLight} alt="GLPY" className="h-10 w-auto max-w-[180px] object-contain" />
         <p className="text-xs text-text-muted">Sua jornada metabólica inteligente</p>
       </motion.div>
 

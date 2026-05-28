@@ -5,7 +5,7 @@ import glpyLogoLight from '@/assets/logos/logo-light.png';
 
 export default function SplashScreen({ onNext, onDashboard }: { onNext: () => void, onDashboard: () => void }) {
   useEffect(() => {
-    if (localStorage.getItem("onboardingConcluido") === "true") {
+    if (localStorage.getItem("glpy_onboarding") !== null) {
       onDashboard();
     }
   }, [onDashboard]);

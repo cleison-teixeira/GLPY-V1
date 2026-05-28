@@ -292,20 +292,24 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     if (typeof data.plano === "object") {
       const planoObj = data.plano as Record<string, unknown>;
       const expTs = planoObj.dataExpiracao as { toDate?: () => Date } | null;
+      let planoExpirado = false;
       if (expTs?.toDate) {
         const exp = expTs.toDate();
         if (exp < new Date() && id) {
-          // Plano expirado — rebaixa para Starter
-          await updateDoc(doc(db, "users", id), {
+          // Plano expirado — rebaixa Firestore em background
+          // Remove glpy_plano do localStorage para permitir override via admin_grants abaixo
+          updateDoc(doc(db, "users", id), {
             "plano.tipo": "starter",
             "plano.status": "active",
             updatedAt: serverTimestamp(),
-          });
-          localStorage.setItem("glpy_plano", "starter");
-          return { primeiroAcesso: false };
+          }).catch(() => {});
+          localStorage.removeItem("glpy_plano");
+          planoExpirado = true;
         }
       }
-      if (planoObj.tipo) localStorage.setItem("glpy_plano", String(planoObj.tipo).trim().toLowerCase());
+      if (!planoExpirado && planoObj.tipo) {
+        localStorage.setItem("glpy_plano", String(planoObj.tipo).trim().toLowerCase());
+      }
     } else {
       localStorage.setItem("glpy_plano", String(data.plano).trim().toLowerCase());
     }
