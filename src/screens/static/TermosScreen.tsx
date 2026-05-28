@@ -33,7 +33,8 @@ export default function TermosScreen() {
         </Section>
 
         <Section title="6. Planos e acesso">
-          O acesso ao GLPY varia conforme o plano contratado. Pagamentos e assinaturas são processados pela plataforma HeroSpark. Dúvidas sobre sua assinatura ou cobrança devem ser direcionadas ao suporte via WhatsApp disponível no app.
+          O acesso ao GLPY varia conforme o plano contratado. Pagamentos e assinaturas são processados pela plataforma HeroSpark. Dúvidas sobre sua assinatura ou cobrança devem ser enviadas para{" "}
+          <a href="mailto:support@glpy.com.br" className="text-[#00C27A] font-semibold underline">support@glpy.com.br</a>.
         </Section>
 
         <Section title="7. Dados e privacidade">

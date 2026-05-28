@@ -58,7 +58,7 @@ export default function PrivacidadeScreen() {
           Você pode a qualquer momento:{"\n\n"}
           • Solicitar correção dos seus dados{"\n"}
           • Solicitar exclusão da sua conta e dados{"\n"}
-          • Entrar em contato pelo nosso suporte via WhatsApp para exercer esses direitos
+          • Entrar em contato pelo e-mail oficial support@glpy.com.br para exercer esses direitos
         </Section>
 
         <Section title="8. Segurança">
@@ -68,12 +68,10 @@ export default function PrivacidadeScreen() {
         <Section title="9. Contato">
           Dúvidas, solicitações ou questões sobre privacidade? Fale com a gente:{"\n\n"}
           <a
-            href="https://wa.me/5548988371216?text=Olá%2C%20tenho%20uma%20dúvida%20sobre%20privacidade%20no%20GLPY."
+            href="mailto:support@glpy.com.br"
             className="text-[#00C27A] font-semibold underline"
-            target="_blank"
-            rel="noreferrer"
           >
-            WhatsApp: (48) 98837-1216
+            support@glpy.com.br
           </a>
         </Section>
 
