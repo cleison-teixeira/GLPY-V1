@@ -268,48 +268,78 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
                 </div>
               )}
 
-              {/* iPhone block */}
-              <div ref={iphoneRef}>
-                <PlatformBlock
-                  title="NO IPHONE"
-                  icon={<Smartphone className="w-4 h-4" />}
-                  highlighted={highlightedBlock === 'ios'}
-                  steps={[
-                    { icon: <Share className="w-3.5 h-3.5" />, text: 'Toque no ícone de compartilhar no Safari' },
-                    { icon: <Plus className="w-3.5 h-3.5" />,  text: 'Selecione "Adicionar à Tela de Início"' },
-                    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme tocando em "Adicionar"' },
-                  ]}
-                />
-              </div>
-
-              {/* Android block */}
-              <div ref={androidRef}>
-                <PlatformBlock
-                  title="NO ANDROID"
-                  icon={<Home className="w-4 h-4" />}
-                  highlighted={highlightedBlock === 'android'}
-                  steps={[
-                    { icon: <Plus className="w-3.5 h-3.5" />, text: 'Toque em "Instalar app" quando aparecer a opção no navegador' },
-                    { icon: <Home className="w-3.5 h-3.5" />, text: 'Ou escolha "Adicionar à tela inicial"' },
-                    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme a instalação' },
-                  ]}
-                />
-              </div>
-
-              {/* Desktop block */}
-              {platform === 'desktop' && (
-                <div ref={desktopRef}>
+              {/* iOS: só bloco iPhone */}
+              {platform === 'ios' && (
+                <div ref={iphoneRef}>
                   <PlatformBlock
-                    title="NO DESKTOP"
-                    icon={<Monitor className="w-4 h-4" />}
-                    highlighted={highlightedBlock === 'desktop'}
+                    title="NO IPHONE"
+                    icon={<Smartphone className="w-4 h-4" />}
+                    highlighted={highlightedBlock === 'ios'}
                     steps={[
-                      { icon: <Smartphone className="w-3.5 h-3.5" />, text: 'Abra o GLPY no navegador do seu celular' },
-                      { icon: <Plus className="w-3.5 h-3.5" />,        text: 'Siga as instruções do bloco iPhone ou Android acima' },
-                      { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'O GLPY aparecerá na tela inicial do celular' },
+                      { icon: <Share className="w-3.5 h-3.5" />, text: 'Toque no ícone de compartilhar no Safari' },
+                      { icon: <Plus className="w-3.5 h-3.5" />,  text: 'Selecione "Adicionar à Tela de Início"' },
+                      { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme tocando em "Adicionar"' },
                     ]}
                   />
                 </div>
+              )}
+
+              {/* Android: bloco Android primeiro, sem bloco iPhone */}
+              {platform === 'android' && (
+                <div ref={androidRef}>
+                  <PlatformBlock
+                    title="NO ANDROID"
+                    icon={<Home className="w-4 h-4" />}
+                    highlighted={highlightedBlock === 'android'}
+                    steps={[
+                      { icon: <Plus className="w-3.5 h-3.5" />, text: 'Toque em "Instalar app" quando aparecer a opção no navegador' },
+                      { icon: <Home className="w-3.5 h-3.5" />, text: 'Ou escolha "Adicionar à tela inicial"' },
+                      { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme a instalação' },
+                    ]}
+                  />
+                </div>
+              )}
+
+              {/* Desktop: ambos os blocos + bloco desktop */}
+              {platform === 'desktop' && (
+                <>
+                  <div ref={iphoneRef}>
+                    <PlatformBlock
+                      title="NO IPHONE"
+                      icon={<Smartphone className="w-4 h-4" />}
+                      highlighted={highlightedBlock === 'ios'}
+                      steps={[
+                        { icon: <Share className="w-3.5 h-3.5" />, text: 'Toque no ícone de compartilhar no Safari' },
+                        { icon: <Plus className="w-3.5 h-3.5" />,  text: 'Selecione "Adicionar à Tela de Início"' },
+                        { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme tocando em "Adicionar"' },
+                      ]}
+                    />
+                  </div>
+                  <div ref={androidRef}>
+                    <PlatformBlock
+                      title="NO ANDROID"
+                      icon={<Home className="w-4 h-4" />}
+                      highlighted={highlightedBlock === 'android'}
+                      steps={[
+                        { icon: <Plus className="w-3.5 h-3.5" />, text: 'Toque em "Instalar app" quando aparecer a opção no navegador' },
+                        { icon: <Home className="w-3.5 h-3.5" />, text: 'Ou escolha "Adicionar à tela inicial"' },
+                        { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'Confirme a instalação' },
+                      ]}
+                    />
+                  </div>
+                  <div ref={desktopRef}>
+                    <PlatformBlock
+                      title="NO DESKTOP"
+                      icon={<Monitor className="w-4 h-4" />}
+                      highlighted={highlightedBlock === 'desktop'}
+                      steps={[
+                        { icon: <Smartphone className="w-3.5 h-3.5" />, text: 'Abra o GLPY no navegador do seu celular' },
+                        { icon: <Plus className="w-3.5 h-3.5" />,        text: 'Siga as instruções do bloco iPhone ou Android acima' },
+                        { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'O GLPY aparecerá na tela inicial do celular' },
+                      ]}
+                    />
+                  </div>
+                </>
               )}
 
               {/* Logo wordmark subtle */}
