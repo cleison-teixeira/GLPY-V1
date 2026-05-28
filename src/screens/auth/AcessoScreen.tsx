@@ -21,7 +21,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../firebase.js';
 import { syncFromFirestore } from '../../services/firestore';
-import glpyLogoLight from '@/assets/logos/logo-light.png';
+import glpyLogoDark from '@/assets/logos/logo-dark.png';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } from 'lucide-react';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   function renderLogo() {
     return (
       <div className="flex flex-col items-center gap-2 mb-8">
-        <img src={glpyLogoLight} alt="GLPY" className="h-10 w-auto max-w-[180px] object-contain" />
+        <img src={glpyLogoDark} alt="GLPY" className="h-12 w-auto max-w-[220px] object-contain" />
       </div>
     );
   }
