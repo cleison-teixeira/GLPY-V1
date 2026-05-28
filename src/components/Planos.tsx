@@ -10,8 +10,10 @@ interface PlanosProps {
   planoAtual?: string;
 }
 
-// HeroSpark checkout link — offer ID 524346 = fundador
-const FUNDADOR_LINK = 'https://pay.herospark.com/glpy-fundador-524346';
+// HeroSpark checkout links
+const FUNDADOR_LINK  = 'https://pay.herospark.com/glpy-fundador-524346';
+const ESSENCIAL_LINK = 'https://pay.herospark.com/glpy-essencial-524492';
+const PRO_LINK       = 'https://pay.herospark.com/glpy-pro-524494';
 
 const FUNDADOR_RECURSOS = [
   '✅ Todos os 10 protocolos clínicos',
@@ -24,9 +26,9 @@ const FUNDADOR_RECURSOS = [
   '✅ Streak e sistema de XP',
 ];
 
-const EM_BREVE = [
-  { nome: 'Essencial', preco: 'R$29,90', cor: '#7660FF', corLight: '#F0EEFF', corBorder: '#D4CEFB' },
-  { nome: 'Pro',       preco: 'R$59,90', cor: '#F5A623', corLight: '#FFF8ED', corBorder: '#FFE4A0' },
+const OUTROS_PLANOS = [
+  { nome: 'Essencial', preco: 'R$29,90', cor: '#7660FF', corLight: '#F0EEFF', corBorder: '#D4CEFB', link: ESSENCIAL_LINK },
+  { nome: 'Pro',       preco: 'R$59,90', cor: '#F5A623', corLight: '#FFF8ED', corBorder: '#FFE4A0', link: PRO_LINK },
 ];
 
 export default function Planos({ onNavigate }: PlanosProps) {
@@ -149,34 +151,40 @@ export default function Planos({ onNavigate }: PlanosProps) {
         </div>
       </div>
 
-      {/* Planos em breve */}
+      {/* Outros planos disponíveis */}
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#7A9AAF', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
-          Em breve
+          Outros planos
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          {EM_BREVE.map(p => (
+          {OUTROS_PLANOS.map(p => (
             <div key={p.nome} style={{
               flex: 1,
               background: '#fff',
               border: `1.5px solid ${p.corBorder}`,
               borderRadius: 14,
               padding: '12px 14px',
-              opacity: 0.6,
             }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: '#0A1628' }}>GLPY {p.nome}</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: p.cor, marginTop: 2 }}>{p.preco}</div>
               <div style={{ fontSize: 10, color: '#7A9AAF' }}>/mês</div>
-              <div style={{
-                display: 'inline-block',
-                background: p.corLight,
-                color: p.cor,
-                fontSize: 9,
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: 10,
-                marginTop: 6,
-              }}>Em breve</div>
+              <button
+                onClick={() => window.open(p.link, '_blank')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  marginTop: 8,
+                  background: p.corLight,
+                  color: p.cor,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '5px 0',
+                  borderRadius: 8,
+                  border: `1px solid ${p.corBorder}`,
+                  cursor: 'pointer',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >Ver plano →</button>
             </div>
           ))}
         </div>

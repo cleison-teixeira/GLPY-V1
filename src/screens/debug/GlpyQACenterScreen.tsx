@@ -56,8 +56,9 @@ const LIMITES_FOTO: Record<string, number> = { starter: 5,  fundador: 5,  essenc
 
 // Mapeamento offer_id HeroSpark → plano (espelha api/herospark/webhook.ts)
 const HEROSPARK_OFFER_MAP: Record<string, string> = {
-  '524346': 'fundador',
-  // futuros: 'XXXXXX': 'essencial', 'XXXXXX': 'pro'
+  '524346': 'fundador',   // GLPY Fundador  — R$19,90/mês
+  '524492': 'essencial',  // GLPY Essencial — R$29,90/mês
+  '524494': 'pro',        // GLPY Pro       — R$59,90/mês
 };
 
 const ALL_KEYS: string[] = [
@@ -423,7 +424,7 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
     const casesLimites: Array<{ plano: string; expectIA: number; expectFoto: number; label: string }> = [
       { plano: 'starter',   expectIA: 30,  expectFoto: 5,   label: 'Starter (free)' },
       { plano: 'fundador',  expectIA: 30,  expectFoto: 5,   label: 'Fundador — offer 524346' },
-      { plano: 'essencial', expectIA: 30,  expectFoto: 5,   label: 'Essencial (futuro)' },
+      { plano: 'essencial', expectIA: 30,  expectFoto: 5,   label: 'Essencial — offer 524492' },
       { plano: 'pro',       expectIA: 99,  expectFoto: 19,  label: 'Pro' },
       { plano: 'top',       expectIA: 999, expectFoto: 999, label: 'Top / Admin / Dev' },
     ];
@@ -461,9 +462,11 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
 
     // ── 7.4 Mapeamento offer_id HeroSpark → plano ────────────────────────────
     const offerTests: Array<{ offerId: string; expectedPlan: string; label: string }> = [
-      { offerId: '524346', expectedPlan: 'fundador', label: 'offer_id 524346 → fundador' },
-      { offerId: '999999', expectedPlan: 'starter',  label: 'offer_id desconhecido → starter (fallback)' },
-      { offerId: '',       expectedPlan: 'starter',  label: 'offer_id vazio → starter (fallback)' },
+      { offerId: '524346', expectedPlan: 'fundador',  label: 'offer_id 524346 → fundador' },
+      { offerId: '524492', expectedPlan: 'essencial', label: 'offer_id 524492 → essencial' },
+      { offerId: '524494', expectedPlan: 'pro',       label: 'offer_id 524494 → pro' },
+      { offerId: '999999', expectedPlan: 'starter',   label: 'offer_id desconhecido → starter (fallback)' },
+      { offerId: '',       expectedPlan: 'starter',   label: 'offer_id vazio → starter (fallback)' },
     ];
 
     for (const t of offerTests) {
@@ -523,10 +526,16 @@ function runPlanoAcesso(_today: string, _yesterday: string): TestResult[] {
         detail: 'offer 524346 aprovado → tipo=fundador → IA 30, Foto 5',
       },
       {
-        label: 'Firebase sync — pro ativo',
-        planoDoc: { tipo: 'pro', status: 'active', origem: 'herospark' },
+        label: 'Firebase sync — essencial ativo (offer 524492)',
+        planoDoc: { tipo: 'essencial', status: 'active', origem: 'herospark', heroSparkOfferId: '524492' },
+        expectedPlano: 'essencial', expectedIA: 30, expectedFoto: 5,
+        detail: 'offer 524492 aprovado → tipo=essencial → IA 30, Foto 5',
+      },
+      {
+        label: 'Firebase sync — pro ativo (offer 524494)',
+        planoDoc: { tipo: 'pro', status: 'active', origem: 'herospark', heroSparkOfferId: '524494' },
         expectedPlano: 'pro', expectedIA: 99, expectedFoto: 19,
-        detail: 'pro → IA 99, Foto 19',
+        detail: 'offer 524494 aprovado → tipo=pro → IA 99, Foto 19',
       },
       {
         label: 'Firebase sync — top ativo',

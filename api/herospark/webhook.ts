@@ -42,10 +42,9 @@ const db = getFirestore();
 // Fonte única de verdade para mapeamento de oferta.
 
 const HEROSPARK_OFFER_MAP: Record<string, string> = {
-  "524346": "fundador",   // GLPY Fundador — R$19,90/mês
-  // Futuros:
-  // "XXXXXX": "essencial",
-  // "XXXXXX": "pro",
+  "524346": "fundador",   // GLPY Fundador  — R$19,90/mês
+  "524492": "essencial",  // GLPY Essencial — R$29,90/mês
+  "524494": "pro",        // GLPY Pro       — R$59,90/mês
 };
 
 function planFromOfferId(offerId: string | number | undefined): string {
