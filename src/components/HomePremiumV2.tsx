@@ -28,7 +28,9 @@ import {
   Plus,
   Utensils,
   Activity,
-  ArrowUpDown
+  ArrowUpDown,
+  X,
+  Pencil
 } from "lucide-react";
 
 import glpyLogoSymbol from '@/assets/logos/logo-light.png';
@@ -41,6 +43,7 @@ import { useDailyLimits } from '../hooks/useDailyLimits';
 import { saveWeightEntry } from '../core/glpyLocalIntelligence';
 import { calculateNextInjection } from '../utils/treatmentUtils';
 import { glpyStore } from '../data/glpyStore';
+import { GLPY_MEDICATION_OPTIONS } from '../data/glpyMedicationOptions';
 import { formatDecimalBR, formatGrams, formatLiters, formatMeters, formatUnit, parseBRNumber, getLocalDateKey } from '../utils/formatters';
 
 // TODO Fase 1F.2:
@@ -316,6 +319,9 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   // ── Foto de perfil ────────────────────────────────────────────────────────
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => readProfilePhoto());
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
 
   useEffect(() => {
     function refreshPhoto() { setProfilePhoto(readProfilePhoto()); }
@@ -342,6 +348,77 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
       // foto não alterada em caso de erro
     }
     e.target.value = '';
+  }
+
+  function openCamera() {
+    const el = photoInputRef.current;
+    if (!el) return;
+    el.setAttribute('capture', 'environment');
+    el.click();
+    setShowPhotoMenu(false);
+  }
+
+  function openGallery() {
+    const el = photoInputRef.current;
+    if (!el) return;
+    el.removeAttribute('capture');
+    el.click();
+    setShowPhotoMenu(false);
+  }
+
+  function openEditModal() {
+    const onb: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('glpy_onboarding') || '{}'); } catch { return {}; } })();
+    const isoToDisplay = (iso: string) => {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    };
+    setEditForm({
+      nome: localStorage.getItem('glpy_nome')?.trim() || String(onb.nome ?? ''),
+      nome_exibicao: localStorage.getItem('glpy_nome_exibicao')?.trim() || String(onb.nome_exibicao ?? ''),
+      whatsapp: String(onb.whatsapp ?? ''),
+      data_nascimento: isoToDisplay(String(onb.data_nascimento ?? '')),
+      altura: String(onb.altura ?? ''),
+      peso_sonho: (() => { const v = parseFloat(localStorage.getItem('glpy_peso_sonho') ?? String(onb.peso_sonho ?? '')); return isNaN(v) ? '' : String(v); })(),
+      medicamento: glpyStore.treatment.getMedication() || String(onb.medicamento ?? ''),
+      dose: glpyStore.treatment.getDose() || String(onb.dose ?? ''),
+      tempo: String(onb.tempo ?? ''),
+      objetivo: String(onb.objetivo ?? ''),
+    });
+    setShowEditModal(true);
+  }
+
+  function saveEditForm() {
+    const onb: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('glpy_onboarding') || '{}'); } catch { return {}; } })();
+    const displayToISO = (display: string) => {
+      const d = display.replace(/\D/g, '');
+      if (d.length === 8) return `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+      return String(onb.data_nascimento ?? '');
+    };
+    const alturaNum = parseFloat(editForm.altura.replace(',', '.'));
+    const pesoSonhoNum = parseFloat(editForm.peso_sonho.replace(',', '.'));
+    const updated = {
+      ...onb,
+      nome: editForm.nome || onb.nome,
+      nome_exibicao: editForm.nome_exibicao,
+      whatsapp: editForm.whatsapp,
+      data_nascimento: displayToISO(editForm.data_nascimento),
+      altura: !isNaN(alturaNum) && alturaNum > 0 ? alturaNum : onb.altura,
+      peso_sonho: !isNaN(pesoSonhoNum) && pesoSonhoNum > 0 ? pesoSonhoNum : onb.peso_sonho,
+      medicamento: editForm.medicamento,
+      dose: editForm.dose,
+      tempo: editForm.tempo,
+      objetivo: editForm.objetivo,
+    };
+    localStorage.setItem('glpy_onboarding', JSON.stringify(updated));
+    if (editForm.nome) localStorage.setItem('glpy_nome', editForm.nome);
+    localStorage.setItem('glpy_nome_exibicao', editForm.nome_exibicao);
+    if (!isNaN(alturaNum) && alturaNum > 0) localStorage.setItem('glpy_altura', String(alturaNum));
+    if (!isNaN(pesoSonhoNum) && pesoSonhoNum > 0) localStorage.setItem('glpy_peso_sonho', String(pesoSonhoNum));
+    if (editForm.medicamento) glpyStore.treatment.saveMedication(editForm.medicamento);
+    if (editForm.dose) glpyStore.treatment.saveDose(editForm.dose);
+    window.dispatchEvent(new Event('local-storage-change'));
+    setShowEditModal(false);
   }
 
   // Fase 1F.2: dados reais via hooks centralizados
@@ -407,7 +484,16 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   })();
 
   const userHeight = onboarding.altura;
-  const userName = onboarding.nome;
+  const userFullName = onboarding.nome;
+  const userName = (() => {
+    try {
+      const exibicao = localStorage.getItem('glpy_nome_exibicao')?.trim();
+      if (exibicao) return exibicao;
+      const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+      if (String(onb.nome_exibicao ?? '').trim()) return String(onb.nome_exibicao).trim();
+    } catch {}
+    return onboarding.nome;
+  })();
   const userDose = (() => {
     const raw = onboarding.dose;
     if (!raw || raw === '—') return '—';
@@ -1984,7 +2070,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               <div className="text-center space-y-2 py-4">
                 <div className="flex flex-col items-center gap-1">
                   <button
-                    onClick={() => photoInputRef.current?.click()}
+                    onClick={() => setShowPhotoMenu(true)}
                     className="relative inline-block focus:outline-none active:scale-95 transition"
                     aria-label="Alterar foto de perfil"
                   >
@@ -2033,11 +2119,17 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-xs space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block p-1">Suas Informações</span>
-                
+                <div className="flex items-center justify-between p-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Suas Informações</span>
+                  <button onClick={openEditModal} className="flex items-center gap-1 text-[#00C27A] text-[10px] font-bold active:opacity-70 transition">
+                    <Pencil size={11} />
+                    Editar
+                  </button>
+                </div>
+
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
                   <span className="text-xs text-[#3D5A70] font-medium">Nome Completo</span>
-                  <span className="text-xs font-bold text-[#0A1628]">{userName}</span>
+                  <span className="text-xs font-bold text-[#0A1628]">{userFullName}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition">
@@ -2368,6 +2460,224 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                 <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
               </button>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHOTO ACTION SHEET */}
+      {showPhotoMenu && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowPhotoMenu(false)}>
+          <div className="absolute inset-0 bg-[#0A1628]/50" />
+          <div className="relative w-full bg-white rounded-t-3xl p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-2">Foto de perfil</p>
+            <button
+              onClick={openCamera}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 active:opacity-70 transition text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#00C27A]/10 flex items-center justify-center">
+                <Camera className="w-5 h-5 text-[#00C27A]" />
+              </div>
+              <span className="text-sm font-bold text-[#0A1628]">Tirar foto</span>
+            </button>
+            <button
+              onClick={openGallery}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 active:opacity-70 transition text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#00C27A]/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#00C27A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21"/></svg>
+              </div>
+              <span className="text-sm font-bold text-[#0A1628]">Escolher da galeria</span>
+            </button>
+            <button
+              onClick={() => setShowPhotoMenu(false)}
+              className="w-full py-3 text-sm font-bold text-slate-500 rounded-2xl bg-slate-100 active:opacity-70 transition mt-1"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROFILE MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-[#0A1628]/50 backdrop-blur-xs" onClick={() => setShowEditModal(false)} />
+          <div className="relative w-full bg-white rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100 flex-shrink-0">
+              <div className="w-10 h-1 bg-slate-200 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
+              <h2 className="text-sm font-black text-[#0A1628]">Editar Perfil</h2>
+              <button onClick={() => setShowEditModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 active:bg-slate-200 transition">
+                <X size={15} className="text-slate-500" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+              {/* Identidade */}
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Identidade</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Nome completo</label>
+                    <input
+                      type="text"
+                      value={editForm.nome}
+                      onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))}
+                      placeholder="Seu nome completo"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Como quer ser chamado(a)?</label>
+                    <input
+                      type="text"
+                      value={editForm.nome_exibicao}
+                      onChange={e => setEditForm(f => ({ ...f, nome_exibicao: e.target.value }))}
+                      placeholder="Ex: Mari, João..."
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1 ml-1">Usado nos cumprimentos do app</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contato */}
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Contato</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">WhatsApp</label>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={editForm.whatsapp}
+                      onChange={e => setEditForm(f => ({ ...f, whatsapp: e.target.value.replace(/[^0-9+\-() ]/g, '') }))}
+                      placeholder="(11) 99999-9999"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Data de nascimento</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={editForm.data_nascimento}
+                      onChange={e => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                        let formatted = digits;
+                        if (digits.length > 4) formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+                        else if (digits.length > 2) formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        setEditForm(f => ({ ...f, data_nascimento: formatted }));
+                      }}
+                      placeholder="DD/MM/AAAA"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Corpo */}
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Corpo</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Altura (cm)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={editForm.altura}
+                      onChange={e => setEditForm(f => ({ ...f, altura: e.target.value.replace(/[^0-9.,]/g, '') }))}
+                      placeholder="165"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Peso dos sonhos (kg)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={editForm.peso_sonho}
+                      onChange={e => setEditForm(f => ({ ...f, peso_sonho: e.target.value.replace(/[^0-9.,]/g, '') }))}
+                      placeholder="65"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tratamento */}
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Tratamento</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Medicamento</label>
+                    <select
+                      value={editForm.medicamento}
+                      onChange={e => setEditForm(f => ({ ...f, medicamento: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition appearance-none"
+                    >
+                      <option value="">Selecione...</option>
+                      {GLPY_MEDICATION_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Dose atual</label>
+                    <input
+                      type="text"
+                      value={editForm.dose}
+                      onChange={e => setEditForm(f => ({ ...f, dose: e.target.value }))}
+                      placeholder="Ex: 2,5 mg"
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Tempo de uso</label>
+                    <select
+                      value={editForm.tempo}
+                      onChange={e => setEditForm(f => ({ ...f, tempo: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition appearance-none"
+                    >
+                      <option value="">Selecione...</option>
+                      {["Menos de 1 mês", "1 a 3 meses", "3 a 6 meses", "Mais de 6 meses", "Ainda não comecei"].map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#3D5A70] block mb-1">Objetivo</label>
+                    <select
+                      value={editForm.objetivo}
+                      onChange={e => setEditForm(f => ({ ...f, objetivo: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm font-medium text-[#0A1628] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#00C27A] focus:bg-white transition appearance-none"
+                    >
+                      <option value="">Selecione...</option>
+                      {["Emagrecimento", "Evitar o efeito rebote", "Manutenção do peso", "Parar a caneta com segurança", "Saúde metabólica", "Controle do diabetes"].map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="flex gap-2 px-5 py-4 border-t border-slate-100 flex-shrink-0">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 py-3 text-sm font-bold text-[#3D5A70] bg-slate-100 rounded-2xl active:opacity-70 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEditForm}
+                className="flex-1 py-3 text-sm font-extrabold text-white bg-[#00C27A] rounded-2xl shadow-sm shadow-[#00C27A]/20 active:opacity-80 transition"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
