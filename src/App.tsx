@@ -119,7 +119,7 @@ export default function App() {
             onDashboard={() => setTelaAtual('dashboard')}
           />
         );
-      case 'onboarding':   return <Onboarding onNext={() => { const plano = localStorage.getItem('glpy_plano'); setTelaAtual(plano ? 'dashboard' : 'planos'); }} />;
+      case 'onboarding':   return <Onboarding onNext={() => { setTelaAtual(hasActiveAccess() ? 'dashboard' : 'planos'); }} />;
       case 'dashboard':    return <HomePremiumV2 onNavigate={setTelaAtual} />;
       case 'quickActions':
         return (

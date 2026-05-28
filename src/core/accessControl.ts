@@ -15,13 +15,16 @@
  *
  * NÃO FAZER DEPLOY DE VENDA COM DEV_ACCESS_OPEN = true.
  */
-export const DEV_ACCESS_OPEN = true;
+// Sprint 17B.5.3 — DEV_ACCESS_OPEN desativado para lançamento
+export const DEV_ACCESS_OPEN = false;
 
-// Planos oficiais Sprint 17B.1 (HeroSpark) + planos legados Kiwify para compatibilidade
+// Planos que liberam acesso completo ao app
+// starter = fallback técnico — NÃO libera acesso completo
+// Acesso manual via admin_grants define o plano (ex: 'fundador') no users/{uid}
 const VALID_PLANS = new Set([
-  // Planos HeroSpark (Sprint 17B.1)
-  'starter', 'fundador', 'essencial', 'pro', 'top',
-  // Planos legados Kiwify (backward compat)
+  // Planos pagos HeroSpark
+  'fundador', 'essencial', 'pro', 'top',
+  // Planos legados Kiwify (backward compat para assinantes antigos)
   'plus', 'vitalicio', 'founder', 'premium',
 ]);
 

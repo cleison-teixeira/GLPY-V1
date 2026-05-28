@@ -75,6 +75,8 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   const [senha,       setSenha]       = useState('');
   const [verSenha,    setVerSenha]    = useState(false);
   const [erroAuth,    setErroAuth]    = useState<string | null>(null);
+  const [reenviando,  setReenviando]  = useState(false);
+  const [reenviado,   setReenviado]   = useState(false);
 
   // ── 1. Validar token localmente ───────────────────────────────────────────
   useEffect(() => {
@@ -132,10 +134,25 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     setLoginStep('enviando_reset');
     try {
       await sendPasswordResetEmail(auth, email);
+      setReenviado(false);
       setLoginStep('reset_enviado');
     } catch {
       setErroAuth('Não conseguimos enviar o link. Verifique sua conexão e tente novamente.');
       setLoginStep('inicial');
+    }
+  }
+
+  async function handleReenviarLink() {
+    if (!email || reenviando) return;
+    setReenviando(true);
+    setReenviado(false);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setReenviado(true);
+    } catch {
+      setErroAuth('Erro ao reenviar o link. Tente novamente.');
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -168,7 +185,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   function renderLogo() {
     return (
       <div className="flex flex-col items-center gap-2 mb-8">
-        <img src={glpyLogoLight} alt="GLPY" className="h-10 object-contain" />
+        <img src={glpyLogoLight} alt="GLPY" className="h-10 w-auto max-w-[180px] object-contain" />
       </div>
     );
   }
@@ -398,18 +415,44 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
               <p className="text-xs text-text-muted text-center leading-relaxed">
                 Enviamos um link seguro para você criar sua senha em{' '}
                 <strong className="text-primary">{email}</strong>.
-                Verifique sua caixa de entrada e spam.
+              </p>
+              <p className="text-xs text-text-muted text-center leading-relaxed">
+                Verifique sua <strong>caixa de entrada</strong>, <strong>spam</strong>,{' '}
+                <strong>promoções</strong> ou <strong>lixo eletrônico</strong>.
               </p>
               <p className="text-xs text-text-muted text-center">
-                Após criar sua senha, volte aqui e clique em{' '}
-                <strong>"Já tenho senha, entrar"</strong>.
+                Após criar sua senha, toque em <strong>"Já defini minha senha, entrar"</strong>.
               </p>
+
+              {erroAuth && (
+                <div className="w-full flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">{erroAuth}</p>
+                </div>
+              )}
+
+              {reenviado && (
+                <p className="text-xs text-emerald-600 font-semibold text-center">
+                  Link reenviado com sucesso!
+                </p>
+              )}
+
               <button
                 onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
-                className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md hover:bg-primary/90 transition mt-2"
+                className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md hover:bg-primary/90 transition mt-1"
               >
                 Já defini minha senha, entrar
               </button>
+
+              <button
+                onClick={handleReenviarLink}
+                disabled={reenviando}
+                className="w-full flex items-center justify-center gap-2 border-2 border-primary text-primary font-bold py-3 rounded-2xl hover:bg-primary/5 transition disabled:opacity-60"
+              >
+                {reenviando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {reenviando ? 'Reenviando...' : 'Reenviar link de acesso'}
+              </button>
+
               <button
                 onClick={() => { setErroAuth(null); setLoginStep('inicial'); }}
                 className="text-xs text-text-muted hover:text-primary transition"

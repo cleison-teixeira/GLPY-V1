@@ -249,6 +249,13 @@ function readProfilePhoto(): string | null {
   return base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
 }
 
+function getInitials(name: string): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 async function compressProfilePhoto(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -1015,11 +1022,13 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     onClick={() => setActiveTab("perfil")}
                     className="relative cursor-pointer transition active:scale-95 hover:opacity-90"
                   >
-                    <img
-                      src={profilePhoto ?? mockHomeData.user.avatarUrl}
-                      alt={userName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                    />
+                    {profilePhoto ? (
+                      <img src={profilePhoto} alt={userName} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                        {getInitials(userName)}
+                      </div>
+                    )}
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00C27A] rounded-full border-2 border-white" />
                   </div>
                 </div>
@@ -1969,11 +1978,13 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     className="relative inline-block focus:outline-none active:scale-95 transition"
                     aria-label="Alterar foto de perfil"
                   >
-                    <img
-                      src={profilePhoto ?? mockHomeData.user.avatarUrl}
-                      alt={userName}
-                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
-                    />
+                    {profilePhoto ? (
+                      <img src={profilePhoto} alt={userName} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-primary flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
+                        {getInitials(userName)}
+                      </div>
+                    )}
                     <span className="absolute bottom-1 right-1 w-5 h-5 bg-[#00C27A] rounded-full border-2 border-white flex items-center justify-center">
                       <Camera size={10} className="text-white" />
                     </span>
@@ -2076,11 +2087,13 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               onClick={() => { setActiveTab("perfil"); }}
               className="flex flex-col items-center justify-center w-12 h-12 transition"
             >
-              <img
-                src={profilePhoto ?? mockHomeData.user.avatarUrl}
-                alt="Perfil"
-                className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}
-              />
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Perfil" className={`w-6 h-6 rounded-full object-cover border-2 transition ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`} />
+              ) : (
+                <div className={`w-6 h-6 rounded-full border-2 transition bg-primary flex items-center justify-center text-white font-bold text-[8px] flex-shrink-0 ${activeTab === "perfil" ? "border-[#00C27A]" : "border-slate-300"}`}>
+                  {getInitials(userName)}
+                </div>
+              )}
               <span className={`text-[9px] font-bold mt-1 ${activeTab === "perfil" ? "text-[#00C27A]" : "text-slate-400"}`}>Perfil</span>
             </button>
 
