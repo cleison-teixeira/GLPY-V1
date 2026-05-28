@@ -712,7 +712,14 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
       </motion.div>
 
       <p className="text-xs text-white/40 mt-6 text-center max-w-xs">
-        Ao entrar você concorda com os Termos de Uso e Política de Privacidade do GLPY.
+        Ao entrar você concorda com os{" "}
+        <a href="/termos" className="underline hover:text-white/60 transition">Termos de Uso</a>
+        {" "}e{" "}
+        <a href="/privacidade" className="underline hover:text-white/60 transition">Política de Privacidade</a>
+        {" "}do GLPY.
+      </p>
+      <p className="text-[10px] text-white/30 mt-2 text-center max-w-xs leading-relaxed">
+        O GLPY é uma ferramenta educativa e de acompanhamento comportamental. Não substitui orientação médica, nutricional ou psicológica.
       </p>
     </div>
   );

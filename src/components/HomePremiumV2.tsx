@@ -2172,9 +2172,10 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
               </button>
 
-              <div className="p-4 bg-[#FAFCFB] rounded-2xl border border-dashed border-[#E2EBE7] text-center">
-                <span className="text-xs font-bold block mb-1 text-slate-700">Contrato de Segurança Garantido</span>
-                <p className="text-[10px] text-slate-400 leading-relaxed">Suas informações e fotos de evolução corporal são 100% privadas e acessivas apenas em seu ambiente local de aplicativo.</p>
+              <div className="p-4 bg-[#FAFCFB] rounded-2xl border border-dashed border-[#E2EBE7] text-center space-y-2">
+                <span className="text-xs font-bold block text-slate-700">Contrato de Segurança Garantido</span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">Seus dados são privados. Suas informações e fotos de evolução corporal são acessíveis apenas em seu ambiente local de aplicativo.</p>
+                <p className="text-[10px] text-slate-400 leading-relaxed">O GLPY apoia sua rotina, mas não substitui acompanhamento médico, nutricional ou psicológico.</p>
               </div>
             </div>
           )}

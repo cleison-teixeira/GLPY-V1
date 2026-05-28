@@ -599,7 +599,7 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
 
       {/* Botão voltar */}
       {currentStep > 0 && (
-        <div className="px-5 pb-8">
+        <div className="px-5 pb-4">
           <button
             onClick={handleBack}
             className="w-full flex items-center justify-center gap-2 text-text-muted text-sm font-medium py-3 hover:text-text-main transition"
@@ -609,6 +609,10 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
           </button>
         </div>
       )}
+
+      <p className="text-[10px] text-text-muted text-center px-6 pb-8 leading-relaxed">
+        As informações do GLPY não substituem seu médico ou profissional de saúde. Nunca altere medicação, dose ou tratamento sem orientação profissional.
+      </p>
     </div>
   );
 }

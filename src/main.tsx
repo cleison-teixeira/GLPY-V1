@@ -675,6 +675,14 @@ if (path === '/admin') {
       </StrictMode>,
     );
   });
+} else if (path === '/termos') {
+  import('./screens/static/TermosScreen.tsx').then(({ default: TermosScreen }) => {
+    root.render(<StrictMode><TermosScreen /></StrictMode>);
+  });
+} else if (path === '/privacidade') {
+  import('./screens/static/PrivacidadeScreen.tsx').then(({ default: PrivacidadeScreen }) => {
+    root.render(<StrictMode><PrivacidadeScreen /></StrictMode>);
+  });
 } else {
   root.render(
     <StrictMode>
