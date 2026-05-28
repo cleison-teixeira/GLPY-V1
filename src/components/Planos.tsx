@@ -3,17 +3,19 @@
  * Sprint 17B.5.4
  */
 
+import { useEffect } from 'react';
 import { hasActiveAccess } from '../core/accessControl';
+import { trackViewContent } from '../services/metaPixel';
 
 interface PlanosProps {
   onNavigate: (tela: string) => void;
   planoAtual?: string;
 }
 
-// HeroSpark checkout links
-const FUNDADOR_LINK  = 'https://pay.herospark.com/glpy-fundador-524346';
-const ESSENCIAL_LINK = 'https://pay.herospark.com/glpy-essencial-524492';
-const PRO_LINK       = 'https://pay.herospark.com/glpy-pro-524494';
+// Rotas /go — disparam InitiateCheckout antes do checkout HeroSpark
+const FUNDADOR_LINK  = '/go/fundador';
+const ESSENCIAL_LINK = '/go/essencial';
+const PRO_LINK       = '/go/pro';
 
 const FUNDADOR_RECURSOS = [
   '✅ Todos os 10 protocolos clínicos',
@@ -32,6 +34,10 @@ const OUTROS_PLANOS = [
 ];
 
 export default function Planos({ onNavigate }: PlanosProps) {
+  useEffect(() => {
+    trackViewContent({ content_name: 'Planos GLPY', content_category: 'subscription' });
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',

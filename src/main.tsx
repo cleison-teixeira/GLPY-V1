@@ -683,6 +683,10 @@ if (path === '/admin') {
   import('./screens/static/PrivacidadeScreen.tsx').then(({ default: PrivacidadeScreen }) => {
     root.render(<StrictMode><PrivacidadeScreen /></StrictMode>);
   });
+} else if (path === '/go/fundador' || path === '/go/essencial' || path === '/go/pro') {
+  import('./screens/static/GoScreen.tsx').then(({ default: GoScreen }) => {
+    root.render(<StrictMode><GoScreen /></StrictMode>);
+  });
 } else {
   root.render(
     <StrictMode>

@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { trackStartOnboarding, trackCompleteOnboarding, trackCompleteRegistration } from "../services/metaPixel";
 import { GLPY_MEDICATION_OPTIONS } from "../data/glpyMedicationOptions";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
@@ -181,6 +182,8 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
   const step = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
+  useEffect(() => { trackStartOnboarding(); }, []);
+
   const handleOption = (value: string) => {
     const newData = { ...formData, [step.id]: value };
     setFormData(newData);
@@ -290,6 +293,8 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
         updatedAt: new Date().toISOString(),
       }).catch(console.error);
 
+      trackCompleteOnboarding();
+      trackCompleteRegistration();
       onNext();
     }
   };
