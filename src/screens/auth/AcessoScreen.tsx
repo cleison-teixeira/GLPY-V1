@@ -23,6 +23,7 @@ import { auth, googleProvider } from '../../firebase.js';
 import { syncFromFirestore } from '../../services/firestore';
 import glpyLogoDark from '@/assets/logos/logo-dark.png';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } from 'lucide-react';
+import { trackPurchase } from '../../services/metaPixel';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,49 @@ const PLANO_LABEL: Record<string, string> = {
   pro:       'GLPY Pro',
   top:       'GLPY Top',
 };
+
+// ── Sprint 17B.19 — Purchase tracking ─────────────────────────────────────────
+
+// Planos que geram Purchase (top/admin não entram)
+const PURCHASE_PLANS = new Set(['fundador', 'essencial', 'pro']);
+
+// Offer IDs HeroSpark — usados apenas localmente na chave anti-duplicidade
+const PLANO_OFFER_IDS: Record<string, string> = {
+  fundador:  '524346',
+  essencial: '524492',
+  pro:       '524494',
+};
+
+// Normaliza email para uso em chave localStorage (nunca é enviado ao Meta)
+function normalizarEmail(email: string): string {
+  return email.toLowerCase().replace(/[@.]/g, '_');
+}
+
+// Chave de trava anti-duplicidade: glpy_purchase_sent_524492_cleisonperfil_gmail_com
+function buildPurchaseKey(plan: string, email: string): string {
+  const offerId = PLANO_OFFER_IDS[plan] ?? plan;
+  return `glpy_purchase_sent_${offerId}_${normalizarEmail(email)}`;
+}
+
+// Hash SHA-256 dos primeiros 10 hex chars do e-mail normalizado.
+// Determinístico (mesmo plano+email → mesmo hash), mas não reversível.
+// Usado no eventID enviado ao Meta — nunca expõe e-mail legível.
+async function emailHash10(email: string): Promise<string> {
+  const data = new TextEncoder().encode(normalizarEmail(email));
+  const buf  = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 10);
+}
+
+// eventID estável para futura deduplicação CAPI (Sprint 17B.20)
+// Formato: glpy_purchase_essencial_524492_a8f3c91b2d  — sem e-mail legível
+async function buildEventId(plan: string, email: string): Promise<string> {
+  const offerId = PLANO_OFFER_IDS[plan] ?? plan;
+  const hash    = await emailHash10(email);
+  return `glpy_purchase_${plan}_${offerId}_${hash}`;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -150,6 +194,16 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
 
       setPlanoNome(PLANO_LABEL[json.plano] ?? json.plano ?? 'GLPY');
       setCheckStatus('plano_ativo');
+
+      // Sprint 17B.19 — Purchase client-side, apenas para planos pagos e apenas uma vez
+      if (PURCHASE_PLANS.has(json.plano) && emailToUse) {
+        const purchaseKey = buildPurchaseKey(json.plano, emailToUse);
+        if (!localStorage.getItem(purchaseKey)) {
+          const eventId = await buildEventId(json.plano, emailToUse);
+          trackPurchase(json.plano, eventId);
+          localStorage.setItem(purchaseKey, '1');
+        }
+      }
     } catch (err: unknown) {
       setCheckStatus('erro');
       if ((err as { name?: string })?.name !== 'AbortError') {
