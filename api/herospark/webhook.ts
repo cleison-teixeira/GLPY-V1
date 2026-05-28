@@ -22,6 +22,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { sendMetaPurchaseCapi } from "../_lib/metaCapi.js";
 
 // ── Firebase Admin (singleton) ────────────────────────────────────────────────
 
@@ -211,6 +212,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const action = existia ? "updated_existing_user" : "created_new_user";
       console.log("[HeroSpark] ativado:", { email, uid, planTipo, offerId, action, trigger });
+
+      // Sprint 17B.20 — CAPI Purchase server-side. Falhas não quebram o webhook.
+      if (planTipo !== "starter") {
+        try {
+          await sendMetaPurchaseCapi({
+            plan:             planTipo,
+            offerId,
+            email,
+            phone:            body.buyer_phone ?? null,
+            clientIpAddress:  (req.headers["x-forwarded-for"] as string | undefined)
+                                ?.split(",")[0]?.trim(),
+            clientUserAgent:  req.headers["user-agent"] as string | undefined,
+          });
+        } catch (capiErr) {
+          console.error("[MetaCAPI] failed:", (capiErr as Error)?.message ?? String(capiErr));
+        }
+      }
 
       // E-mail de boas-vindas via EmailJS (somente em criação nova)
       if (!existia) {
