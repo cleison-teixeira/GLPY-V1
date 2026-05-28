@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from './firebase.js';
 import AcessoScreen from './screens/auth/AcessoScreen';
+import AccessDebugOverlay from './components/AccessDebugOverlay';
 import { syncFromFirestore } from './services/firestore';
 import { getLocalDateKey } from './utils/formatters';
 import { hasActiveAccess } from './core/accessControl';
@@ -283,5 +284,10 @@ export default function App() {
     );
   }
 
-  return <>{renderScreen()}</>;
+  return (
+    <>
+      {renderScreen()}
+      <AccessDebugOverlay />
+    </>
+  );
 }

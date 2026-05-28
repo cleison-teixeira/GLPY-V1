@@ -24,6 +24,8 @@ export const DEV_ACCESS_OPEN = false;
 const VALID_PLANS = new Set([
   // Planos pagos HeroSpark
   'fundador', 'essencial', 'pro', 'top',
+  // Acesso manual (admin panel ou Firebase console)
+  'admin',
   // Planos legados Kiwify (backward compat para assinantes antigos)
   'plus', 'vitalicio', 'founder', 'premium',
 ]);

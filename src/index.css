@@ -13,6 +13,31 @@
   --radius-pill: 30px;
 }
 
+/* ===== RESET MOBILE ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/*
+  Previne auto-zoom do iOS Safari em inputs com font-size < 16px.
+  text-sm do Tailwind (14px) dispara o zoom — forçamos 16px globalmente.
+*/
+input, select, textarea {
+  font-size: 16px;
+}
+/* ======================== */
+
 body {
   background-color: var(--color-background);
   color: var(--color-text-main);

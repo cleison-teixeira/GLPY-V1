@@ -274,7 +274,9 @@ export async function carregarContextoIA(): Promise<ContextoIA | null> {
 export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> {
   const id = uid();
   const data = await loadUserData();
-  if (!data) return { primeiroAcesso: false };
+  // Sprint 17B.5.6 — usuário sem documento no Firestore é tratado como primeiro acesso.
+  // Cobre o caso de registro via Firebase Auth sem passar pelo Admin (criarUsuarioNovo).
+  if (!data) return { primeiroAcesso: true };
 
   if (data.onboarding) {
     localStorage.setItem("glpy_onboarding", JSON.stringify(data.onboarding));
@@ -316,7 +318,10 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
   }
 
   // Fallback: se users/{uid} não tem plano, buscar em admin_grants pelo email logado.
-  // Cobre o caso de UID mismatch ou falha silenciosa na escrita do users/{uid}.
+  // Cobre UID mismatch ou falha silenciosa na escrita do users/{uid}.
+  //
+  // IMPORTANTE: query usa APENAS where("email") para evitar exigência de índice composto.
+  // Filtros adicionais (status, dataExpiracao) são aplicados em JavaScript.
   if (!localStorage.getItem("glpy_plano") && auth.currentUser?.email) {
     const email = auth.currentUser.email.toLowerCase();
     try {
@@ -324,17 +329,22 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
         query(
           collection(db, "admin_grants"),
           where("email", "==", email),
-          where("status", "==", "active"),
-          orderBy("liberadoEm", "desc"),
-          limit(1),
+          limit(10),
         )
       );
       if (!grantsSnap.empty) {
-        const grant = grantsSnap.docs[0].data();
-        const expTs = grant.dataExpiracao as { toDate?: () => Date } | null;
-        const isExpired = expTs?.toDate ? expTs.toDate() < new Date() : false;
-        if (!isExpired) {
-          const planoNorm = String(grant.plano).trim().toLowerCase();
+        // Filtra em JS para evitar dependência de índice composto no Firestore
+        const activeGrant = grantsSnap.docs
+          .map(d => d.data())
+          .find(g => {
+            if (g.status !== "active") return false;
+            const expTs = g.dataExpiracao as { toDate?: () => Date } | null | undefined;
+            if (expTs?.toDate) return expTs.toDate() >= new Date();
+            return true; // null/ausente = acesso vitalício
+          });
+
+        if (activeGrant) {
+          const planoNorm = String(activeGrant.plano).trim().toLowerCase();
           localStorage.setItem("glpy_plano", planoNorm);
           // Sincroniza de volta para users/{uid} — evita re-consultar admin_grants nos próximos logins
           if (id) {
@@ -343,7 +353,7 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
                 tipo: planoNorm,
                 status: "active",
                 origem: "manual",
-                dataExpiracao: grant.dataExpiracao ?? null,
+                dataExpiracao: activeGrant.dataExpiracao ?? null,
                 liberadoPor: "admin",
               },
               updatedAt: serverTimestamp(),
