@@ -11,15 +11,12 @@ import { syncFromFirestore } from './services/firestore';
 import { getLocalDateKey } from './utils/formatters';
 import { hasActiveAccess } from './core/accessControl';
 import Login from './components/Login';
-import SplashScreen from './components/SplashScreen';
 import Onboarding from './components/Onboarding';
 import HomePremiumV2 from './components/HomePremiumV2';
 import ProtocolHub from './components/ProtocolHub';
 import ProtocolDay from './components/ProtocolDay';
 import ChatIA from './components/ChatIA';
 import Recipes from './components/Recipes';
-import CheckIn from './components/CheckIn';
-import Progress from './components/Progress';
 import Profile from './components/Profile';
 import FotoPrato from './components/FotoPrato';
 import Injecao from './components/Injecao';
@@ -63,62 +60,79 @@ import { glpyStore } from './data/glpyStore';
 import { glpyBlackBox } from './data/glpyBlackBox';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES, MOOD_TO_SIGNAL } from './data/glpyEventCatalog';
 
-const onboardingDone = localStorage.getItem("glpy_onboarding") !== null;
-const isAcessoRoute  = window.location.pathname === '/acesso';
+const isAcessoRoute = window.location.pathname === '/acesso';
+
+/**
+ * routeUser — rota para usuários JÁ AUTENTICADOS após syncFromFirestore.
+ *
+ * Fluxo geral (App.tsx):
+ *   user === null           → <Login /> via guard externo, nunca chega aqui
+ *   user !== null, sem plano → 'planos'
+ *   user !== null, 1º acesso → 'onboarding'
+ *   user !== null, retorno   → 'dashboard'
+ */
+function routeUser(hasPlan: boolean, isFirstAccess: boolean): string {
+  if (!hasPlan) return 'planos';
+  if (isFirstAccess) return 'onboarding';
+  return 'dashboard';
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Sprint 17B.5.6 — inicializa como 'loading_auth' para evitar flash visual
+  // antes de onAuthStateChanged resolver. A tela real é definida SOMENTE após auth.
+  const [telaAtual, setTelaAtual] = useState<string>('loading_auth');
+
   useEffect(() => {
-    if (localStorage.getItem("glpy_tema") === "dark") {
-      document.documentElement.classList.add("dark");
+    if (localStorage.getItem('glpy_tema') === 'dark') {
+      document.documentElement.classList.add('dark');
     }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        localStorage.setItem("glpy_user", JSON.stringify({
+        // Salva dados básicos no localStorage para fallback offline
+        localStorage.setItem('glpy_user', JSON.stringify({
           uid: firebaseUser.uid,
           displayName: firebaseUser.displayName,
           email: firebaseUser.email,
         }));
+
         try {
           const { primeiroAcesso } = await syncFromFirestore();
-          if (primeiroAcesso) {
-            // Novo usuário: plano necessário antes de entrar no onboarding
-            setTelaAtual(hasActiveAccess() ? 'onboarding' : 'planos');
-          } else {
-            // Usuário de retorno: sync concluído — rota definitiva baseada no plano
-            setTelaAtual(hasActiveAccess() ? 'dashboard' : 'planos');
-          }
+          // Decisão centralizada — routeUser é a única fonte de verdade
+          setTelaAtual(routeUser(hasActiveAccess(), primeiroAcesso));
         } catch {
-          // Sync falhou (rede/Firestore) — não bloquear usuário com plano em cache ou histórico
-          if (!hasActiveAccess()) {
-            setTelaAtual(onboardingDone ? 'dashboard' : 'planos');
+          // Sync falhou (rede/Firestore) — fallback conservador:
+          // Sprint 17B.5.6 fix: nunca enviar para dashboard sem plano verificado.
+          // Se temos acesso em cache (glpy_plano local), usamos; caso contrário → planos.
+          const hasCachedPlan = hasActiveAccess();
+          const onboardingDone = localStorage.getItem('glpy_onboarding') !== null;
+          if (hasCachedPlan) {
+            // Plano em cache → deixar passar (pode ser usuário com plano e sem internet)
+            setTelaAtual(onboardingDone ? 'dashboard' : 'onboarding');
+          } else {
+            // Sem plano em cache → gate conservador → planos
+            setTelaAtual('planos');
           }
         }
       } else {
-        localStorage.removeItem("glpy_user");
+        localStorage.removeItem('glpy_user');
+        // Sem usuário: App renderiza <Login /> (veja renderização abaixo)
+        // Não precisa setar telaAtual aqui — o guard `if (!user)` cuida disso
       }
+
       setUser(firebaseUser);
       setAuthLoading(false);
     });
+
     return unsubscribe;
   }, []);
 
-  const [telaAtual, setTelaAtual] = useState(
-    onboardingDone ? 'dashboard' : 'splash'
-  );
-
   const renderScreen = () => {
     switch (telaAtual) {
-      case 'splash':
-        return (
-          <SplashScreen
-            onNext={() => setTelaAtual(onboardingDone ? 'dashboard' : 'onboarding')}
-            onDashboard={() => setTelaAtual('dashboard')}
-          />
-        );
-      case 'onboarding':   return <Onboarding onNext={() => { setTelaAtual(hasActiveAccess() ? 'dashboard' : 'planos'); }} />;
+      case 'onboarding':   return <Onboarding onNext={() => { setTelaAtual(routeUser(hasActiveAccess(), false)); }} />;
       case 'dashboard':    return <HomePremiumV2 onNavigate={setTelaAtual} />;
       case 'quickActions':
         return (
@@ -232,7 +246,8 @@ export default function App() {
           }}
         />
       );
-      default:                      return <HomePremiumV2 onNavigate={setTelaAtual} />;
+      // Estado inesperado: não abrir dashboard sem verificação — redireciona para planos
+      default:                      return <Planos onNavigate={setTelaAtual} />;
     }
   };
 
@@ -242,6 +257,8 @@ export default function App() {
     return <AcessoScreen user={user} authLoading={authLoading} />;
   }
 
+  // Sprint 17B.5.6 — loading único e centralizado enquanto Firebase resolve
+  // Sem flash de SplashScreen ou dashboard antes de auth resolver
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -250,8 +267,20 @@ export default function App() {
     );
   }
 
+  // Sem usuário autenticado → Login
   if (!user) {
     return <Login />;
+  }
+
+  // Usuário autenticado — renderiza tela determinada por routeUser()
+  // Enquanto syncFromFirestore ainda não terminou (telaAtual = 'loading_auth'),
+  // mostra spinner para evitar flash de conteúdo incorreto
+  if (telaAtual === 'loading_auth') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return <>{renderScreen()}</>;
