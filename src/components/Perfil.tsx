@@ -538,16 +538,24 @@ export default function Perfil({ onNavigate }: { onNavigate: (screen: string) =>
         </div>
 
         {/* Sair */}
-        <button
-          onClick={async () => {
-            await signOut(auth);
-            localStorage.removeItem("glpy_user");
-          }}
-          className="w-full p-4 text-red-500 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-50 rounded-2xl transition"
-        >
-          <LogOut className="w-4 h-4" />
-          Sair da conta
-        </button>
+        <div className="bg-white border border-[#F0D4D8] rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full bg-[#00C27A]" />
+            <p className="text-xs font-semibold text-[#3D4A5C]">Conta conectada</p>
+          </div>
+          <p className="text-sm font-bold text-[#0A1628] truncate">{emailUsuario || "E-mail não encontrado"}</p>
+          <button
+            onClick={async () => {
+              await signOut(auth);
+              localStorage.removeItem("glpy_user");
+              window.location.replace('/');
+            }}
+            className="w-full mt-2 p-3.5 bg-red-50 border border-red-100 text-red-500 font-bold text-sm flex items-center justify-center gap-2 rounded-xl hover:bg-red-100 active:scale-[0.98] transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair da conta
+          </button>
+        </div>
 
       </div>
 

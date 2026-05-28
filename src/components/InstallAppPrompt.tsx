@@ -367,7 +367,7 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
               {/* Buttons */}
               <div className="space-y-3 pt-1">
 
-                {/* Android com prompt nativo disponível */}
+                {/* Android: botão nativo quando disponível */}
                 {platform === 'android' && deferredPrompt && (
                   <button
                     onClick={handleNativeInstall}
@@ -377,14 +377,17 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
                   </button>
                 )}
 
-                {/* Android sem prompt nativo: fallback manual */}
-                {platform === 'android' && !deferredPrompt && (
+                {/* Android: alternativa manual — sempre visível */}
+                {platform === 'android' && (
                   <div className="bg-[#F4F8F6] border border-[#D1D9E0] rounded-2xl px-4 py-4 flex items-start gap-3">
                     <Plus className="w-5 h-5 text-[#00C27A] shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-[#0A1628] mb-1">Como instalar manualmente</p>
+                      <p className="text-sm font-bold text-[#0A1628] mb-1">
+                        {deferredPrompt ? 'Ou instale manualmente' : 'Como instalar manualmente'}
+                      </p>
                       <p className="text-xs text-[#6B7A8D] leading-relaxed">
-                        Toque nos <span className="font-semibold text-[#0A1628]">⋮ três pontos</span> do Chrome → <span className="font-semibold text-[#0A1628]">Adicionar à tela inicial</span>
+                        Toque nos <span className="font-semibold text-[#0A1628]">⋮ três pontos</span> do Chrome →{' '}
+                        <span className="font-semibold text-[#0A1628]">Adicionar à tela inicial</span>
                       </p>
                     </div>
                   </div>
