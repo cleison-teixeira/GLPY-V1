@@ -262,6 +262,17 @@ function getInitials(name: string): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
+function getPlanoLabel(plano?: string | null): string {
+  switch (plano) {
+    case 'fundador':  return 'Membro Premium Fundador';
+    case 'essencial': return 'Membro GLPY Essencial';
+    case 'pro':       return 'Membro GLPY Pro';
+    case 'top':
+    case 'admin':     return 'Acesso Administrativo';
+    default:          return 'Sem plano ativo';
+  }
+}
+
 async function compressProfilePhoto(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -2089,7 +2100,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-[#0A1628]">{userName}</h3>
-                  <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">Membro Premium Fundador</p>
+                  <p className="text-xs text-[#00C27A] bg-[#00C27A]/10 px-3 py-1 rounded-full inline-block font-bold">{getPlanoLabel(localStorage.getItem('glpy_plano'))}</p>
                 </div>
               </div>
 
