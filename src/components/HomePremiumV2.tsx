@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import InstallAppPrompt, { shouldSuppressInstallPrompt } from './InstallAppPrompt';
 import {
   Bell,
   Flame,
@@ -596,6 +597,13 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
   const [heightInput, setHeightInput] = useState<string>('');
   const [toasts, setToasts] = useState<QuickToast[]>([]);
   const [confettis, setConfettis] = useState<ConfettiParticle[]>([]);
+  const [showInstallPrompt, setShowInstallPrompt] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (shouldSuppressInstallPrompt()) return;
+    const t = setTimeout(() => setShowInstallPrompt(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
 
   // Próxima aplicação de medicamento dinâmica
   const nextInj = calculateNextInjection();
@@ -2338,6 +2346,11 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
         </div>
       )}
 
+      <InstallAppPrompt
+        isOpen={showInstallPrompt}
+        onClose={() => setShowInstallPrompt(false)}
+        source="home"
+      />
 
     </div>
   );
