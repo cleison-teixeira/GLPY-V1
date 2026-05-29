@@ -9,39 +9,7 @@ import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/fire
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 import { glpyStore } from "../data/glpyStore";
 import { getLocalDateKey } from "../utils/formatters";
-import { calculateGLPYDailyTargets } from "../core/glpyDailyTargets";
-
-// ─── CÁLCULO DE METAS PERSONALIZADAS (engine canônica = mesma da Home) ────────
-function calcMetas(peso: number, altura: number) {
-  try {
-    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-    const result = calculateGLPYDailyTargets({
-      weightKg:       peso,
-      heightCm:       altura,
-      ageYears:       onb.age || onb.ageYears || 30,
-      gender:         onb.gender || 'female',
-      activityLevel:  onb.activityLevel  || 'sedentary',
-      weightLossPace: onb.weightLossPace || 'equilibrado',
-      targetWeightKg: onb.pesoMeta || onb.targetWeightKg || undefined,
-    });
-    return {
-      kcal:     result.caloriesTarget,
-      proteina: result.proteinGrams,
-      gordura:  result.fatGrams,
-      carbs:    result.carbsGrams,
-      agua:     Math.round(result.waterLiters * 1000),
-    };
-  } catch {
-    const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
-    const tdee = tmb * 1.2;
-    const kcal = Math.round(tdee - 500);
-    const proteina = Math.round(peso * 1.8);
-    const gordura = Math.round((kcal * 0.25) / 9);
-    const carbs = Math.round((kcal - proteina * 4 - gordura * 9) / 4);
-    const agua = Math.round(peso * 35);
-    return { kcal, proteina, gordura, carbs, agua };
-  }
-}
+import { useNutritionTargets } from "../hooks/useNutritionTargets";
 
 // ─── RECEITAS DO PROTOCOLO ─────────────────────────────────────────────────
 const RECEITAS = [
@@ -334,9 +302,16 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     } catch {}
   }, [diaAtual]);
 
-  const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
-  const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
-  const metas = calcMetas(peso, altura);
+  const nutritionTargets = useNutritionTargets();
+  const metas = nutritionTargets
+    ? {
+        kcal:     nutritionTargets.caloriesTarget,
+        proteina: nutritionTargets.proteinGrams,
+        gordura:  nutritionTargets.fatGrams,
+        carbs:    nutritionTargets.carbsGrams,
+        agua:     Math.round(nutritionTargets.waterLiters * 1000),
+      }
+    : { kcal: 1200, proteina: 90, gordura: 33, carbs: 120, agua: 2625 };
 
   const videoUrl = VIDEOS[diaAtual + 1] ?? "";
 

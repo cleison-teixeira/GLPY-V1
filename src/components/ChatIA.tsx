@@ -94,9 +94,9 @@ function buildEnrichedGLPYContext(): string {
 
       const weightKg: number  = ctx.currentWeight?.weight  || ob.currentWeight  || 0;
       const heightCm: number  = ob.heightCm || ob.height   || 0;
-      const ageYears: number  = ob.age      || ob.ageYears  || 0;
+      const ageYears: number  = ob.age      || ob.ageYears  || 35;
 
-      if (weightKg > 0 && heightCm > 0 && ageYears > 0) {
+      if (weightKg > 0 && heightCm > 0) {
         const targetsInput: GLPYTargetsInput = {
           weightKg,
           heightCm,
