@@ -74,17 +74,18 @@ export interface Dia {
   xp: number;
 }
 
-const VIDEO_POSTER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">' +
-  '<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">' +
-  '<stop offset="0%" stop-color="#0D1F38"/><stop offset="100%" stop-color="#0A1628"/>' +
-  '</linearGradient></defs>' +
-  '<rect width="640" height="360" fill="url(#bg)"/>' +
-  '<circle cx="320" cy="175" r="40" fill="none" stroke="#6AD28F" stroke-width="2.5" opacity="0.8"/>' +
-  '<polygon points="308,158 308,192 345,175" fill="#6AD28F" opacity="0.9"/>' +
-  '<text x="320" y="244" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.4)" text-anchor="middle">GLPY · Toque para assistir</text>' +
-  '</svg>'
-)}`;
+const PROTOCOL_POSTERS: Record<string, string> = {
+  sobrevivendoCanetas:     '/protocol-posters/sobrevivendo-canetas.png',
+  efeitosColaterais:       '/protocol-posters/controle-efeitos-colaterais.png',
+  antiQuedaCabelo:         '/protocol-posters/anti-queda-cabelo.png',
+  psicologiaEmagrecimento: '/protocol-posters/psicologia-emagrecimento.png',
+  alimentacaoBaixoApetite: '/protocol-posters/alimentacao-baixo-apetite.png',
+  naoPerdaMusculos:        '/protocol-posters/nao-perca-musculo.png',
+  energiaBaixa:            '/protocol-posters/energia-baixa.png',
+  ajusteMetabolico:        '/protocol-posters/ajuste-metabolico.png',
+  transicaoParar:          '/protocol-posters/transicao-caneta.png',
+};
+const DEFAULT_PROTOCOL_POSTER = '/protocol-posters/anti-rebote.png';
 
 const STORAGE_KEY_TO_ID: Record<string, string> = {
   "glpy_sobrevivendo": "sobrevivendoCanetas",
@@ -115,6 +116,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const isPreviewMode = window.location.pathname.startsWith('/preview/protocolo');
 
   const protocoloId = STORAGE_KEY_TO_ID[storageKey] ?? storageKey;
+  const posterUrl = PROTOCOL_POSTERS[protocoloId] ?? DEFAULT_PROTOCOL_POSTER;
   const progressoKey = `glpy_protocolo_${protocoloId}_progresso`;
 
   const [diaAtual, setDiaAtual] = useState<number>(() =>
@@ -572,7 +574,9 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                     style={{
                       position: 'absolute', inset: 0,
                       borderRadius: '16px',
-                      background: 'linear-gradient(135deg, #0D1F38 0%, #0A1628 100%)',
+                      background: `linear-gradient(rgba(10,22,40,0.60) 0%, rgba(10,22,40,0.72) 100%), url('${posterUrl}')`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
                       display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', zIndex: 2,
