@@ -74,6 +74,18 @@ export interface Dia {
   xp: number;
 }
 
+const VIDEO_POSTER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">' +
+  '<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">' +
+  '<stop offset="0%" stop-color="#0D1F38"/><stop offset="100%" stop-color="#0A1628"/>' +
+  '</linearGradient></defs>' +
+  '<rect width="640" height="360" fill="url(#bg)"/>' +
+  '<circle cx="320" cy="175" r="40" fill="none" stroke="#6AD28F" stroke-width="2.5" opacity="0.8"/>' +
+  '<polygon points="308,158 308,192 345,175" fill="#6AD28F" opacity="0.9"/>' +
+  '<text x="320" y="244" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.4)" text-anchor="middle">GLPY · Toque para assistir</text>' +
+  '</svg>'
+)}`;
+
 const STORAGE_KEY_TO_ID: Record<string, string> = {
   "glpy_sobrevivendo": "sobrevivendoCanetas",
   "glpy_efeitos": "efeitosColaterais",
@@ -533,6 +545,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <video
                 ref={videoRef}
                 src={videoUrl}
+                poster={VIDEO_POSTER}
                 controls
                 playsInline
                 {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
