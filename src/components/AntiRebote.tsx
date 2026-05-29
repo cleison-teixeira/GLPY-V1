@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Award } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { GLPYHeader } from "./ui";
 import { playSound } from "../utils/sounds";
@@ -873,9 +873,6 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                     <p className="text-xs text-text-main leading-relaxed">{receitaDetalhe.glp1tip}</p>
                   </div>
                 </div>
-                <button className="w-full bg-primary text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-md">
-                  <ShoppingBag className="w-4 h-4" /> Comprar ingredientes — PedeZap
-                </button>
               </div>
             ) : (
               // Lista de receitas
