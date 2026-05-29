@@ -443,6 +443,16 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     const agora = getLocalDateKey();
     const xpDia = DIAS[diaIndex]?.xp ?? 30;
     persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
+    // Salva check-in do protocolo separadamente para contexto histórico da IA
+    try {
+      localStorage.setItem('glpy_protocol_checkin_last', JSON.stringify({
+        protocolId: 'antiRebote',
+        protocolName: 'Anti-Rebote',
+        day: dia.n,
+        date: agora,
+        checkin: checkinSelecionado || null,
+      }));
+    } catch {}
     // Salva missões do próximo dia para que a IA responda perguntas sobre amanhã
     const nextDayIdx = diaAtual + 1;
     if (nextDayIdx < DIAS.length) {

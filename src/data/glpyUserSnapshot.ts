@@ -487,7 +487,21 @@ export function buildAIContextFromSnapshot(days = 7): string {
       } else {
         p.push('Missões: não acessadas hoje (usuário não abriu o protocolo).');
       }
-      if (snap.protocolCheckinSelected) {
+      // Check-in do protocolo — usa chave persistente (válida mesmo no dia seguinte)
+      const lastCheckinRaw = safeGet(() => {
+        const raw = localStorage.getItem('glpy_protocol_checkin_last');
+        return raw ? JSON.parse(raw) : null;
+      }, null) as any;
+      const lastCheckinValid = lastCheckinRaw?.protocolId === snap.protocolId;
+      if (lastCheckinValid) {
+        const isToday = lastCheckinRaw.date === snap.date;
+        const dayLabel = isToday ? 'hoje' : lastCheckinRaw.date;
+        if (lastCheckinRaw.checkin) {
+          p.push(`Check-in do Dia ${lastCheckinRaw.day} do protocolo (${dayLabel}): "${lastCheckinRaw.checkin}"`);
+        } else {
+          p.push(`Check-in do Dia ${lastCheckinRaw.day} do protocolo (${dayLabel}): não selecionado.`);
+        }
+      } else if (snap.protocolCheckinSelected) {
         p.push(`Check-in do protocolo selecionado: "${snap.protocolCheckinSelected}"`);
       }
       lines.push(p.join('\n'));
