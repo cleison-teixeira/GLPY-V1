@@ -558,24 +558,46 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
               </div>
             )}
 
-            {/* Grid de macros — sempre visível */}
-            <div style={macroGridStyle}>
-              {[
-                { label: 'Calorias',    unit: 'kcal', value: dispCalories },
-                { label: 'Proteína',    unit: 'g',    value: dispProtein  },
-                { label: 'Carboidratos', unit: 'g',   value: dispCarbs    },
-                { label: 'Gordura',     unit: 'g',    value: dispFat      },
-              ].map(({ label, unit, value }) => (
-                <div key={label} style={macroItemStyle}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                    <span style={macroValueStyle}>{value}</span>
-                    <span style={{ fontFamily: fontFamily.primary, fontSize: 12, fontWeight: '600', color: lightColors.text.secondary }}>
-                      {unit}
-                    </span>
+            {/* Grid de macros — padrão visual da Análise do Prato */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: gap.small, marginTop: gap.small }}>
+              {/* Calorias — card full-width */}
+              <div style={{
+                background:   '#FEF2F2',
+                borderRadius: radius.secondary,
+                padding:      '14px',
+                textAlign:    'center',
+                border:       `1px solid ${lightColors.border.soft}`,
+              }}>
+                <p style={{ fontFamily: fontFamily.primary, fontSize: '22px', fontWeight: '900', color: '#EF4444', lineHeight: 1, margin: 0 }}>
+                  {dispCalories} kcal
+                </p>
+                <p style={{ fontFamily: fontFamily.primary, fontSize: 11, color: lightColors.text.secondary, margin: '6px 0 0 0' }}>
+                  Calorias
+                </p>
+              </div>
+              {/* 3 colunas: prot / carbs / gord */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: gap.small }}>
+                {[
+                  { label: 'Proteínas',    value: dispProtein, bg: `${lightColors.brand.green}14`, color: lightColors.brand.greenDark },
+                  { label: 'Carboidratos', value: dispCarbs,   bg: '#FFFBEB',                      color: '#D97706'                   },
+                  { label: 'Gorduras',     value: dispFat,     bg: '#F5F3FF',                      color: '#7C3AED'                   },
+                ].map(({ label, value, bg, color }) => (
+                  <div key={label} style={{
+                    background:   bg,
+                    borderRadius: radius.secondary,
+                    padding:      '10px 6px',
+                    textAlign:    'center',
+                    border:       `1px solid ${lightColors.border.soft}`,
+                  }}>
+                    <p style={{ fontFamily: fontFamily.primary, fontSize: '16px', fontWeight: '900', color, lineHeight: 1, margin: 0 }}>
+                      {value} g
+                    </p>
+                    <p style={{ fontFamily: fontFamily.primary, fontSize: 10, color: lightColors.text.secondary, margin: '4px 0 0 0' }}>
+                      {label}
+                    </p>
                   </div>
-                  <span style={macroLabelStyle}>{label}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Aviso de estimativa — só quando FatSecret funcionou */}
@@ -827,24 +849,20 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
                               </span>
                             )}
                           </div>
-                          {hasCals && (
+                          {(hasCals || hasMacros) && (
                             <p style={{
-                              fontFamily: fontFamily.primary,
-                              fontSize:   12,
-                              color:      lightColors.text.secondary,
-                              margin:     '2px 0 0 0',
+                              fontFamily:   fontFamily.primary,
+                              fontSize:     11,
+                              color:        lightColors.text.secondary,
+                              margin:       '2px 0 0 0',
+                              overflow:     'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace:   'nowrap',
                             }}>
-                              {entry.calories} calorias
-                            </p>
-                          )}
-                          {hasMacros && (
-                            <p style={{
-                              fontFamily: fontFamily.primary,
-                              fontSize:   11,
-                              color:      lightColors.text.secondary,
-                              margin:     '1px 0 0 0',
-                            }}>
-                              {macroStr}
+                              {[
+                                hasCals   ? `${entry.calories} calorias` : null,
+                                hasMacros ? macroStr                     : null,
+                              ].filter(Boolean).join('  ')}
                             </p>
                           )}
                         </div>
