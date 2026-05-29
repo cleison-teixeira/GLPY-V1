@@ -281,6 +281,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const [showXP, setShowXP] = useState(false);
   const [xpValor, setXpValor] = useState(0);
   const [videoAssistido, setVideoAssistido] = useState(false);
+  const [videoStarted, setVideoStarted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // ── Carrega progresso: Firestore → localStorage → padrão ──
@@ -344,6 +345,8 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     const v = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
     v?.requestFullscreen?.() ?? v?.webkitEnterFullscreen?.();
   };
+
+  useEffect(() => { setVideoStarted(false); }, [diaAtual]);
 
   const diaIndex = Math.min(Math.max(diaAtual, 0), DIAS.length - 1);
   const dia = DIAS[diaIndex];
@@ -585,30 +588,59 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
 
             {/* Vídeo */}
             {videoUrl ? (
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                poster={VIDEO_POSTER}
-                controls
-                playsInline
-                {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
-                preload="auto"
-                onPlay={handlePlay}
-                onLoadedMetadata={() => {
-                  if (videoRef.current) videoRef.current.currentTime = 0.1;
-                }}
-                style={{
-                  width: '100%',
-                  minHeight: '420px',
-                  maxHeight: '60vh',
-                  borderRadius: '16px',
-                  background: '#0A1628',
-                  objectFit: 'cover',
-                  objectPosition: 'top',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
-                  display: 'block',
-                }}
-              />
+              <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', minHeight: '180px' }}>
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  controls
+                  playsInline
+                  {...({ 'webkit-playsinline': 'true' } as Record<string, string>)}
+                  preload="none"
+                  onPlay={handlePlay}
+                  style={{
+                    width: '100%',
+                    minHeight: '420px',
+                    maxHeight: '60vh',
+                    borderRadius: '16px',
+                    background: '#0A1628',
+                    objectFit: 'cover',
+                    objectPosition: 'top',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
+                    display: 'block',
+                  }}
+                />
+                {!videoStarted && (
+                  <div
+                    onClick={() => { setVideoStarted(true); videoRef.current?.play(); }}
+                    style={{
+                      position: 'absolute', inset: 0,
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, #0D1F38 0%, #0A1628 100%)',
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', zIndex: 2,
+                      minHeight: '420px', maxHeight: '60vh',
+                    }}
+                  >
+                    <div style={{
+                      width: 72, height: 72, borderRadius: '50%',
+                      border: '2.5px solid #6AD28F',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      marginBottom: 16,
+                    }}>
+                      <div style={{
+                        width: 0, height: 0, borderStyle: 'solid',
+                        borderWidth: '12px 0 12px 22px',
+                        borderColor: 'transparent transparent transparent #6AD28F',
+                        marginLeft: 4,
+                      }} />
+                    </div>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'system-ui,sans-serif', margin: 0 }}>
+                      GLPY · Toque para assistir
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex items-center justify-center rounded-2xl bg-[#0A1628]" style={{ minHeight: '420px', maxHeight: '60vh' }}>
                 <p className="text-white/60 text-sm">Vídeo em breve 🎬</p>
