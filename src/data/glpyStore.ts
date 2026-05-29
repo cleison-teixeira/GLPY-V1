@@ -212,6 +212,8 @@ const meals = {
 
   saveMeal(meal: GlpyMeal): void {
     const existing = readJSON<any[]>(KEYS.refeicoesHoje, []);
+    // Deduplicação por ID — impede duplo salvamento mesmo que o caller chame duas vezes
+    if (meal.id && existing.some((e: any) => e.id === meal.id)) return;
     existing.push(meal);
     writeJSON(KEYS.refeicoesHoje, existing);
   },

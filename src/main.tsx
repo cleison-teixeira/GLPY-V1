@@ -238,10 +238,8 @@ if (path === '/admin') {
       <StrictMode>
         <FoodLogScreen
           onBack={() => { window.location.href = getHomePath(); }}
-          onSave={(data) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            glpyStore.meals.saveMeal({ ...data, savedAt: Date.now() } as any);
-            window.dispatchEvent(new Event('local-storage-change'));
+          onSave={() => {
+            // Save já feito dentro do FoodLogScreen.handleSave()
             window.location.href = getHomePath();
           }}
         />
