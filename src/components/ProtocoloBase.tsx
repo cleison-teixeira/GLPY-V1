@@ -545,7 +545,11 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
             </div>
 
             {videoUrl ? (
-              <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', minHeight: '180px' }}>
+              <div style={{
+                position: 'relative', borderRadius: '16px', overflow: 'hidden',
+                aspectRatio: '16/9',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
+              }}>
                 <video
                   ref={videoRef}
                   src={videoUrl}
@@ -555,14 +559,10 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                   preload="none"
                   onPlay={handlePlay}
                   style={{
-                    width: '100%',
-                    minHeight: '420px',
-                    maxHeight: '60vh',
+                    width: '100%', height: '100%',
                     borderRadius: '16px',
                     background: '#0A1628',
                     objectFit: 'cover',
-                    objectPosition: 'top',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.25), 0 2px 8px rgba(0,194,122,0.15)',
                     display: 'block',
                   }}
                 />
@@ -572,28 +572,32 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                     style={{
                       position: 'absolute', inset: 0,
                       borderRadius: '16px',
-                      background: 'linear-gradient(135deg, #0D1F38 0%, #0A1628 100%)',
+                      background: 'linear-gradient(145deg, #1A3A5E 0%, #0F2A44 60%, #091E33 100%)',
                       display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', zIndex: 2,
-                      minHeight: '420px', maxHeight: '60vh',
                     }}
                   >
                     <div style={{
-                      width: 72, height: 72, borderRadius: '50%',
-                      border: '2.5px solid #6AD28F',
+                      width: 64, height: 64, borderRadius: '50%',
+                      border: '2px solid #6AD28F',
+                      background: 'rgba(106,210,143,0.1)',
+                      boxShadow: '0 0 24px rgba(106,210,143,0.25)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 16,
+                      marginBottom: 14,
                     }}>
                       <div style={{
                         width: 0, height: 0, borderStyle: 'solid',
-                        borderWidth: '12px 0 12px 22px',
+                        borderWidth: '10px 0 10px 18px',
                         borderColor: 'transparent transparent transparent #6AD28F',
-                        marginLeft: 4,
+                        marginLeft: 3,
                       }} />
                     </div>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'system-ui,sans-serif', margin: 0 }}>
-                      GLPY · Toque para assistir
+                    <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: 600, fontFamily: 'system-ui,sans-serif', margin: '0 0 4px 0', letterSpacing: '0.01em' }}>
+                      Toque para assistir
+                    </p>
+                    <p style={{ color: '#6AD28F', fontSize: 11, fontWeight: 500, fontFamily: 'system-ui,sans-serif', margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8 }}>
+                      Aula do protocolo
                     </p>
                   </div>
                 )}
