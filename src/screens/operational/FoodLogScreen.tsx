@@ -6,7 +6,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Coffee, Utensils, Moon, Apple, Lightbulb, Flame,
-  ChevronDown, ChevronUp, Camera, Check,
+  ChevronDown, ChevronUp, Camera, Check, Brain,
 } from 'lucide-react';
 
 import { glpyStore } from '../../data/glpyStore';
@@ -66,6 +66,28 @@ const MEAL_OPTIONS: MealOption[] = [
   { id: 'dinner',    label: 'Jantar',         icon: <Moon    size={16} strokeWidth={2} /> },
   { id: 'snack',     label: 'Lanche',         icon: <Apple   size={16} strokeWidth={2} /> },
 ];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getGlp1Tip(protein: number, carbs: number, fat: number): string {
+  if (protein >= 25) return 'Boa presença de proteína para ajudar na saciedade e apoiar a preservação de massa magra.';
+  if (carbs > 50)    return 'Os carboidratos ajudam na energia, mas a porção pode ser ajustada conforme seu apetite e objetivo do dia.';
+  if (fat > 20)      return 'A gordura aumenta a saciedade, mas pode deixar a refeição mais pesada para algumas pessoas.';
+  return 'Refeição mais leve, útil quando o apetite está reduzido.';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatMealTime(entry: any): string {
+  const ts = entry.createdAt
+    ? new Date(entry.createdAt as string).getTime()
+    : (entry.savedAt as number | undefined);
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -518,6 +540,7 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
 
         {/* ── Resultado da análise ─────────────────────────────────────── */}
         {analysisPhase === 'done' && analysisResult && (
+          <>
           <GLPYCard variant="light">
             <div style={cardTitleRowStyle}>
               <div style={cardIconWrap}>
@@ -544,10 +567,12 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
                 { label: 'Gordura',     unit: 'g',    value: dispFat      },
               ].map(({ label, unit, value }) => (
                 <div key={label} style={macroItemStyle}>
-                  <span style={macroValueStyle}>{value}</span>
-                  <span style={{ fontFamily: fontFamily.primary, fontSize: 10, color: lightColors.text.secondary }}>
-                    {unit}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                    <span style={macroValueStyle}>{value}</span>
+                    <span style={{ fontFamily: fontFamily.primary, fontSize: 12, fontWeight: '600', color: lightColors.text.secondary }}>
+                      {unit}
+                    </span>
+                  </div>
                   <span style={macroLabelStyle}>{label}</span>
                 </div>
               ))}
@@ -606,6 +631,66 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
               </div>
             )}
           </GLPYCard>
+
+          {/* ── Card Análise GLP-1 ───────────────────────────────────────── */}
+          <GLPYCard variant="light">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: gap.small }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Brain size={14} color="#7C3AED" strokeWidth={2} />
+                <span style={{
+                  fontFamily:    fontFamily.primary,
+                  fontSize:      11,
+                  fontWeight:    '700',
+                  color:         lightColors.text.secondary,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.04em',
+                }}>Análise GLP-1</span>
+              </div>
+              <span style={{
+                fontFamily:   fontFamily.primary,
+                fontSize:     10,
+                fontWeight:   '700',
+                color:        '#7C3AED',
+                background:   '#F5F3FF',
+                padding:      '2px 8px',
+                borderRadius: 100,
+                border:       '1px solid #EDE9FE',
+              }}>GLPY IA</span>
+            </div>
+
+            <p style={{
+              fontFamily:   fontFamily.primary,
+              fontSize:     fontSize.bodyDefault,
+              fontWeight:   fontWeight.h3,
+              color:        lightColors.text.navy,
+              lineHeight:   1.4,
+              margin:       '0 0 6px 0',
+            }}>
+              {analysisResult.title}
+            </p>
+
+            <p style={{
+              fontFamily:   fontFamily.primary,
+              fontSize:     fontSize.small,
+              color:        lightColors.text.secondary,
+              lineHeight:   1.5,
+              margin:       '0 0 6px 0',
+            }}>
+              {getGlp1Tip(dispProtein, dispCarbs, dispFat)}
+            </p>
+
+            <p style={{
+              fontFamily: fontFamily.primary,
+              fontSize:   11,
+              color:      lightColors.text.secondary,
+              lineHeight: 1.4,
+              fontStyle:  'italic',
+              margin:     0,
+            }}>
+              Esses valores são estimativas e podem variar conforme porção e preparo.
+            </p>
+          </GLPYCard>
+          </>
         )}
 
         {/* ── Erro de validação ────────────────────────────────────────── */}
@@ -689,24 +774,85 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(todayMeals as any[]).map((entry, index) => (
-                <React.Fragment key={entry.id ?? entry.savedAt ?? index}>
-                  {index > 0 && <div style={historyDividerStyle} />}
-                  <div style={historyRowStyle}>
-                    <span style={historyLabelStyle}>
-                      {entry.nome || MEAL_LABEL_MAP[entry.mealType as MealType] || 'Refeição'}
-                    </span>
-                    {(entry.descricao || entry.description) && (
-                      <span style={historyDescStyle}>
-                        {entry.descricao || entry.description}
-                      </span>
-                    )}
-                    {entry.tipo === 'foto_ia' && (
-                      <Check size={14} color={lightColors.brand.greenDark} strokeWidth={2.5} />
-                    )}
-                  </div>
-                </React.Fragment>
-              ))}
+              {(todayMeals as any[]).map((entry, index) => {
+                const timeStr   = formatMealTime(entry);
+                const hasCals   = (entry.calories ?? 0) > 0;
+                const hasMacros = (entry.protein ?? 0) > 0 || (entry.carbs ?? 0) > 0 || (entry.fat ?? 0) > 0;
+                const macroStr  = [
+                  (entry.protein ?? 0) > 0 ? `${entry.protein}g prot`  : null,
+                  (entry.carbs   ?? 0) > 0 ? `${entry.carbs}g carbs`   : null,
+                  (entry.fat     ?? 0) > 0 ? `${entry.fat}g gord`      : null,
+                ].filter(Boolean).join(' • ');
+                return (
+                  <React.Fragment key={entry.id ?? entry.savedAt ?? index}>
+                    {index > 0 && <div style={historyDividerStyle} />}
+                    <div style={{ paddingTop: 10, paddingBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{
+                          width:          28,
+                          height:         28,
+                          borderRadius:   8,
+                          background:     `${lightColors.brand.green}14`,
+                          border:         `1px solid ${lightColors.brand.green}22`,
+                          display:        'flex',
+                          alignItems:     'center',
+                          justifyContent: 'center',
+                          flexShrink:     0,
+                          marginTop:      2,
+                        }}>
+                          <Utensils size={12} color={lightColors.brand.greenDark} strokeWidth={2} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                            <span style={{
+                              fontFamily:   fontFamily.primary,
+                              fontSize:     fontSize.small,
+                              fontWeight:   fontWeight.h3,
+                              color:        lightColors.text.navy,
+                              flex:         1,
+                              overflow:     'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace:   'nowrap',
+                            }}>
+                              {entry.nome || MEAL_LABEL_MAP[entry.mealType as MealType] || 'Refeição'}
+                            </span>
+                            {timeStr && (
+                              <span style={{
+                                fontFamily: fontFamily.primary,
+                                fontSize:   11,
+                                color:      lightColors.text.secondary,
+                                flexShrink: 0,
+                              }}>
+                                {timeStr}
+                              </span>
+                            )}
+                          </div>
+                          {hasCals && (
+                            <p style={{
+                              fontFamily: fontFamily.primary,
+                              fontSize:   12,
+                              color:      lightColors.text.secondary,
+                              margin:     '2px 0 0 0',
+                            }}>
+                              {entry.calories} calorias
+                            </p>
+                          )}
+                          {hasMacros && (
+                            <p style={{
+                              fontFamily: fontFamily.primary,
+                              fontSize:   11,
+                              color:      lightColors.text.secondary,
+                              margin:     '1px 0 0 0',
+                            }}>
+                              {macroStr}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </React.Fragment>
+                );
+              })}
             </div>
           )}
         </GLPYCard>
