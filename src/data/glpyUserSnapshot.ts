@@ -13,6 +13,7 @@ import { glpyBlackBox } from './glpyBlackBox';
 import { CATEGORIES } from './glpyEventCatalog';
 import type { GlpyBlackBoxEvent } from './types';
 import { getLocalDateKey } from '../utils/formatters';
+import { calculateGLPYDailyTargets, type GLPYTargetsOutput } from '../core/glpyDailyTargets';
 
 function todayKey(): string {
   return getLocalDateKey();
@@ -441,7 +442,48 @@ export function buildBehavioralInsights(days = 7): BehavioralInsights {
 
 export function buildAIContextFromSnapshot(days = 7): string {
   try {
-    const snap     = buildTodaySnapshot();
+    const snap = buildTodaySnapshot();
+
+    // ── Metas canônicas e perfil (mesma lógica de useNutritionTargets / Home) ──
+    const onbRaw = safeGet(() => JSON.parse(localStorage.getItem('glpy_onboarding') || '{}'), {}) as Record<string, any>;
+    // glpy_onboarding armazena altura em cm (campo: altura, min 140, max 220)
+    const heightCmCanon: number = Math.round(Number(onbRaw.altura || onbRaw.heightCm || onbRaw.height || 0));
+    const birthDateRaw: string | null = onbRaw.dataNascimento || onbRaw.birthDate || onbRaw.dob || null;
+    const ageFromOnb: number = onbRaw.idade ?? onbRaw.age ?? onbRaw.ageYears ?? 35;
+    const calculatedAge: number = (() => {
+      if (!birthDateRaw) return ageFromOnb;
+      try {
+        const s = String(birthDateRaw);
+        const parts = s.includes('/') ? s.split('/').map(Number) : null;
+        const bd = parts ? new Date(parts[2], parts[1] - 1, parts[0]) : new Date(s);
+        const now = new Date();
+        let age = now.getFullYear() - bd.getFullYear();
+        const dm = now.getMonth() - bd.getMonth();
+        if (dm < 0 || (dm === 0 && now.getDate() < bd.getDate())) age--;
+        return age > 0 ? age : ageFromOnb;
+      } catch { return ageFromOnb; }
+    })();
+    const gStr = (onbRaw.sexo || onbRaw.gender || '').toLowerCase();
+    const gender: 'male' | 'female' = gStr.includes('masc') ? 'male' : 'female';
+    const actLvl = (onbRaw.activityLevel || 'lightly_active') as 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extra_active';
+    const mStr = (onbRaw.modo || onbRaw.weightLossPace || '').toLowerCase();
+    const pace: 'leve' | 'equilibrado' | 'intenso' =
+      (mStr.includes('gentil') || mStr.includes('leve')) ? 'leve' :
+      (mStr.includes('intensivo') || mStr.includes('intenso')) ? 'intenso' : 'equilibrado';
+    const canonicalTargets = safeGet((): GLPYTargetsOutput | null => {
+      if (!snap.weightKg || heightCmCanon < 100) return null;
+      return calculateGLPYDailyTargets({
+        weightKg: snap.weightKg,
+        heightCm: heightCmCanon,
+        ageYears: calculatedAge,
+        gender,
+        activityLevel: actLvl,
+        weightLossPace: pace,
+        targetWeightKg: onbRaw.pesoMeta || onbRaw.targetWeightKg || undefined,
+        activityCaloriesBurned: snap.activityCalories ?? 0,
+      });
+    }, null);
+
     const insights = buildBehavioralInsights(days);
     const recent   = buildRecentSnapshot(days);
     const lines: string[] = ['=== GLPY USER SNAPSHOT (fonte: glpyStore canônico) ==='];
@@ -453,6 +495,34 @@ export function buildAIContextFromSnapshot(days = 7): string {
     if (snap.goalWeightKg)                    id.push(`Peso meta: ${snap.goalWeightKg} kg`);
     if (snap.weightKg && snap.goalWeightKg)   id.push(`Falta emagrecer: ${Math.max(0, snap.weightKg - snap.goalWeightKg).toFixed(1)} kg`);
     lines.push(id.join(' | '));
+
+    // 1a. Perfil corporal detalhado
+    const profileLines: string[] = ['=== PERFIL CORPORAL REGISTRADO ==='];
+    if (snap.weightKg)     profileLines.push(`Peso atual: ${snap.weightKg} kg`);
+    if (snap.goalWeightKg) profileLines.push(`Meta de peso: ${snap.goalWeightKg} kg`);
+    if (heightCmCanon > 0) profileLines.push(`Altura: ${heightCmCanon} cm`);
+    if (birthDateRaw)      profileLines.push(`Data de nascimento: ${birthDateRaw}`);
+    profileLines.push(`Idade: ${calculatedAge} anos`);
+    const medDisplay  = snap.medication !== 'não informado'  ? snap.medication  : null;
+    const doseDisplay = snap.dose       !== 'não informada'  ? snap.dose        : null;
+    if (medDisplay) profileLines.push(`Medicamento: ${medDisplay}${doseDisplay ? ` — Dose: ${doseDisplay}` : ''}`);
+    lines.push(profileLines.join('\n'));
+
+    // 1b. Metas nutricionais canônicas do dia
+    if (canonicalTargets) {
+      const tl: string[] = ['=== METAS NUTRICIONAIS CANÔNICAS DO DIA ==='];
+      tl.push(`Calorias alvo: ${canonicalTargets.caloriesTarget} kcal`);
+      if (canonicalTargets.activityCaloriesBurned > 0) {
+        tl.push(`Meta ajustada (bônus atividade física): ${canonicalTargets.adjustedCaloriesTarget} kcal`);
+      }
+      tl.push(`Proteínas alvo: ${canonicalTargets.proteinGrams}g`);
+      tl.push(`Carboidratos alvo: ${canonicalTargets.carbsGrams}g`);
+      tl.push(`Gorduras alvo: ${canonicalTargets.fatGrams}g`);
+      tl.push(`Água alvo: ${canonicalTargets.waterLiters}L`);
+      tl.push(`Fonte: motor canônico do app (mesma fonte da tela Home e Anti-Rebote).`);
+      tl.push(`INSTRUÇÃO: Se o usuário perguntar sobre metas nutricionais (calorias, proteína, gordura, carboidratos ou água), usar ESTES valores diretamente. Não recalcular. Não responder que faltam dados.`);
+      lines.push(tl.join('\n'));
+    }
 
     // 2. Protocolo ativo — PRIORIDADE MÁXIMA
     if (snap.protocolName) {
@@ -520,8 +590,10 @@ export function buildAIContextFromSnapshot(days = 7): string {
     lines.push(food.join('\n'));
 
     // 4. Água (fonte real: glpy_agua_hoje)
+    const waterGoal = canonicalTargets?.waterLiters ?? 2.0;
     if (snap.waterLiters !== null) {
-      lines.push(`Hidratação hoje: ${snap.waterLiters.toFixed(1)}L${snap.waterLiters >= 2.0 ? ' ✓ meta atingida' : ' (meta: 2L)'}`);
+      const waterOk = snap.waterLiters >= waterGoal;
+      lines.push(`Hidratação hoje: ${snap.waterLiters.toFixed(1)}L${waterOk ? ` ✓ meta atingida (${waterGoal}L)` : ` (meta: ${waterGoal}L)`}`);
     } else {
       lines.push('Hidratação hoje: não registrada.');
     }

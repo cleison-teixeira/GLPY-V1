@@ -92,9 +92,10 @@ function buildEnrichedGLPYContext(): string {
       const todayKey = getLocalDateKey();
       const ob = ctx.userProfile.onboarding || {};
 
-      const weightKg: number  = ctx.currentWeight?.weight  || ob.currentWeight  || 0;
-      const heightCm: number  = ob.heightCm || ob.height   || 0;
-      const ageYears: number  = ob.age      || ob.ageYears  || 35;
+      const weightKg: number = ctx.currentWeight?.weight  || ob.currentWeight  || 0;
+      // glpy_onboarding armazena altura em cm no campo "altura" (min 140, max 220)
+      const heightCm: number = Math.round(Number(ob.altura || ob.heightCm || ob.height || 0));
+      const ageYears: number = ob.age || ob.ageYears || 35;
 
       if (weightKg > 0 && heightCm > 0) {
         const targetsInput: GLPYTargetsInput = {
