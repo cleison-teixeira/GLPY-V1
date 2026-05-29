@@ -579,6 +579,50 @@ export function buildAIContextFromSnapshot(days = 7): string {
       lines.push('Protocolo ATIVO: Nenhum selecionado.');
     }
 
+    // 2a. Contexto estruturado do protocolo — pacote 3 dias (anti-invenção de dados)
+    if (snap.protocolId) {
+      const ctxV1 = safeGet(() => {
+        const raw = localStorage.getItem('glpy_protocol_context_v1');
+        return raw ? JSON.parse(raw) : null;
+      }, null) as any;
+      if (ctxV1?.protocolId === snap.protocolId && ctxV1?.currentDay) {
+        const formatDayBlock = (label: string, pkg: any): string => {
+          if (!pkg) return '';
+          const bLines: string[] = [`[${label} — Dia ${pkg.day}: "${pkg.title}"]`];
+          const statusMap: Record<string, string> = {
+            concluido: 'concluído', em_andamento: 'em andamento',
+            bloqueado: 'bloqueado (próximo)', pendente: 'pendente',
+          };
+          bLines.push(`Status: ${statusMap[pkg.status] ?? pkg.status}`);
+          if (Array.isArray(pkg.missions) && pkg.missions.length > 0) {
+            bLines.push('Missões:');
+            pkg.missions.forEach((m: any) => {
+              bLines.push(`  ${m.completed ? '[x]' : '[ ]'} ${m.title}${m.description ? ` — ${m.description}` : ''}`);
+            });
+          }
+          if (Array.isArray(pkg.checkinsAvailable) && pkg.checkinsAvailable.length > 0) {
+            bLines.push(`Check-ins disponíveis: ${pkg.checkinsAvailable.map((c: string) => `"${c}"`).join(', ')}`);
+          }
+          bLines.push(pkg.selectedCheckin ? `Check-in selecionado: "${pkg.selectedCheckin}"` : 'Check-in selecionado: não selecionado.');
+          if (pkg.recipe) {
+            bLines.push(`Receita do dia: ${pkg.recipe.title} (${pkg.recipe.kcal} kcal, ${pkg.recipe.protein}g prot, ${pkg.recipe.carbs}g carbs, ${pkg.recipe.fat}g gord)`);
+          }
+          return bLines.join('\n');
+        };
+
+        const ctxLines: string[] = ['=== CONTEXTO ESTRUTURADO DO PROTOCOLO ==='];
+        ctxLines.push(`Protocolo: ${ctxV1.protocolName} (${ctxV1.protocolId}) — ${ctxV1.currentDay.totalDays} dias total`);
+        if (ctxV1.updatedAt) ctxLines.push(`Atualizado em: ${ctxV1.updatedAt}`);
+        ctxLines.push('');
+        if (ctxV1.previousDay) ctxLines.push(formatDayBlock('DIA ANTERIOR', ctxV1.previousDay));
+        ctxLines.push(formatDayBlock('DIA ATUAL', ctxV1.currentDay));
+        if (ctxV1.nextDay) ctxLines.push(formatDayBlock('PRÓXIMO DIA', ctxV1.nextDay));
+        ctxLines.push('');
+        ctxLines.push('INSTRUÇÃO: Use este contexto estruturado para responder qualquer pergunta sobre os dias do protocolo. Os títulos, missões, check-ins e receitas são os dados REAIS do protocolo. Não invente alternativas.');
+        lines.push(ctxLines.join('\n'));
+      }
+    }
+
     // 3. Hoje — refeições (fonte real: glpy_refeicoes_hoje)
     const food: string[] = ['Alimentação de hoje:'];
     if (snap.mealsCount > 0) {

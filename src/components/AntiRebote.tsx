@@ -313,6 +313,68 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
       }
     : { kcal: 1200, proteina: 90, gordura: 33, carbs: 120, agua: 2625 };
 
+  const formatMissao = (texto: string) =>
+    texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
+
+  const buildProtocolDayPackage = (dayIdx: number) => {
+    const d = DIAS[dayIdx];
+    if (!d) return null;
+    const r = RECEITAS.find(rec => rec.id === d.receita_id) || null;
+    const hoje_ = getLocalDateKey();
+    const isDayDone = diasConcluidos.includes(d.n);
+    const isCurrentViewedDay = dayIdx === diaAtual;
+    let status: 'em_andamento' | 'concluido' | 'bloqueado' | 'pendente';
+    if (isDayDone) {
+      status = 'concluido';
+    } else if (isCurrentViewedDay && dataUltimoCheck !== hoje_) {
+      status = 'em_andamento';
+    } else if (dayIdx > diaAtual) {
+      status = 'bloqueado';
+    } else {
+      status = 'pendente';
+    }
+    const missions = d.missoes.map((m, i) => ({
+      title: formatMissao(m.texto),
+      description: formatMissao(m.sub),
+      completed: isCurrentViewedDay ? missoesMarcadas.includes(i) : isDayDone,
+    }));
+    let selectedCheckin: string | null = isCurrentViewedDay ? checkinSelecionado : null;
+    if (!isCurrentViewedDay && isDayDone) {
+      try {
+        const last = JSON.parse(localStorage.getItem('glpy_protocol_checkin_last') || 'null');
+        if (last?.protocolId === 'antiRebote' && last?.day === d.n) selectedCheckin = last.checkin || null;
+      } catch {}
+    }
+    return {
+      protocolId: 'antiRebote' as const,
+      protocolName: 'Anti-Rebote',
+      day: d.n,
+      totalDays: 7,
+      title: d.titulo,
+      status,
+      missions,
+      checkinsAvailable: [...d.checkin],
+      selectedCheckin,
+      recipe: r ? { title: r.nome, kcal: r.kcal, protein: r.proteina, carbs: r.carbs, fat: r.gordura } : null,
+    };
+  };
+
+  useEffect(() => {
+    try {
+      const prevIdx = diaAtual - 1;
+      const nextIdx = diaAtual + 1;
+      localStorage.setItem('glpy_protocol_context_v1', JSON.stringify({
+        protocolId: 'antiRebote',
+        protocolName: 'Anti-Rebote',
+        previousDay: prevIdx >= 0 ? buildProtocolDayPackage(prevIdx) : null,
+        currentDay: buildProtocolDayPackage(diaAtual),
+        nextDay: nextIdx < DIAS.length ? buildProtocolDayPackage(nextIdx) : null,
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diaAtual, diasConcluidos, missoesMarcadas, checkinSelecionado, concluido, dataUltimoCheck, metas.proteina, metas.agua]);
+
   const videoUrl = VIDEOS[diaAtual + 1] ?? "";
 
   const handlePlay = () => {
@@ -402,9 +464,6 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
       return next;
     });
   };
-
-  const formatMissao = (texto: string) =>
-    texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
 
   const handleSelectCheckin = (option: string) => {
     setCheckinSelecionado(option);
