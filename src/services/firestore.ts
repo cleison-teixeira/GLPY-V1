@@ -204,10 +204,16 @@ export async function carregarLimitesIA(plano: string): Promise<{
     return { usadas: 0, limite };
   }
 
-  return {
-    usadas: typeof d.msgs_ia_usadas === "number" ? d.msgs_ia_usadas : 0,
-    limite: typeof d.msgs_ia_limite === "number" ? d.msgs_ia_limite : limite,
-  };
+  const storedUsadas = typeof d.msgs_ia_usadas === "number" ? d.msgs_ia_usadas : 0;
+  const storedLimite = typeof d.msgs_ia_limite === "number" ? d.msgs_ia_limite : limite;
+  const finalLimite = isAdmQA() ? 999 : storedLimite;
+
+  // Corrigir limite legado no Firestore quando ADM tem valor desatualizado
+  if (isAdmQA() && storedLimite !== 999) {
+    setDoc(ref, { msgs_ia_limite: 999, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+  }
+
+  return { usadas: storedUsadas, limite: finalLimite };
 }
 
 export async function incrementarMsgIA(): Promise<void> {
