@@ -166,7 +166,13 @@ export default function ChatIA({ onNavigate }: { onNavigate: (screen: string) =>
     if (!_ativo?.id) return 1;
     try {
       const p = JSON.parse(localStorage.getItem(`glpy_protocolo_${_ativo.id}_progresso`) || "null");
-      return Math.min((p?.diasConcluidos?.length ?? 0) + 1, _ativo.totalDias || 7);
+      const diasFeitos     = p?.diasConcluidos?.length ?? 0;
+      const completedToday = p?.dataUltimoCheck === getLocalDateKey();
+      // Se o dia foi concluído hoje, o dia ativo é o último feito (não o próximo)
+      if (completedToday && diasFeitos > 0) {
+        return Math.min(diasFeitos, _ativo.totalDias || 7);
+      }
+      return Math.min(diasFeitos + 1, _ativo.totalDias || 7);
     } catch { return (_ativo.dia ?? 0) + 1; }
   })();
 

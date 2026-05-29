@@ -78,6 +78,7 @@ export interface TodaySnapshot {
   protocolName:   string | null;
   protocolDay:    number | null;
   protocolTotal:  number | null;
+  protocolDayCompleted: boolean;
   missionsToday:  Array<{ texto: string; status: 'concluida' | 'pendente' }>;
   missionsDoneCount:    number;
   missionsPendingCount: number;
@@ -223,31 +224,41 @@ export function buildTodaySnapshot(): TodaySnapshot {
   const protocolName  = activeProto?.nome || null;
   const protocolTotal = activeProto?.totalDias || null;
 
-  // Missões de hoje — lê de glpy_protocol_day_today (salvo por ProtocoloBase.persistProtocolDay)
+  // Progresso do protocolo — determina o dia ativo REAL
+  // Regra: se completou hoje (dataUltimoCheck === hoje), dia ativo = último dia concluído.
+  // O próximo dia só vira activeDay quando for amanhã.
+  const protocolProgressRaw = safeGet(() => {
+    if (!protocolId) return null;
+    const raw = localStorage.getItem(`glpy_protocolo_${protocolId}_progresso`);
+    return raw ? JSON.parse(raw) : null;
+  }, null) as any;
+  const diasFeitos        = protocolProgressRaw?.diasConcluidos?.length ?? 0;
+  const completedToday    = !!(protocolProgressRaw?.dataUltimoCheck === today && diasFeitos > 0);
+  const protocolDayCompleted = completedToday;
+
+  const protocolDay = (() => {
+    if (!protocolId) return null;
+    if (completedToday) return Math.min(diasFeitos, protocolTotal ?? 7);
+    return Math.min(diasFeitos + 1, protocolTotal ?? 7);
+  })();
+
+  // Missões de hoje — lê de glpy_protocol_day_today (salvo por ProtocoloBase/AntiRebote.persistProtocolDay)
   const protoDayRaw = safeGet(() => {
     const raw = localStorage.getItem('glpy_protocol_day_today');
     return raw ? JSON.parse(raw) : null;
   }, null) as any;
   const protoDayIsToday = protoDayRaw?.date === today;
-  const missionsToday: Array<{ texto: string; status: 'concluida' | 'pendente' }> = protoDayIsToday
-    ? (protoDayRaw?.missions || []).map((m: any) => ({ texto: m.texto || '', status: m.status || 'pendente' }))
-    : [];
+  // Quando dayStatus === 'bloqueado', o registro aponta para o PRÓXIMO dia — não são missões de hoje
+  const isDayBlocked = protoDayRaw?.dayStatus === 'bloqueado';
+  const missionsToday: Array<{ texto: string; status: 'concluida' | 'pendente' }> =
+    (protoDayIsToday && !isDayBlocked)
+      ? (protoDayRaw?.missions || []).map((m: any) => ({ texto: m.texto || '', status: m.status || 'pendente' }))
+      : [];
   const missionsDoneCount    = missionsToday.filter(m => m.status === 'concluida').length;
   const missionsPendingCount = missionsToday.filter(m => m.status === 'pendente').length;
-  const protocolCheckinSelected = protoDayIsToday
+  const protocolCheckinSelected = (protoDayIsToday && !isDayBlocked)
     ? (Array.isArray(protoDayRaw?.selectedCheckins) ? protoDayRaw.selectedCheckins[0] || null : null)
     : null;
-
-  // Dia do protocolo — lê do progresso salvo
-  const protocolDay = (() => {
-    if (!protocolId) return null;
-    try {
-      const raw = localStorage.getItem(`glpy_protocolo_${protocolId}_progresso`);
-      const prog = raw ? JSON.parse(raw) : null;
-      const diasFeitos = prog?.diasConcluidos?.length ?? 0;
-      return Math.min(diasFeitos + 1, protocolTotal ?? 7);
-    } catch { return activeProto?.dia != null ? activeProto.dia + 1 : null; }
-  })();
 
   // Evolução corporal
   const rawCurrent = safeGet(() => glpyStore.bodyMeasurements.get() ?? {}, {}) as Record<string, any>;
@@ -308,7 +319,7 @@ export function buildTodaySnapshot(): TodaySnapshot {
     symptoms, noSymptoms,
     injectionDone, injectionDate: injDate,
     aiMessagesUsed, aiMessagesLimit,
-    protocolId, protocolName, protocolDay, protocolTotal,
+    protocolId, protocolName, protocolDay, protocolTotal, protocolDayCompleted,
     missionsToday, missionsDoneCount, missionsPendingCount, protocolCheckinSelected,
     todayEventTypes, hasSweetCraving, cravingText,
     bodyMeasuresCurrent, bodyMeasuresInitial, bodyMeasuresDiffs,
@@ -448,7 +459,13 @@ export function buildAIContextFromSnapshot(days = 7): string {
       const p: string[] = [
         `Protocolo ATIVO: ${snap.protocolName} — Dia ${snap.protocolDay ?? '?'}/${snap.protocolTotal ?? 7}`,
       ];
-      if (snap.missionsToday.length > 0) {
+      if (snap.protocolDayCompleted) {
+        // Dia concluído hoje — próximo bloqueado até amanhã
+        p.push(`Status do dia: CONCLUÍDO hoje. Todas as missões foram realizadas.`);
+        p.push(`Missões restantes hoje: 0 (dia encerrado).`);
+        p.push(`Próximo: Dia ${(snap.protocolDay ?? 0) + 1} — BLOQUEADO até amanhã.`);
+        p.push(`INSTRUÇÃO: Se o usuário perguntar quais missões faltam hoje, responder que NENHUMA falta — o dia foi concluído. NÃO listar missões do Dia ${(snap.protocolDay ?? 0) + 1} como pendentes hoje.`);
+      } else if (snap.missionsToday.length > 0) {
         p.push(`Missões de hoje (${snap.missionsDoneCount}/${snap.missionsToday.length} concluídas):`);
         snap.missionsToday.forEach(m => {
           p.push(`  ${m.status === 'concluida' ? '[x]' : '[ ]'} ${m.texto}`);

@@ -9,18 +9,38 @@ import { saveAntiReboteProgress, loadAntiReboteProgress } from "../services/fire
 import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalIntelligence";
 import { glpyStore } from "../data/glpyStore";
 import { getLocalDateKey } from "../utils/formatters";
+import { calculateGLPYDailyTargets } from "../core/glpyDailyTargets";
 
-// ─── CÁLCULO DE METAS PERSONALIZADAS ───────────────────────────────────────
+// ─── CÁLCULO DE METAS PERSONALIZADAS (engine canônica = mesma da Home) ────────
 function calcMetas(peso: number, altura: number) {
-  // Mifflin-St Jeor (feminino — avatar principal)
-  const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
-  const tdee = tmb * 1.2; // sedentário com GLP-1
-  const kcal = Math.round(tdee - 500); // déficit para -0.5kg/semana
-  const proteina = Math.round(peso * 1.8); // preservação muscular
-  const gordura = Math.round((kcal * 0.25) / 9);
-  const carbs = Math.round((kcal - proteina * 4 - gordura * 9) / 4);
-  const agua = Math.round(peso * 35); // ml
-  return { kcal, proteina, gordura, carbs, agua };
+  try {
+    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+    const result = calculateGLPYDailyTargets({
+      weightKg:       peso,
+      heightCm:       altura,
+      ageYears:       onb.age || onb.ageYears || 30,
+      gender:         onb.gender || 'female',
+      activityLevel:  onb.activityLevel  || 'sedentary',
+      weightLossPace: onb.weightLossPace || 'equilibrado',
+      targetWeightKg: onb.pesoMeta || onb.targetWeightKg || undefined,
+    });
+    return {
+      kcal:     result.caloriesTarget,
+      proteina: result.proteinGrams,
+      gordura:  result.fatGrams,
+      carbs:    result.carbsGrams,
+      agua:     Math.round(result.waterLiters * 1000),
+    };
+  } catch {
+    const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
+    const tdee = tmb * 1.2;
+    const kcal = Math.round(tdee - 500);
+    const proteina = Math.round(peso * 1.8);
+    const gordura = Math.round((kcal * 0.25) / 9);
+    const carbs = Math.round((kcal - proteina * 4 - gordura * 9) / 4);
+    const agua = Math.round(peso * 35);
+    return { kcal, proteina, gordura, carbs, agua };
+  }
 }
 
 // ─── RECEITAS DO PROTOCOLO ─────────────────────────────────────────────────
