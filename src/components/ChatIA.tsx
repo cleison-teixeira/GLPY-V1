@@ -272,7 +272,12 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const plano = localStorage.getItem("glpy_plano") || "starter";
+  // ADM/QA interno — override para emails de desenvolvimento (não afeta usuários comuns)
+  const _emailAtual = (localStorage.getItem("glpy_email") || "").toLowerCase().trim();
+  const plano = _emailAtual === "cleisonimarketing@gmail.com"
+    ? "top"
+    : (localStorage.getItem("glpy_plano") || "starter");
+
   const [msgsUsadas, setMsgsUsadas] = useState<number>(() => {
     try {
       const today = getLocalDateKey();

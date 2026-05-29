@@ -161,12 +161,19 @@ export async function carregarProgressoProtocolo(protocoloId: string): Promise<{
 // Sprint 17B.1 — planos HeroSpark + backward compat Kiwify
 const LIMITES_POR_PLANO: Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, plus: 20 };
 
+// ADM/QA interno — override de limites para emails de desenvolvimento. Não afeta usuários comuns.
+const ADM_QA_EMAILS = new Set(["cleisonimarketing@gmail.com"]);
+function isAdmQA(): boolean {
+  const email = (auth.currentUser?.email || localStorage.getItem("glpy_email") || "").toLowerCase().trim();
+  return ADM_QA_EMAILS.has(email);
+}
+
 export async function carregarLimitesIA(plano: string): Promise<{
   usadas: number;
   limite: number;
 }> {
   const id = uid();
-  const limite = LIMITES_POR_PLANO[plano] ?? 10;
+  const limite = isAdmQA() ? 999 : (LIMITES_POR_PLANO[plano] ?? 10);
   if (!id) return { usadas: 0, limite };
 
   const ref = doc(db, "users", id, "limites", "ia");
@@ -215,7 +222,7 @@ export async function incrementarMsgIA(): Promise<void> {
 export async function resetLimitesIAHoje(plano: string): Promise<void> {
   const id = uid();
   if (!id) return;
-  const limite = LIMITES_POR_PLANO[plano] ?? 10;
+  const limite = isAdmQA() ? 999 : (LIMITES_POR_PLANO[plano] ?? 10);
   const hoje = getLocalDateKey();
   await setDoc(doc(db, "users", id, "limites", "ia"), {
     msgs_ia_usadas: 0,
@@ -370,6 +377,11 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
         }
       }
     } catch { /* fallback silencioso — não bloqueia o fluxo */ }
+  }
+
+  // ADM/QA — força plano "top" para emails internos, independente do que Firestore retornou
+  if (isAdmQA()) {
+    localStorage.setItem("glpy_plano", "top");
   }
 
   return { primeiroAcesso: data.primeiroAcesso === true };
