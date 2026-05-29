@@ -443,6 +443,18 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
     const agora = getLocalDateKey();
     const xpDia = DIAS[diaIndex]?.xp ?? 30;
     persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
+    // Salva missões do próximo dia para que a IA responda perguntas sobre amanhã
+    const nextDayIdx = diaAtual + 1;
+    if (nextDayIdx < DIAS.length) {
+      try {
+        const nd = DIAS[nextDayIdx];
+        localStorage.setItem('glpy_protocol_next_day', JSON.stringify({
+          protocolId: 'antiRebote',
+          day: nd.n,
+          missions: nd.missoes.map(m => formatMissao(m.texto)),
+        }));
+      } catch {}
+    }
     setConcluido(true);
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);

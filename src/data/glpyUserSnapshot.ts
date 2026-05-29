@@ -461,10 +461,24 @@ export function buildAIContextFromSnapshot(days = 7): string {
       ];
       if (snap.protocolDayCompleted) {
         // Dia concluído hoje — próximo bloqueado até amanhã
+        const nextDayNum = (snap.protocolDay ?? 0) + 1;
         p.push(`Status do dia: CONCLUÍDO hoje. Todas as missões foram realizadas.`);
         p.push(`Missões restantes hoje: 0 (dia encerrado).`);
-        p.push(`Próximo: Dia ${(snap.protocolDay ?? 0) + 1} — BLOQUEADO até amanhã.`);
-        p.push(`INSTRUÇÃO: Se o usuário perguntar quais missões faltam hoje, responder que NENHUMA falta — o dia foi concluído. NÃO listar missões do Dia ${(snap.protocolDay ?? 0) + 1} como pendentes hoje.`);
+        p.push(`Próximo: Dia ${nextDayNum} — BLOQUEADO até amanhã.`);
+        // Lê missões do próximo dia (salvas por AntiRebote ao concluir)
+        const nextDayInfo = safeGet(() => {
+          const raw = localStorage.getItem('glpy_protocol_next_day');
+          return raw ? JSON.parse(raw) : null;
+        }, null) as any;
+        const nextDayMissions: string[] =
+          (nextDayInfo?.protocolId === snap.protocolId && Array.isArray(nextDayInfo?.missions))
+            ? nextDayInfo.missions as string[]
+            : [];
+        if (nextDayMissions.length > 0) {
+          p.push(`Missões do Dia ${nextDayNum} (amanhã — ainda bloqueado):`);
+          nextDayMissions.forEach((m: string) => p.push(`  - ${m}`));
+        }
+        p.push(`INSTRUÇÃO: Se o usuário perguntar quais missões faltam HOJE, responder que NENHUMA falta — o dia foi concluído. Se perguntar o que terá AMANHÃ, usar as missões do Dia ${nextDayNum} listadas acima. NÃO listar missões do Dia ${nextDayNum} como pendentes hoje.`);
       } else if (snap.missionsToday.length > 0) {
         p.push(`Missões de hoje (${snap.missionsDoneCount}/${snap.missionsToday.length} concluídas):`);
         snap.missionsToday.forEach(m => {
