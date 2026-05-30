@@ -37,7 +37,7 @@ import { getLocalDateKey } from '../../utils/formatters';
 
 // ── Limite de fotos ──────────────────────────────────────────────────────────
 
-const LIMITES_FOTO: Record<string, number> = { starter: 5, plus: 6, pro: 9, top: Infinity };
+const LIMITES_FOTO: Record<string, number> = { starter: 5, fundador: 5, essencial: 5, pro: 19, top: 999, betatester: 999, plus: 6 };
 
 function getFotosHoje(): number {
   const hoje = getLocalDateKey();
@@ -1053,7 +1053,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
                 <h2 className="font-bold text-lg text-[#0A1628]">Limite diário atingido</h2>
                 <p className="text-sm text-text-muted mt-2 leading-relaxed">
                   Você usou suas {limiteF} análises de hoje no plano {plano}.<br />
-                  Upgrade para Plus ({LIMITES_FOTO.plus}/dia) ou Pro ({LIMITES_FOTO.pro}/dia).
+                  Upgrade para o plano Pro para 19 análises/dia.
                 </p>
               </div>
               <div className="flex gap-3">

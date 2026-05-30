@@ -26,6 +26,8 @@ const VALID_PLANS = new Set([
   'fundador', 'essencial', 'pro', 'top',
   // Acesso manual (admin panel ou Firebase console)
   'admin',
+  // Acesso interno para validação/teste — sem permissões administrativas
+  'betatester',
   // Planos legados Kiwify (backward compat para assinantes antigos)
   'plus', 'vitalicio', 'founder', 'premium',
 ]);

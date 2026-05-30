@@ -10,8 +10,8 @@ export interface DailyLimitsData {
 }
 
 // Sprint 17B.1 — planos HeroSpark + backward compat Kiwify
-const LIMITES_FOTO: Record<string, number> = { starter: 5, fundador: 5, essencial: 5, pro: 19, top: 999, plus: 6 };
-const LIMITES_IA:   Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, plus: 20 };
+const LIMITES_FOTO: Record<string, number> = { starter: 5, fundador: 5, essencial: 5, pro: 19, top: 999, betatester: 999, plus: 6 };
+const LIMITES_IA:   Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, betatester: 999, plus: 20 };
 
 function getTodayKey(): string {
   return getLocalDateKey();

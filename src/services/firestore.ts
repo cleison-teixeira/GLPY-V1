@@ -159,7 +159,7 @@ export async function carregarProgressoProtocolo(protocoloId: string): Promise<{
 // Limites de uso da IA — users/{uid}/limites/ia
 // ─────────────────────────────────────────────
 // Sprint 17B.1 — planos HeroSpark + backward compat Kiwify
-const LIMITES_POR_PLANO: Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, plus: 20 };
+const LIMITES_POR_PLANO: Record<string, number> = { starter: 30, fundador: 30, essencial: 30, pro: 99, top: 999, betatester: 999, plus: 20 };
 
 // ADM/QA interno — override de limites para emails de desenvolvimento. Não afeta usuários comuns.
 const ADM_QA_EMAILS = new Set(["cleisonimarketing@gmail.com"]);

@@ -59,6 +59,11 @@ export const PLAN_LIMITS: Record<string, GlpyPlanLimits> = {
     iaPerDay: 999, fotosPerDay: 999, protocolos: 10, receitasPerMonth: 999,
     active: true,
   },
+  betatester: {
+    label: 'Betatester',
+    iaPerDay: 999, fotosPerDay: 999, protocolos: 10, receitasPerMonth: 999,
+    active: true,
+  },
   cancelado: {
     label: 'Cancelado',
     iaPerDay: 0, fotosPerDay: 0, protocolos: 0, receitasPerMonth: 0,
