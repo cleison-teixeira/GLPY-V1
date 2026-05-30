@@ -56,6 +56,7 @@ import EmotionScreen from './screens/operational/EmotionScreen';
 import BodyMeasurementsScreen from './screens/operational/BodyMeasurementsScreen';
 import InjectionScreen from './screens/operational/InjectionScreen';
 import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
+import VisualProgressShareScreen from './screens/operational/VisualProgressShareScreen';
 import FoodPhotoAnalysisScreen from './screens/operational/FoodPhotoAnalysisScreen';
 import ActivityScreen from './screens/operational/ActivityScreen';
 import SupplementsScreen from './screens/operational/SupplementsScreen';
@@ -260,7 +261,8 @@ export default function App() {
         onBack={() => setTelaAtual(resolveSafeReturn('aplicacao'))}
         onSave={() => { window.dispatchEvent(new Event('local-storage-change')); setTelaAtual(resolveSafeReturn('aplicacao')); }}
       />;
-      case 'foto':         return <PhotoTimelineScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
+      case 'foto':         return <PhotoTimelineScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} onNavigate={setTelaAtual} />;
+      case 'visualProgressShare': return <VisualProgressShareScreen onBack={() => setTelaAtual('foto')} />;
       // BUG 15B — tela de análise de foto do prato (mock — BUG 15C integra FatSecret real)
       case 'fotoAnalise': return (
         <FoodPhotoAnalysisScreen

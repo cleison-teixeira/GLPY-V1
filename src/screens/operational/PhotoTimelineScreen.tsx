@@ -24,7 +24,8 @@ import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventC
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface PhotoTimelineScreenProps {
-  onBack?: () => void;
+  onBack?:     () => void;
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ function fmtDateBR(dateStr: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps) {
+export default function PhotoTimelineScreen({ onBack, onNavigate }: PhotoTimelineScreenProps) {
   const [photos, setPhotos]   = useState<BodyPhoto[]>(() => readPhotos());
   const [modal, setModal]     = useState<ModalState | null>(null);
   const fileInputRef          = useRef<HTMLInputElement>(null);
@@ -141,7 +142,8 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
   }
 
   function handleViewProgress() {
-    window.location.href = '/preview/visual-progress-share';
+    if (onNavigate) onNavigate('visualProgressShare');
+    else window.location.href = '/preview/visual-progress-share';
   }
 
   // ── Derived values ─────────────────────────────────────────────────────────
@@ -355,7 +357,7 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
           <>
             <img src={photo.imageDataUrl} alt={label} style={realPhotoStyle} />
             <span style={photoWeightBadgeStyle}>
-              {photo.weight ? `${photo.weight.toFixed(1).replace('.', ',')} kg` : '— kg'}
+              {photo.weight != null ? `${Number(photo.weight).toFixed(1).replace('.', ',')} kg` : '— kg'}
             </span>
           </>
         ) : (
