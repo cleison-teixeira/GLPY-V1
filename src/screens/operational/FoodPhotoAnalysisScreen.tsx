@@ -137,7 +137,7 @@ const ANALYSIS_STEPS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhotoAnalysisScreenProps) {
+export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: FoodPhotoAnalysisScreenProps) {
   const [phase,               setPhase]               = useState<Phase>('idle');
   const [imageUrl,            setImageUrl]             = useState<string | null>(null);
   const [imageBase64,         setImageBase64]          = useState<string | null>(null);

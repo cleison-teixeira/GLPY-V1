@@ -185,8 +185,8 @@ export default function QuickActionModal({ show, onClose, onNavigate, onToast }:
               <Camera className="w-5 h-5 text-pink-500 stroke-[2.2]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Foto do prato</p>
-              <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Registre sua refeição</p>
+              <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Registrar refeição</p>
+              <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Foto do prato ou manual</p>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           </button>
