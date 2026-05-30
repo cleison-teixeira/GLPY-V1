@@ -198,7 +198,8 @@ export default function App() {
           const today = getLocalDateKey();
           glpyStore.water.saveToday({ amount, date: today, updatedAt: new Date().toISOString() });
           window.dispatchEvent(new Event('local-storage-change'));
-          setTelaAtual(resolveSafeReturn('dashboard'));
+          sessionStorage.removeItem('glpy_return_to');
+          setTelaAtual('dashboard');
         }}
       />;
       case 'emocao':       return <EmotionScreen

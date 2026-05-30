@@ -709,7 +709,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                       className={`w-full flex gap-3 p-3 rounded-xl border text-left transition-all ${done ? 'bg-primary/5 border-primary/20' : 'bg-[#F4F6F8] border-transparent'}`}>
                       {done ? <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" /> : <Circle className="w-5 h-5 text-border flex-shrink-0 mt-0.5" />}
                       <div>
-                        <p className={`text-sm font-semibold ${done ? 'line-through text-text-muted' : 'text-text-main'}`}>{m.texto}</p>
+                        <p className={`text-sm font-semibold ${done ? 'line-through text-text-muted' : 'text-text-main'}`}>{formatMissao(m.texto)}</p>
                         <p className="text-xs text-text-muted mt-0.5">{formatMissao(m.sub)}</p>
                       </div>
                     </motion.button>
