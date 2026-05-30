@@ -18,7 +18,7 @@ import {
   Users,
   Sparkles,
   ShoppingBag,
-  FlaskConical,
+  Globe2,
   ChevronRight,
   Compass,
   LineChart,
@@ -191,13 +191,13 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
     },
     {
       id: "ciencia",
-      title: "Ciência GLP-1",
-      subtitle: "Instagram · TikTok · YouTube · Facebook",
-      Icon: FlaskConical,
-      bg: "bg-teal-50",
-      border: "border-teal-100/60",
-      iconBg: "bg-white border border-teal-100/80",
-      iconColor: "text-teal-600",
+      title: "Redes GLPY",
+      subtitle: "Instagram, TikTok e novidades",
+      Icon: Globe2,
+      bg: "bg-indigo-50",
+      border: "border-indigo-100/60",
+      iconBg: "bg-white border border-indigo-100/80",
+      iconColor: "text-indigo-500",
       onClick: () => setShowCienciaModal(true),
     },
     {
@@ -382,11 +382,11 @@ export default function HubScreen({ onNavigate }: HubScreenProps = {}) {
               </div>
               <div className="px-6 pt-3 pb-4">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <FlaskConical className="w-4 h-4 text-teal-600 stroke-[2.2]" />
-                  <h2 className="text-base font-black text-[#0A1628]">Ciência GLP-1 nas redes</h2>
+                  <Globe2 className="w-4 h-4 text-indigo-500 stroke-[2.2]" />
+                  <h2 className="text-base font-black text-[#0A1628]">Redes GLPY</h2>
                 </div>
                 <p className="text-[11px] text-[#3D5A70] leading-snug">
-                  Aprenda em vídeos curtos, aulas e conteúdos práticos do ecossistema GLPY.
+                  Em breve, você encontrará aqui os canais oficiais do GLPY, novidades, bastidores e conteúdos para acompanhar sua jornada.
                 </p>
               </div>
               <div className="px-4 pb-8 space-y-2">

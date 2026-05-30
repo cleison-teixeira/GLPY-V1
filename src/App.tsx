@@ -44,6 +44,7 @@ import LocalIntelligenceTestScreen from './screens/debug/LocalIntelligenceTestSc
 import DailyTargetsTestScreen from './screens/debug/DailyTargetsTestScreen';
 import DateRiskTestScreen from './screens/debug/DateRiskTestScreen';
 import GlpyQACenterScreen from './screens/debug/GlpyQACenterScreen';
+import CaixaPretaScreen from './screens/debug/CaixaPretaScreen';
 import QuickActionsScreen from './screens/premium/QuickActionsScreen';
 import HubScreen from './screens/premium/HubScreen';
 import BodyProfileScreen from './screens/operational/BodyProfileScreen';
@@ -184,6 +185,7 @@ export default function App() {
       case 'dailyTargetsTest': return <DailyTargetsTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'dateRiskTest': return <DateRiskTestScreen onBack={() => setTelaAtual('dashboard')} />;
       case 'glpyQACenter': return <GlpyQACenterScreen onBack={() => setTelaAtual('dashboard')} />;
+      case 'caixaPreta':   return <CaixaPretaScreen   onBack={() => setTelaAtual('dashboard')} />;
       case 'bodyProfile':  return <BodyProfileScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
       case 'refeicao':     return <FoodLogScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
