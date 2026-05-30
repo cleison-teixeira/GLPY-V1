@@ -1722,16 +1722,16 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     </div>
                   </div>
 
-                  {/* Card 4: Assistente IA */}
+                  {/* Card 4: GLPY IA */}
                   <div
-                    onClick={() => goTo('/preview/chat-ia')}
+                    onClick={() => onNavigate ? onNavigate('chatIA') : goTo('/preview/chat-ia')}
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-violet-50/20 rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 border border-violet-100/30">
                         <Sparkles className="w-4 h-4 text-violet-600 stroke-[2.2]" />
                       </div>
-                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">Assistente IA</span>
+                      <span className="text-[11px] font-extrabold text-[#0A1628] uppercase tracking-wide truncate">GLPY IA</span>
                     </div>
 
                     <div className="space-y-1">

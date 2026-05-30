@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Camera, Upload, ChevronLeft, Loader2, CheckCircle, AlertTriangle,
-  RotateCcw, Coffee, Utensils, Moon, Apple, Sparkles, Zap, Check, Search, Brain,
+  RotateCcw, Coffee, Utensils, Moon, Apple, Sparkles, Zap, Check, Search, Brain, PenLine,
 } from 'lucide-react';
 
 import {
@@ -413,6 +413,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
     });
     window.dispatchEvent(new Event('local-storage-change'));
     setSavedFeedback(true);
+    setTimeout(() => onSave?.(), 1500);
   }
 
   // ── Sub-components ────────────────────────────────────────────────────────
@@ -1022,6 +1023,14 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate }: FoodPhot
                   className="w-full bg-white border border-border text-text-main font-semibold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
                 >
                   <Camera size={15} /> Nova foto
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onNavigate?.('refeicao')}
+                  className="w-full bg-white border border-border text-text-main font-semibold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
+                >
+                  <PenLine size={15} /> Corrigir manualmente
                 </motion.button>
               </div>
 

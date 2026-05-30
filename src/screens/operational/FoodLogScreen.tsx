@@ -6,7 +6,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Coffee, Utensils, Moon, Apple, Lightbulb, Flame,
-  ChevronDown, ChevronUp, Camera, Check, Brain,
+  ChevronDown, ChevronUp, Camera, Check, Brain, Trash2, AlertTriangle,
 } from 'lucide-react';
 
 import { glpyStore } from '../../data/glpyStore';
@@ -102,12 +102,13 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
   const [protein,        setProtein]        = useState('');
   const [carbs,          setCarbs]          = useState('');
   const [fat,            setFat]            = useState('');
-  const [saveState,      setSaveState]      = useState<SaveState>('idle');
-  const [saveError,      setSaveError]      = useState('');
-  const [todayMeals,     setTodayMeals]     = useState(() => {
+  const [saveState,        setSaveState]        = useState<SaveState>('idle');
+  const [saveError,        setSaveError]        = useState('');
+  const [todayMeals,       setTodayMeals]       = useState(() => {
     try { return glpyStore.meals.getToday(); }
     catch { return []; }
   });
+  const [confirmDeleteId,  setConfirmDeleteId]  = useState<string | null>(null);
 
   // Ref síncrono para impedir duplo clique em Android (state é assíncrono)
   const savingRef = useRef(false);
@@ -122,6 +123,15 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
   function reloadTodayMeals() {
     try { setTodayMeals(glpyStore.meals.getToday()); }
     catch { /* keep current */ }
+  }
+
+  function handleDeleteMeal(id: string) {
+    const all = glpyStore.meals.getAll();
+    const remaining = all.filter((m: any) => m.id !== id);
+    glpyStore.meals.updateAll(remaining);
+    window.dispatchEvent(new Event('local-storage-change'));
+    reloadTodayMeals();
+    setConfirmDeleteId(null);
   }
 
   function resetAnalysis() {
@@ -838,16 +848,32 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
                             }}>
                               {entry.nome || MEAL_LABEL_MAP[entry.mealType as MealType] || 'Refeição'}
                             </span>
-                            {timeStr && (
-                              <span style={{
-                                fontFamily: fontFamily.primary,
-                                fontSize:   11,
-                                color:      lightColors.text.secondary,
-                                flexShrink: 0,
-                              }}>
-                                {timeStr}
-                              </span>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              {timeStr && (
+                                <span style={{
+                                  fontFamily: fontFamily.primary,
+                                  fontSize:   11,
+                                  color:      lightColors.text.secondary,
+                                }}>
+                                  {timeStr}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => setConfirmDeleteId(entry.id ?? String(entry.savedAt ?? index))}
+                                style={{
+                                  padding:    '4px',
+                                  background: 'transparent',
+                                  border:     'none',
+                                  cursor:     'pointer',
+                                  display:    'flex',
+                                  alignItems: 'center',
+                                  color:      '#CBD5E0',
+                                }}
+                                aria-label="Excluir refeição"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </div>
                           {(hasCals || hasMacros) && (
                             <p style={{
@@ -876,6 +902,72 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
         </GLPYCard>
 
       </div>
+
+      {/* ── Modal de confirmação de exclusão ─────────────────────── */}
+      {confirmDeleteId !== null && (
+        <div style={{
+          position:        'fixed',
+          inset:           0,
+          background:      'rgba(10,22,40,0.55)',
+          zIndex:          300,
+          display:         'flex',
+          alignItems:      'flex-end',
+          justifyContent:  'center',
+          padding:         '0 0 24px 0',
+        }}
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background:   '#fff',
+              borderRadius: '24px 24px 16px 16px',
+              padding:      '24px',
+              width:        '100%',
+              maxWidth:     420,
+              margin:       '0 16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <AlertTriangle size={20} color="#E53E3E" />
+              <span style={{ fontFamily: fontFamily.primary, fontSize: fontSize.bodyDefault, fontWeight: fontWeight.h2, color: lightColors.text.navy }}>
+                Excluir esta refeição?
+              </span>
+            </div>
+            <p style={{ fontFamily: fontFamily.primary, fontSize: fontSize.small, color: lightColors.text.secondary, lineHeight: 1.5, marginBottom: 20 }}>
+              Essa ação remove os macros registrados para ela.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                style={{
+                  flex: 1, padding: '13px', borderRadius: 14,
+                  border: `1.5px solid ${lightColors.border.soft}`,
+                  background: lightColors.background.secondary,
+                  fontFamily: fontFamily.primary, fontSize: fontSize.small,
+                  fontWeight: fontWeight.h3, color: lightColors.text.secondary,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteMeal(confirmDeleteId)}
+                style={{
+                  flex: 1, padding: '13px', borderRadius: 14,
+                  border: 'none', background: '#FEE2E2',
+                  fontFamily: fontFamily.primary, fontSize: fontSize.small,
+                  fontWeight: fontWeight.h2, color: '#E53E3E',
+                  cursor: 'pointer',
+                }}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </GLPYScreen>
   );
 }

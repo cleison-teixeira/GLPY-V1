@@ -186,7 +186,7 @@ export default function QuickActionModal({ show, onClose, onNavigate, onToast }:
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Foto do prato</p>
-              <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Analise sua refeição</p>
+              <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Registre sua refeição</p>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           </button>

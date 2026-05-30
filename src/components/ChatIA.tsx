@@ -13,6 +13,7 @@ import {
 } from "../core/glpyDailyTargets";
 import { buildAIContextFromSnapshot } from "../data/glpyUserSnapshot";
 import { detectCravingSignal } from "../data/glpyMissionBridge";
+import { detectsAppError, classifyErrorArea, saveIssueReport } from "../services/glpyIssueReports";
 import { getLocalDateKey } from "../utils/formatters";
 
 const LIMITES_INICIAIS: Record<string, number> = { starter: 30, plus: 20, pro: 30, top: 999 };
@@ -259,7 +260,30 @@ Use: "pode estar relacionado", "é comum relatar", "vale observar".
 Nunca diga que cura. Nunca garanta emagrecimento. Nunca substitua médico ou nutricionista.
 
 DADOS: use o protocolo do User Snapshot (fonte: glpyStore). Cite nome, dia e missões. Cite consumo de proteína/água só quando relevante.
-CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa proteica. Curto.`;
+CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa proteica. Curto.
+
+ERRO RELATADO PELO USUÁRIO (quando o usuário disser que o app errou qualquer dado, análise, registro ou resposta):
+Regras obrigatórias:
+- Não prometer que o erro será corrigido automaticamente.
+- Não dizer que a IA alterou registros se ela não alterou.
+- Não minimizar o relato.
+- Sempre orientar o próximo passo prático.
+- Linguagem acolhedora e premium.
+
+Mensagem-base obrigatória (use sempre como ponto de partida):
+"Obrigado por avisar. A GLPY IA está em constante aprendizado, e relatos como o seu ajudam a melhorar cada vez mais o serviço. Vou registrar esse ponto para análise e evolução do app. Enquanto isso, para manter suas metas corretas hoje, ajuste ou refaça esse registro manualmente dentro do app."
+
+Orientação específica por área (adicione após a mensagem-base):
+- Refeição/foto/calorias/macros: "Para corrigir: abra Refeições de hoje, toque na lixeira da refeição errada para excluí-la e registre novamente pelo modo manual ou nova foto."
+- Protocolo/missão: "Para corrigir: acesse seu protocolo ativo e revise o dia correspondente."
+- Receita: "Para corrigir: reporte pelo chat e evite usar essa receita até a próxima atualização."
+- Checklist: "Para corrigir: refaça o check-in do dia ou ajuste manualmente na tela de check-in."
+- Emoção/humor: "Para corrigir: registre novamente sua emoção na tela de Emoção."
+- Atividade física: "Para corrigir: edite ou re-registre a atividade na tela de Atividade."
+- Medidas/peso: "Para corrigir: acesse Medidas ou Histórico de Peso e atualize o valor."
+- Navegação/botão: "Anote o que aconteceu e qual tela estava. Esse dado vai ajudar o time a corrigir."
+- Paywall/plano: "Verifique seu plano em Perfil. Se o problema persistir, entre em contato pelo suporte."
+- Resposta da IA: "Considere minha última resposta como incorreta. Vou ignorar esse dado e responder com base no que você descrever agora."`;
   };
 
   const [messages, setMessages] = useState<Message[]>([
@@ -414,6 +438,16 @@ CRAVING: se snapshot indicar sweet_craving, reconheça e sugira alternativa prot
 
       const data = await response.json();
       const iaText = sanitizeAIResponse(data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem. Tente novamente.");
+
+      // Salva issue report com área classificada se o usuário relatou um erro
+      if (detectsAppError(text)) {
+        saveIssueReport({
+          userMessage: text,
+          aiResponse:  iaText,
+          source:      'chat_ia',
+          area:        classifyErrorArea(text),
+        });
+      }
 
       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ia', text: iaText }]);
 
