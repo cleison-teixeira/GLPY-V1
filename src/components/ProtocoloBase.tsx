@@ -271,6 +271,8 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
 
   const hoje = getLocalDateKey();
   const jaConcluidoHoje = dataUltimoCheck === hoje;
+  const globalLock = (() => { try { return JSON.parse(localStorage.getItem('glpy_protocol_global_daily_lock') || 'null'); } catch { return null; } })();
+  const bloqueadoPorOutroProtocolo = globalLock?.date === hoje && globalLock?.protocolId !== protocoloId;
   const diaJaFeito = diasConcluidos.includes(diaAtual);
 
   const buildProtocolMissions = (marked: number[]) =>
@@ -333,6 +335,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMissao = (i: number) => {
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     const isChecking  = !missoesMarcadas.includes(i);
     const missionTitle = dia.missoes[i]?.texto ?? '';
     const missionId   = `${protocoloId}-dia-${dia.n}-missao-${i + 1}`;
@@ -408,6 +411,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const handleSelectCheckin = (option: string) => {
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
     // Detecta craving no texto da opção selecionada e emite evento comportamental
@@ -422,7 +426,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const handleConcluir = () => {
-    if (jaConcluidoHoje || diaJaFeito) return;
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     playSound('concluir');
     const xpDia = dia.xp ?? 30;
     const agora = getLocalDateKey();
@@ -438,6 +442,15 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       date: agora,
       checkin: checkinSelecionado ? formatMissao(checkinSelecionado) : null,
     }));
+    try {
+      localStorage.setItem('glpy_protocol_global_daily_lock', JSON.stringify({
+        date: agora,
+        protocolId: protocoloId,
+        protocolName: nome,
+        day: dia.n,
+        completedAt: agora,
+      }));
+    } catch {}
 
     // Persiste missões do próximo dia para a IA responder "amanhã"
     const nextDayIdx = diaAtual + 1;
@@ -811,11 +824,25 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                   )}
                 </div>
               </motion.div>
-            ) : jaConcluidoHoje ? (
-              // Já completou um dia hoje — próximo dia bloqueado até amanhã
+            ) : (jaConcluidoHoje || bloqueadoPorOutroProtocolo) ? (
+              // Bloqueado até amanhã
               <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
-                <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
-                <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+                {diaAtual >= dias.length ? (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">🏆 Protocolo finalizado</p>
+                    <p className="text-xs text-text-muted mt-1">Você concluiu este protocolo. Amanhã você poderá iniciar uma nova jornada ou escolher o próximo protocolo.</p>
+                  </>
+                ) : bloqueadoPorOutroProtocolo && !jaConcluidoHoje ? (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">✅ Você já cumpriu seu protocolo de hoje</p>
+                    <p className="text-xs text-text-muted mt-1">Volte amanhã para continuar</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
+                    <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+                  </>
+                )}
               </div>
             ) : (
               // Disponível para completar

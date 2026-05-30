@@ -384,6 +384,8 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   // ── Derivados para controle do botão ──
   const hoje = getLocalDateKey();
   const jaConcluidoHoje = dataUltimoCheck === hoje;
+  const globalLock = (() => { try { return JSON.parse(localStorage.getItem('glpy_protocol_global_daily_lock') || 'null'); } catch { return null; } })();
+  const bloqueadoPorOutroProtocolo = globalLock?.date === hoje && globalLock?.protocolId !== 'antiRebote';
   const diaJaFeito = diasConcluidos.includes(diaAtual + 1);
 
   const buildProtocolMissions = (marked: number[]) =>
@@ -448,6 +450,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMissao = (i: number) => {
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     setMissoesMarcadas(prev => {
       const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
       persistProtocolDay(next, checkinSelecionado, "em_andamento");
@@ -456,12 +459,13 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   };
 
   const handleSelectCheckin = (option: string) => {
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
   };
 
   const handleConcluir = () => {
-    if (jaConcluidoHoje || diaJaFeito) return;
+    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
     playSound('concluir');
 
     const agora = getLocalDateKey();
@@ -475,6 +479,15 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
         day: dia.n,
         date: agora,
         checkin: checkinSelecionado || null,
+      }));
+    } catch {}
+    try {
+      localStorage.setItem('glpy_protocol_global_daily_lock', JSON.stringify({
+        date: agora,
+        protocolId: 'antiRebote',
+        protocolName: 'Anti-Rebote',
+        day: dia.n,
+        completedAt: agora,
       }));
     } catch {}
     // Salva missões do próximo dia para que a IA responda perguntas sobre amanhã
@@ -802,11 +815,25 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                   )
                 )}
               </motion.div>
-            ) : jaConcluidoHoje ? (
-              // Já completou um dia hoje — bloqueado até amanhã
+            ) : (jaConcluidoHoje || bloqueadoPorOutroProtocolo) ? (
+              // Bloqueado até amanhã
               <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
-                <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
-                <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+                {diasConcluidos.length >= 7 ? (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">🏆 Protocolo finalizado</p>
+                    <p className="text-xs text-text-muted mt-1">Você concluiu este protocolo. Amanhã você poderá iniciar uma nova jornada ou escolher o próximo protocolo.</p>
+                  </>
+                ) : bloqueadoPorOutroProtocolo && !jaConcluidoHoje ? (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">✅ Você já cumpriu seu protocolo de hoje</p>
+                    <p className="text-xs text-text-muted mt-1">Volte amanhã para continuar</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
+                    <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+                  </>
+                )}
               </div>
             ) : (
               // Disponível para completar

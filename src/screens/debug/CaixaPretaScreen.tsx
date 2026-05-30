@@ -32,7 +32,7 @@ const BLOCKS: { label: string; keys: string[] }[] = [
   },
   {
     label: '6. Protocolo ativo',
-    keys: ['glpy_protocolo_ativo', 'glpy_active_protocol', 'glpy_protocol_day_today', 'glpy_protocol_context_v1'],
+    keys: ['glpy_protocolo_ativo', 'glpy_active_protocol', 'glpy_protocol_day_today', 'glpy_protocol_context_v1', 'glpy_protocol_global_daily_lock'],
   },
   {
     label: '7. Uso da IA',
