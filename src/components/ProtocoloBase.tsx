@@ -785,12 +785,14 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               </div>
             </div>
 
-            {!concluido ? (
-              <motion.button whileTap={{ scale: 0.98 }} onClick={handleConcluir}
-                className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base">
-                ✅ Concluir Dia {dia.n}
-              </motion.button>
-            ) : (
+            {diaJaFeito && !concluido ? (
+              // Dia já concluído anteriormente (navegou de volta via barra)
+              <div className="bg-primary/5 border border-primary/15 rounded-2xl py-4 text-center">
+                <p className="font-bold text-primary text-sm">✅ Dia {dia.n} já concluído</p>
+                <p className="text-xs text-text-muted mt-1">Selecione outro dia na barra acima</p>
+              </div>
+            ) : concluido ? (
+              // Acabou de concluir nesta sessão
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                 <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 text-center">
                   {protocoloConcluido ? (
@@ -806,6 +808,18 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                   )}
                 </div>
               </motion.div>
+            ) : jaConcluidoHoje ? (
+              // Já completou um dia hoje — próximo dia bloqueado até amanhã
+              <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
+                <p className="text-sm font-semibold text-text-muted">⏰ Volte amanhã para continuar</p>
+                <p className="text-xs text-text-muted mt-1">1 dia por dia — você já cumpriu o de hoje</p>
+              </div>
+            ) : (
+              // Disponível para completar
+              <motion.button whileTap={{ scale: 0.98 }} onClick={handleConcluir}
+                className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-md text-base">
+                ✅ Concluir Dia {dia.n}
+              </motion.button>
             )}
           </motion.div>
         )}
