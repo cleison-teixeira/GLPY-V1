@@ -38,6 +38,7 @@ interface SiteOption {
 interface InjectionScreenProps {
   onBack?: () => void;
   onSave?: (data: { medication: string; dose: string; frequency: string; site: InjectionSite }) => void;
+  onNavigate?: (screen: string) => void;
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ const SITE_OPTIONS: SiteOption[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps) {
+export default function InjectionScreen({ onBack, onSave, onNavigate }: InjectionScreenProps) {
   const [selectedSite, setSelectedSite] = useState<InjectionSite>(() => {
     try {
       const s = glpyStore.treatment.getUltimaInjecao()?.site;
@@ -65,11 +66,13 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
   const nextInj = calculateNextInjection();
 
   function handleEditConfig(_field: string) {
-    window.location.href = '/preview/treatment-settings?from=injection';
+    if (onNavigate) onNavigate('tratamento');
+    else window.location.href = '/preview/treatment-settings?from=injection';
   }
 
   function handleSymptoms() {
-    window.location.href = '/preview/side-effects?from=injection&reset=true';
+    if (onNavigate) onNavigate('aplicacaoSintomas');
+    else window.location.href = '/preview/side-effects?from=injection&reset=true';
   }
 
   const [saveState,           setSaveState]           = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -349,7 +352,7 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
             ))}
           </div>
 
-          <p style={configFooterStyle}>Toque para ajustar seus dados</p>
+          <p style={{ ...configFooterStyle, cursor: 'pointer' }} onClick={() => handleEditConfig('')}>Toque para ajustar seus dados</p>
         </GLPYCard>
 
         {/* ── Card 4 — Local da aplicação ───────────────────────────────────── */}
@@ -421,7 +424,8 @@ export default function InjectionScreen({ onBack, onSave }: InjectionScreenProps
           <SymptomsGuardModal
             onRegisterSymptoms={() => {
               setNoSymptomsModalOpen(false);
-              window.location.href = '/preview/side-effects?from=injection&reset=true';
+              if (onNavigate) onNavigate('aplicacaoSintomas');
+              else window.location.href = '/preview/side-effects?from=injection&reset=true';
             }}
             onNoSymptoms={() => {
               setNoSymptomsModalOpen(false);

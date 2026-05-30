@@ -48,34 +48,26 @@ interface EmotionScreenProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EmotionScreen({ onBack, onSave }: EmotionScreenProps) {
-  const [selectedMood, setSelectedMood] = useState<Mood>(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = glpyStore.emotion.getToday() as any;
-      return d?.mood && (MOOD_OPTIONS as readonly string[]).includes(d.mood) ? (d.mood as Mood) : 'Bem';
-    } catch { return 'Bem'; }
-  });
-  const [selectedEnergy, setSelectedEnergy] = useState<Energy>(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const d = glpyStore.emotion.getToday() as any;
-      return d?.energy && (['Baixa', 'Média', 'Alta'] as string[]).includes(d.energy) ? (d.energy as Energy) : 'Média';
-    } catch { return 'Média'; }
-  });
-  const [note, setNote] = useState(() => {
-    try { return (glpyStore.emotion.getToday() as any)?.note || ''; }
-    catch { return ''; }
-  });
+  const [selectedMood, setSelectedMood] = useState<Mood>('Bem');
+  const [selectedEnergy, setSelectedEnergy] = useState<Energy>('Média');
+  const [note, setNote] = useState('');
   const [moodModalOpen, setMoodModalOpen] = useState(false);
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   function handleSave() {
     if (saveState !== 'idle') return;
+    const snapshot = { mood: selectedMood, energy: selectedEnergy, note };
     setSaveState('saving');
     setTimeout(() => {
       setSaveState('saved');
-      setTimeout(() => onSave?.({ mood: selectedMood, energy: selectedEnergy, note }), 900);
+      setTimeout(() => {
+        setSelectedMood('Bem');
+        setSelectedEnergy('Média');
+        setNote('');
+        setSaveState('idle');
+        onSave?.(snapshot);
+      }, 900);
     }, 500);
   }
 

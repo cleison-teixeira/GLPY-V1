@@ -45,6 +45,11 @@ export function shouldSuppressInstallPrompt(): boolean {
     console.log('[GLPY PWA] standalone detectado — suprimido');
     return true;
   }
+  // Dispensa permanente: usuário escolheu não ver mais
+  if (localStorage.getItem('glpy_pwa_install_dismissed_permanently') === 'true') {
+    console.log('[GLPY PWA] dispensa permanente — suprimido');
+    return true;
+  }
   // Se Chrome sinalizou que pode instalar agora, nunca suprimir — Chrome tem prioridade
   if ((window as Window & { __glpyInstallPrompt?: Event }).__glpyInstallPrompt) {
     console.log('[GLPY PWA] beforeinstallprompt disponível — não suprimido');
@@ -198,6 +203,12 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
   function handleDismiss() {
     saveStatus('dismissed');
     localStorage.setItem('glpy_install_prompt_dismissed_at', String(Date.now()));
+    onClose();
+  }
+
+  function handlePermanentDismiss() {
+    localStorage.setItem('glpy_pwa_install_dismissed_permanently', 'true');
+    saveStatus('dismissed');
     onClose();
   }
 
@@ -433,6 +444,14 @@ export default function InstallAppPrompt({ isOpen, onClose }: InstallAppPromptPr
                   className="w-full text-[#9AABB8] text-sm font-medium py-2 hover:text-[#6B7A8D] transition-colors"
                 >
                   Agora não
+                </button>
+
+                {/* Permanent dismiss */}
+                <button
+                  onClick={handlePermanentDismiss}
+                  className="w-full text-[#C4CDD5] text-xs font-medium py-1 hover:text-[#9AABB8] transition-colors"
+                >
+                  Não quero ver mais esta tela
                 </button>
               </div>
 

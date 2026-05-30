@@ -153,8 +153,10 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
 
   const photos = readBodyPhotos();
 
-  const beforePhoto = photos.find(p => p.role === 'before')
-    ?? (photos.length > 0 ? photos[0] : null);
+  const beforeCandidates = photos.filter(p => p.role === 'before');
+  const beforePhoto = beforeCandidates.length > 0
+    ? beforeCandidates[beforeCandidates.length - 1]
+    : (photos.length > 0 ? photos[0] : null);
 
   const afterCandidates = photos.filter(p => p.role === 'after');
   const afterPhoto = afterCandidates.length > 0
@@ -162,7 +164,12 @@ export default function VisualProgressShareScreen({ onBack }: VisualProgressShar
     : (photos.length > 1 ? photos[photos.length - 1] : null);
 
   const pesoAntesNum  = beforePhoto?.weight ?? null;
-  const pesoDepoisNum = afterPhoto?.weight  ?? readCurrentWeight();
+  const pesoDepoisNum = (() => {
+    const currentW = readCurrentWeight();
+    const photoW   = afterPhoto?.weight ?? null;
+    if (currentW != null && photoW != null) return Math.min(currentW, photoW);
+    return currentW ?? photoW ?? null;
+  })();
 
   const evolucaoKg = (() => {
     if (pesoAntesNum != null && pesoDepoisNum != null && pesoAntesNum > pesoDepoisNum)

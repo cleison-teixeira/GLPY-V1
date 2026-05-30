@@ -146,9 +146,11 @@ export default function PhotoTimelineScreen({ onBack }: PhotoTimelineScreenProps
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
-  // Antes: primeira com role 'before', senão primeira foto
-  const beforePhoto = photos.find(p => p.role === 'before')
-    ?? (photos.length > 0 ? photos[0] : null);
+  // Antes: foto mais recente com role 'before', senão primeira foto
+  const beforeCandidates = photos.filter(p => p.role === 'before');
+  const beforePhoto = beforeCandidates.length > 0
+    ? beforeCandidates[beforeCandidates.length - 1]
+    : (photos.length > 0 ? photos[0] : null);
 
   // Depois: última com role 'after', senão última (requer 2+ fotos)
   const afterCandidates = photos.filter(p => p.role === 'after');

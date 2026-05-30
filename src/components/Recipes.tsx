@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ShoppingBag, CheckCircle } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { GLPYHeader } from "./ui";
 
@@ -182,8 +182,6 @@ export default function Recipes({ onNavigate }: { onNavigate: (screen: string) =
               <h3 className="font-bold mb-2">Preparo</h3>
               <p className="text-sm text-text-muted mb-8">{selectedRecipe.preparo}</p>
 
-              <button className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 rounded-pill mb-4"><ShoppingBag className="w-5 h-5" /> Comprar ingredientes</button>
-              <button className="w-full flex items-center justify-center gap-2 bg-white border border-primary text-primary font-bold py-4 rounded-pill mb-6"><CheckCircle className="w-5 h-5" /> Marcar como feita</button>
             </div>
           </motion.div>
         )}

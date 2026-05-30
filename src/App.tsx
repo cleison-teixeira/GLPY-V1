@@ -58,6 +58,8 @@ import PhotoTimelineScreen from './screens/operational/PhotoTimelineScreen';
 import FoodPhotoAnalysisScreen from './screens/operational/FoodPhotoAnalysisScreen';
 import ActivityScreen from './screens/operational/ActivityScreen';
 import SupplementsScreen from './screens/operational/SupplementsScreen';
+import TreatmentSettingsScreen from './screens/operational/TreatmentSettingsScreen';
+import SideEffectsScreen from './screens/operational/SideEffectsScreen';
 import { resolveSafeReturn } from './utils/navigationReturn';
 import { glpyStore } from './data/glpyStore';
 import { glpyBlackBox } from './data/glpyBlackBox';
@@ -240,12 +242,21 @@ export default function App() {
           window.dispatchEvent(new Event('local-storage-change'));
           setTelaAtual(resolveSafeReturn('dashboard'));
         }}
+        onNavigate={setTelaAtual}
       />;
       case 'atividade':    return <ActivityScreen
         onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))}
         onSave={() => { window.dispatchEvent(new Event('local-storage-change')); setTelaAtual(resolveSafeReturn('dashboard')); }}
       />;
       case 'suplementos':  return <SupplementsScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
+      case 'tratamento':   return <TreatmentSettingsScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('aplicacao'))}
+        onSave={() => { window.dispatchEvent(new Event('local-storage-change')); setTelaAtual(resolveSafeReturn('aplicacao')); }}
+      />;
+      case 'aplicacaoSintomas': return <SideEffectsScreen
+        onBack={() => setTelaAtual(resolveSafeReturn('aplicacao'))}
+        onSave={() => { window.dispatchEvent(new Event('local-storage-change')); setTelaAtual(resolveSafeReturn('aplicacao')); }}
+      />;
       case 'foto':         return <PhotoTimelineScreen onBack={() => setTelaAtual(resolveSafeReturn('dashboard'))} />;
       // BUG 15B — tela de análise de foto do prato (mock — BUG 15C integra FatSecret real)
       case 'fotoAnalise': return (

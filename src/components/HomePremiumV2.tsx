@@ -909,6 +909,12 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
     const numeric = parseFloat(weightInput.replace(',', '.'));
     if (!isNaN(numeric) && numeric > 20 && numeric < 300) {
       saveWeightEntry({ weight: numeric });
+      try {
+        const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
+        onb.peso_atual = numeric;
+        onb.pesoAtual  = numeric;
+        localStorage.setItem('glpy_onboarding', JSON.stringify(onb));
+      } catch {}
       window.dispatchEvent(new Event('local-storage-change'));
       setShowWeightModal(false);
       triggerConfetti();
@@ -1609,7 +1615,10 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   
                   {/* Card 1: Medicação */}
                   <div
-                    onClick={() => handleQuickAction('aplicacao')}
+                    onClick={() => displayNextDose === 'Configure'
+                      ? (onNavigate ? onNavigate('tratamento') : goTo('/preview/treatment-settings'))
+                      : handleQuickAction('aplicacao')
+                    }
                     className="min-w-[200px] w-[200px] bg-gradient-to-b from-white to-[#F2FAF6] rounded-[22px] p-4 border border-[#E2EBE7] shadow-sm flex flex-col justify-between space-y-3.5 shrink-0 cursor-pointer active:opacity-80 transition"
                   >
                     <div className="flex items-center gap-2">
@@ -2147,9 +2156,12 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-xs space-y-1">
                 <div className="flex items-center justify-between p-1">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Suas Informações</span>
-                  <button onClick={openEditModal} className="flex items-center gap-1 text-[#00C27A] text-[10px] font-bold active:opacity-70 transition">
-                    <Pencil size={11} />
-                    Editar
+                  <button
+                    onClick={openEditModal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00C27A]/10 border border-[#00C27A]/30 text-[#00C27A] text-[11px] font-extrabold active:scale-95 transition-all"
+                  >
+                    <Pencil size={11} strokeWidth={2.5} />
+                    Editar minhas informações
                   </button>
                 </div>
 
