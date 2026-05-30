@@ -1898,7 +1898,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                       Escolha um protocolo para iniciar sua jornada GLPY.
                     </p>
                     <button
-                      onClick={() => goTo('/preview/protocols')}
+                      onClick={() => onNavigate ? onNavigate('protocolHub') : goTo('/preview/protocols')}
                       className="w-full bg-[#00C27A] text-white text-sm font-extrabold py-2.5 rounded-2xl active:opacity-80 transition"
                     >
                       Começar agora
@@ -1909,7 +1909,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-extrabold text-[#0A1628] tracking-tight">Protocolo em andamento</span>
                       <button
-                        onClick={() => goTo('/preview/protocols')}
+                        onClick={() => onNavigate ? onNavigate('protocolHub') : goTo('/preview/protocols')}
                         className="text-[#00C27A] text-[10px] font-bold tracking-tight uppercase hover:underline"
                       >
                         Ver todos
@@ -1917,7 +1917,10 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                     </div>
 
                     <div
-                      onClick={() => goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocols')}
+                      onClick={() => onNavigate
+                        ? onNavigate(PROTOCOL_SCREEN_MAP[activeProtocol.name] ?? 'protocolHub')
+                        : goTo(PROTOCOL_ROUTE_MAP[activeProtocol.name] ?? '/preview/protocols')
+                      }
                       className="flex items-center gap-3 cursor-pointer active:opacity-80 transition"
                     >
                       <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-tr from-[#00C27A] to-[#00A38B] flex items-center justify-center text-white shrink-0 shadow-sm">
@@ -2469,7 +2472,7 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                 <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
               </button>
 
-              {/* 5 — Foto do prato */}
+              {/* 5 — Registrar refeição */}
               <button
                 onClick={() => { setShowQuickModal(false); onNavigate ? onNavigate('fotoAnalise') : goTo('/preview/food-photo-analysis'); }}
                 className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-pink-50 border border-pink-100/60 active:opacity-80 transition text-left"
@@ -2478,8 +2481,8 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
                   <Camera className="w-5 h-5 text-pink-500 stroke-[2.2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Foto do prato</p>
-                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Analise sua refeição</p>
+                  <p className="text-sm font-extrabold text-[#0A1628] leading-tight">Registrar refeição</p>
+                  <p className="text-[11px] text-[#3D5A70] mt-0.5 leading-snug">Foto do prato ou manual</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
               </button>
