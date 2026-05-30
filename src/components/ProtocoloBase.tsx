@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, ShoppingBag, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Award, Share2 } from "lucide-react";
 import BottomNav from "./BottomNav";
 import { GLPYHeader } from "./ui";
 import { dispararConfetti, dispararConfettiFinal } from "../utils/confetti";
@@ -12,38 +12,8 @@ import { glpyBlackBox } from "../data/glpyBlackBox";
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCatalog";
 import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal, getMissionActionSuggestion } from "../data/glpyMissionBridge";
 import { getLocalDateKey } from "../utils/formatters";
-import { calculateGLPYDailyTargets } from "../core/glpyDailyTargets";
+import { useNutritionTargets } from "../hooks/useNutritionTargets";
 
-function calcMetas(peso: number, altura: number) {
-  try {
-    const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
-    const result = calculateGLPYDailyTargets({
-      weightKg:       peso,
-      heightCm:       altura,
-      ageYears:       onb.age || onb.ageYears || 30,
-      gender:         onb.gender || 'female',
-      activityLevel:  onb.activityLevel  || 'sedentary',
-      weightLossPace: onb.weightLossPace || 'equilibrado',
-      targetWeightKg: onb.pesoMeta || onb.targetWeightKg || undefined,
-    });
-    return {
-      kcal:     result.caloriesTarget,
-      proteina: result.proteinGrams,
-      gordura:  result.fatGrams,
-      carbs:    result.carbsGrams,
-      agua:     Math.round(result.waterLiters * 1000),
-    };
-  } catch {
-    const tmb = 10 * peso + 6.25 * altura - 5 * 30 - 161;
-    const tdee = tmb * 1.2;
-    const kcal = Math.round(tdee - 500);
-    const proteina = Math.round(peso * 1.8);
-    const gordura = Math.round((kcal * 0.25) / 9);
-    const carbs = Math.round((kcal - proteina * 4 - gordura * 9) / 4);
-    const agua = Math.round(peso * 35);
-    return { kcal, proteina, gordura, carbs, agua };
-  }
-}
 
 export interface Receita {
   id: number;
@@ -136,6 +106,12 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       return raw ? (JSON.parse(raw).diasConcluidos || []) : [];
     } catch { return []; }
   });
+  const [dataUltimoCheck, setDataUltimoCheck] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(progressoKey);
+      return raw ? (JSON.parse(raw).dataUltimoCheck || null) : null;
+    } catch { return null; }
+  });
   const [protocoloConcluido, setProtocoloConcluido] = useState(false);
   const [showXP, setShowXP] = useState(false);
   const [xpValor, setXpValor] = useState(0);
@@ -151,6 +127,16 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       const existing = glpyStore.protocol.getActive() ?? {};
       glpyStore.protocol.saveActive({ ...existing, id: protocoloId, nome, emoji, totalDias: dias.length, dia: diaAtual } as any);
     } catch {}
+    // Sempre atualizar qual protocolo está ativo em glpy_protocol_day_today ao abrir
+    // (sem guard de jaConcluidoHoje — garante que Home e botão (+) reflitam o protocolo correto)
+    saveProtocolDayTracking({
+      protocolId: protocoloId,
+      protocolName: nome,
+      protocolEmoji: emoji,
+      totalDays: dias.length,
+      day: dias[Math.min(diaAtual, dias.length - 1)]?.n ?? (diaAtual + 1),
+      dayStatus: "em_andamento",
+    });
     saveProtocolProgress({
       protocoloId,
       protocoloNome: nome,
@@ -196,9 +182,73 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const peso = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
-  const altura = parseFloat(localStorage.getItem("glpy_altura") || "165");
-  const metas = calcMetas(peso, altura);
+  const nutritionTargets = useNutritionTargets();
+  const metas = (() => {
+    if (nutritionTargets) {
+      return {
+        kcal:     nutritionTargets.caloriesTarget,
+        proteina: nutritionTargets.proteinGrams,
+        gordura:  nutritionTargets.fatGrams,
+        carbs:    nutritionTargets.carbsGrams,
+        agua:     Math.round(nutritionTargets.waterLiters * 1000),
+      };
+    }
+    const _p = parseFloat(localStorage.getItem("glpy_peso_atual") || "75");
+    const _k = Math.max(800, Math.round((10 * _p + 6.25 * 165 - 5 * 30 - 161) * 1.2 - 500));
+    const _pr = Math.round(_p * 1.8);
+    const _g = Math.round((_k * 0.25) / 9);
+    return { kcal: _k, proteina: _pr, gordura: _g, carbs: Math.round((_k - _pr * 4 - _g * 9) / 4), agua: Math.round(_p * 35) };
+  })();
+
+  const formatMissao = (texto: string) =>
+    texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
+
+  const buildProtocolDayPackage = (dayIdx: number) => {
+    const d = dias[dayIdx];
+    if (!d) return null;
+    const r = receitas.find(rec => rec.id === d.receita_id) || null;
+    const hoje_ = getLocalDateKey();
+    const isDayDone = diasConcluidos.includes(dayIdx);
+    const isCurrentViewedDay = dayIdx === diaAtual;
+    let status: 'em_andamento' | 'concluido' | 'bloqueado' | 'pendente';
+    if (isDayDone) { status = 'concluido'; }
+    else if (isCurrentViewedDay && dataUltimoCheck !== hoje_) { status = 'em_andamento'; }
+    else if (dayIdx > diaAtual) { status = 'bloqueado'; }
+    else { status = 'pendente'; }
+    const missions = d.missoes.map((m, i) => ({
+      title: formatMissao(m.texto),
+      description: formatMissao(m.sub),
+      completed: isCurrentViewedDay ? missoesMarcadas.includes(i) : isDayDone,
+    }));
+    let selectedCheckin: string | null = isCurrentViewedDay ? checkinSelecionado : null;
+    if (!isCurrentViewedDay && isDayDone) {
+      try {
+        const last = JSON.parse(localStorage.getItem('glpy_protocol_checkin_last') || 'null');
+        if (last?.protocolId === protocoloId && last?.day === d.n) selectedCheckin = last.checkin || null;
+      } catch {}
+    }
+    return {
+      protocolId: protocoloId, protocolName: nome,
+      day: d.n, totalDays: dias.length, title: d.titulo, status, missions,
+      checkinsAvailable: d.checkin.map(c => formatMissao(c)), selectedCheckin,
+      recipe: r ? { title: r.nome, kcal: r.kcal, protein: r.proteina, carbs: r.carbs, fat: r.gordura } : null,
+    };
+  };
+
+  useEffect(() => {
+    try {
+      const prevIdx = diaAtual - 1;
+      const nextIdx = diaAtual + 1;
+      localStorage.setItem('glpy_protocol_context_v1', JSON.stringify({
+        protocolId: protocoloId, protocolName: nome,
+        previousDay: prevIdx >= 0 ? buildProtocolDayPackage(prevIdx) : null,
+        currentDay: buildProtocolDayPackage(diaAtual),
+        nextDay: nextIdx < dias.length ? buildProtocolDayPackage(nextIdx) : null,
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diaAtual, diasConcluidos, missoesMarcadas, checkinSelecionado, concluido, dataUltimoCheck, metas.proteina, metas.agua]);
 
   const videoUrl = videos[diaAtual + 1] ?? "";
 
@@ -215,6 +265,10 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   if (!dia) return <div>Carregando...</div>;
   const receita = receitas.find(r => r.id === dia.receita_id);
   const receitaDetalhe = receitaAberta !== null ? receitas.find(r => r.id === receitaAberta) : null;
+
+  const hoje = getLocalDateKey();
+  const jaConcluidoHoje = dataUltimoCheck === hoje;
+  const diaJaFeito = diasConcluidos.includes(diaAtual);
 
   const buildProtocolMissions = (marked: number[]) =>
     dia.missoes.map((m, i) => ({
@@ -271,6 +325,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   useEffect(() => {
+    if (jaConcluidoHoje && !concluido) return;
     persistProtocolDay(missoesMarcadas, checkinSelecionado, concluido ? "concluido" : "em_andamento", concluido ? dia.xp : undefined);
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -286,13 +341,17 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
         signal: missionTypeToSignal(missionType), screen: 'ProtocoloBase', source: 'protocol_mission',
         payload: { protocolId: protocoloId, day: dia.n, missionId, missionType },
       });
-      // Sinergia real: sincroniza com glpyStore apenas quando há valor numérico explícito no texto
+      // Sinergia real: sincroniza com glpyStore apenas quando há valor numérico explícito no texto.
+      // Missões de hidratação (water) NÃO sincronizam automaticamente — usuário registra água
+      // pela ação própria na Home. Marcar a missão apenas marca o checklist do protocolo.
       const missionTextFormatted = formatMissao(missionTitle);
-      const syncResult = syncMissionToStore(missionType, missionTextFormatted, true, {
-        protocolId: protocoloId,
-        day: dia.n,
-        missionId,
-      });
+      const syncResult = missionType === 'hydration'
+        ? { synced: false, syncType: 'none' as const }
+        : syncMissionToStore(missionType, missionTextFormatted, true, {
+            protocolId: protocoloId,
+            day: dia.n,
+            missionId,
+          });
       if (syncResult.synced && syncResult.syncType === 'meal') {
         glpyBlackBox.addEvent({
           type: EVENT_TYPES.MISSION_SYNCED_TO_MEAL, category: CATEGORIES.MISSION, domain: DOMAINS.NUTRITION,
@@ -345,9 +404,6 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     });
   };
 
-  const formatMissao = (texto: string) =>
-    texto.replace("{proteina}", String(metas.proteina)).replace("{agua}", String(metas.agua));
-
   const handleSelectCheckin = (option: string) => {
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
@@ -363,10 +419,34 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const handleConcluir = () => {
+    if (jaConcluidoHoje || diaJaFeito) return;
     playSound('concluir');
     const xpDia = dia.xp ?? 30;
+    const agora = getLocalDateKey();
     persistProtocolDay(missoesMarcadas, checkinSelecionado, "concluido", xpDia);
+    setDataUltimoCheck(agora);
     setConcluido(true);
+
+    // Persiste check-in específico do protocolo para a IA
+    localStorage.setItem('glpy_protocol_checkin_last', JSON.stringify({
+      protocolId: protocoloId,
+      protocolName: nome,
+      day: dia.n,
+      date: agora,
+      checkin: checkinSelecionado,
+    }));
+
+    // Persiste missões do próximo dia para a IA responder "amanhã"
+    const nextDayIdx = diaAtual + 1;
+    const nextDia = dias[nextDayIdx];
+    if (nextDia) {
+      localStorage.setItem('glpy_protocol_next_day', JSON.stringify({
+        protocolId: protocoloId,
+        day: nextDia.n,
+        missions: nextDia.missoes.map(m => formatMissao(m.texto)),
+      }));
+    }
+
     setCheckinSelecionado(null);
     setMissoesMarcadas([]);
 
@@ -387,11 +467,12 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     localStorage.setItem(`${storageKey}_dia`, String(proximoDiaIdx));
 
     const dataInicio = (() => {
-      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || getLocalDateKey(); } catch { return getLocalDateKey(); }
+      try { return JSON.parse(localStorage.getItem(progressoKey) || "{}").dataInicio || agora; } catch { return agora; }
     })();
     localStorage.setItem(progressoKey, JSON.stringify({
       diaAtual: proximoDiaIdx,
       diasConcluidos: novasConcluidas,
+      dataUltimoCheck: agora,
       dataInicio,
     }));
 
@@ -405,7 +486,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
     if (firestoreId) {
       salvarProgressoProtocolo(firestoreId, {
         diaAtual: proximoDiaIdx,
-        dataUltimoCheck: getLocalDateKey(),
+        dataUltimoCheck: agora,
         diasCompletos: novasConcluidas,
       }).catch((err) => console.error('[Protocolo] erro Firestore:', err));
     }
@@ -628,12 +709,12 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                           ? <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                           : <Circle className="w-5 h-5 text-border flex-shrink-0 mt-0.5" />}
                         <div>
-                          <p className={`text-sm font-semibold ${done ? "line-through text-text-muted" : "text-text-main"}`}>{m.texto}</p>
+                          <p className={`text-sm font-semibold ${done ? "line-through text-text-muted" : "text-text-main"}`}>{formatMissao(m.texto)}</p>
                           <p className="text-xs text-text-muted mt-0.5">{formatMissao(m.sub)}</p>
                         </div>
                       </motion.button>
                       <AnimatePresence>
-                        {done && suggestion.suggestScreen && (
+                        {done && suggestion.suggestScreen && mType !== 'hydration' && (
                           <motion.button
                             key={`action-${i}`}
                             initial={{ opacity: 0, y: -4 }}
@@ -681,7 +762,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                 {dia.checkin.map(opt => (
                   <button key={opt} onClick={() => handleSelectCheckin(opt)}
                     className={`p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${checkinSelecionado === opt ? "bg-primary text-white border-primary" : "bg-[#F4F6F8] border-transparent text-text-main"}`}>
-                    {opt}
+                    {formatMissao(opt)}
                   </button>
                 ))}
               </div>
@@ -774,9 +855,6 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                     <p className="text-xs text-text-main leading-relaxed">{receitaDetalhe.glp1tip}</p>
                   </div>
                 </div>
-                <button className="w-full bg-primary text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-md">
-                  <ShoppingBag className="w-4 h-4" /> Comprar ingredientes — PedeZap
-                </button>
               </div>
             ) : (
               receitas.map(r => (

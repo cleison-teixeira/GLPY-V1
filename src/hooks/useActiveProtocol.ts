@@ -8,7 +8,7 @@ export interface ActiveProtocolData {
 }
 
 const FALLBACK: ActiveProtocolData = {
-  name: 'Anti-Rebote',
+  name: '',
   currentDay: 1,
   totalDays: 7,
 };
