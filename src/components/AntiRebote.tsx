@@ -10,6 +10,8 @@ import { saveProtocolContext, saveProtocolDayTracking } from "../core/glpyLocalI
 import { glpyStore } from "../data/glpyStore";
 import { getLocalDateKey } from "../utils/formatters";
 import { useNutritionTargets } from "../hooks/useNutritionTargets";
+import { isDemoModeUser } from "../utils/demoMode";
+import { auth } from "../firebase.js";
 
 // ─── RECEITAS DO PROTOCOLO ─────────────────────────────────────────────────
 const RECEITAS = [
@@ -387,6 +389,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   const globalLock = (() => { try { return JSON.parse(localStorage.getItem('glpy_protocol_global_daily_lock') || 'null'); } catch { return null; } })();
   const bloqueadoPorOutroProtocolo = globalLock?.date === hoje && globalLock?.protocolId !== 'antiRebote';
   const diaJaFeito = diasConcluidos.includes(diaAtual + 1);
+  const isDemoUser = isDemoModeUser(auth.currentUser?.email);
 
   const buildProtocolMissions = (marked: number[]) =>
     dia.missoes.map((m, i) => ({
@@ -450,7 +453,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMissao = (i: number) => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     setMissoesMarcadas(prev => {
       const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
       persistProtocolDay(next, checkinSelecionado, "em_andamento");
@@ -459,13 +462,13 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
   };
 
   const handleSelectCheckin = (option: string) => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
   };
 
   const handleConcluir = () => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     playSound('concluir');
 
     const agora = getLocalDateKey();
@@ -648,6 +651,12 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
               <h2 className="font-bold text-white text-base leading-snug">{dia.titulo}</h2>
             </div>
 
+            {isDemoUser && (
+              <div style={{ background: '#fff7e6', border: '1px solid #ffe5b0', borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 10, color: '#b45309', fontWeight: 700, margin: 0 }}>🎬 Modo demonstração ativo</p>
+              </div>
+            )}
+
             {/* Vídeo */}
             {videoUrl ? (
               <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', minHeight: '180px' }}>
@@ -815,7 +824,7 @@ export default function AntiRebote({ onNavigate }: { onNavigate: (screen: string
                   )
                 )}
               </motion.div>
-            ) : (jaConcluidoHoje || bloqueadoPorOutroProtocolo) ? (
+            ) : (!isDemoUser && (jaConcluidoHoje || bloqueadoPorOutroProtocolo)) ? (
               // Bloqueado até amanhã
               <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
                 {diasConcluidos.length >= 7 ? (

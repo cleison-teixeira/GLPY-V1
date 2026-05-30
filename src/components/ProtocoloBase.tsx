@@ -13,6 +13,8 @@ import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from "../data/glpyEventCata
 import { classifyMission, missionTypeToSignal, syncMissionToStore, detectCravingSignal, getMissionActionSuggestion } from "../data/glpyMissionBridge";
 import { getLocalDateKey } from "../utils/formatters";
 import { useNutritionTargets } from "../hooks/useNutritionTargets";
+import { isDemoModeUser } from "../utils/demoMode";
+import { auth } from "../firebase.js";
 
 
 export interface Receita {
@@ -274,6 +276,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   const globalLock = (() => { try { return JSON.parse(localStorage.getItem('glpy_protocol_global_daily_lock') || 'null'); } catch { return null; } })();
   const bloqueadoPorOutroProtocolo = globalLock?.date === hoje && globalLock?.protocolId !== protocoloId;
   const diaJaFeito = diasConcluidos.includes(diaAtual);
+  const isDemoUser = isDemoModeUser(auth.currentUser?.email);
 
   const buildProtocolMissions = (marked: number[]) =>
     dia.missoes.map((m, i) => ({
@@ -335,7 +338,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   }, [diaAtual, receita?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMissao = (i: number) => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     const isChecking  = !missoesMarcadas.includes(i);
     const missionTitle = dia.missoes[i]?.texto ?? '';
     const missionId   = `${protocoloId}-dia-${dia.n}-missao-${i + 1}`;
@@ -411,7 +414,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const handleSelectCheckin = (option: string) => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     setCheckinSelecionado(option);
     persistProtocolDay(missoesMarcadas, option, "em_andamento");
     // Detecta craving no texto da opção selecionada e emite evento comportamental
@@ -426,7 +429,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
   };
 
   const handleConcluir = () => {
-    if (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo) return;
+    if (!isDemoUser && (jaConcluidoHoje || diaJaFeito || bloqueadoPorOutroProtocolo)) return;
     playSound('concluir');
     const xpDia = dia.xp ?? 30;
     const agora = getLocalDateKey();
@@ -643,6 +646,12 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
               <h2 className="font-bold text-white text-base leading-snug">{dia.titulo}</h2>
             </div>
 
+            {isDemoUser && (
+              <div style={{ background: '#fff7e6', border: '1px solid #ffe5b0', borderRadius: 10, padding: '6px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 10, color: '#b45309', fontWeight: 700, margin: 0 }}>🎬 Modo demonstração ativo</p>
+              </div>
+            )}
+
             {videoUrl ? (
               <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', minHeight: '180px' }}>
                 <video
@@ -824,7 +833,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
                   )}
                 </div>
               </motion.div>
-            ) : (jaConcluidoHoje || bloqueadoPorOutroProtocolo) ? (
+            ) : (!isDemoUser && (jaConcluidoHoje || bloqueadoPorOutroProtocolo)) ? (
               // Bloqueado até amanhã
               <div className="w-full bg-[#F4F6F8] border border-border rounded-2xl py-4 text-center">
                 {diaAtual >= dias.length ? (
