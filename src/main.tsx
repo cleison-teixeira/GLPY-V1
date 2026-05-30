@@ -50,7 +50,10 @@ const PREVIEW_ROUTE_MAP: Record<string, string> = {
   foto:                    '/preview/photo-timeline',
 };
 
-if (path === '/admin') {
+if (import.meta.env.PROD && path.startsWith('/preview')) {
+  // Preview é ambiente de desenvolvimento — não deve ser acessível em produção
+  window.location.replace('/');
+} else if (path === '/admin') {
   // Rota admin completamente isolada — App nunca é montado
   root.render(
     <StrictMode>

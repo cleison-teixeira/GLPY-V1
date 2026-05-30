@@ -220,11 +220,14 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       description: formatMissao(m.sub),
       completed: isCurrentViewedDay ? missoesMarcadas.includes(i) : isDayDone,
     }));
-    let selectedCheckin: string | null = isCurrentViewedDay ? checkinSelecionado : null;
+    let selectedCheckin: string | null = isCurrentViewedDay
+      ? (checkinSelecionado ? formatMissao(checkinSelecionado) : null)
+      : null;
     if (!isCurrentViewedDay && isDayDone) {
       try {
         const last = JSON.parse(localStorage.getItem('glpy_protocol_checkin_last') || 'null');
-        if (last?.protocolId === protocoloId && last?.day === d.n) selectedCheckin = last.checkin || null;
+        if (last?.protocolId === protocoloId && last?.day === d.n)
+          selectedCheckin = last.checkin ? formatMissao(last.checkin) : null;
       } catch {}
     }
     return {
@@ -307,7 +310,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       totalDays: dias.length,
       day: dia.n,
       missions: buildProtocolMissions(marked),
-      selectedCheckins: checkin ? [checkin] : [],
+      selectedCheckins: checkin ? [formatMissao(checkin)] : [],
       recipeOfDay: receita ? {
         id: receita.id,
         emoji: receita.emoji,
@@ -433,7 +436,7 @@ export default function ProtocoloBase({ n, emoji, nome, storageKey, receitas, di
       protocolName: nome,
       day: dia.n,
       date: agora,
-      checkin: checkinSelecionado,
+      checkin: checkinSelecionado ? formatMissao(checkinSelecionado) : null,
     }));
 
     // Persiste missões do próximo dia para a IA responder "amanhã"
