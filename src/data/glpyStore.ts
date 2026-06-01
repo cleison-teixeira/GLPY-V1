@@ -73,6 +73,7 @@ const KEYS = {
   medidasIniciais:              'glpy_medidas_iniciais',
   treatmentStartDate:           'glpy_treatment_start_date',
   applicationWeekday:           'glpy_application_weekday',
+  applicationMonthDay:          'glpy_application_month_day',
 } as const;
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -397,6 +398,16 @@ const treatment = {
   saveApplicationWeekday(v: string | null): void {
     if (v) writeString(KEYS.applicationWeekday, v);
     else   removeKey(KEYS.applicationWeekday);
+  },
+
+  // Dia do mês da aplicação para frequência mensal (1–31)
+  getApplicationMonthDay(): number | null {
+    const v = parseInt(readString(KEYS.applicationMonthDay, ''), 10);
+    return isNaN(v) || v < 1 || v > 31 ? null : v;
+  },
+  saveApplicationMonthDay(v: number | null): void {
+    if (v !== null) writeString(KEYS.applicationMonthDay, String(v));
+    else            removeKey(KEYS.applicationMonthDay);
   },
 
   // Legado — mantido por compatibilidade (não usado externamente)

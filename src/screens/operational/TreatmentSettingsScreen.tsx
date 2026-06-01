@@ -33,8 +33,9 @@ interface TreatmentSettingsScreenProps {
     frequency:           string;
     customFrequencyDays: string;
     dose:                string;
-    treatmentStartDate:  string | null;
-    applicationWeekday:  string | null;
+    treatmentStartDate:   string | null;
+    applicationWeekday:   string | null;
+    applicationMonthDay:  number | null;
   }) => void;
 }
 
@@ -126,10 +127,12 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
     return iso ? isoToDateDisplay(iso) : '';
   });
   const [applicationWeekday,  setApplicationWeekday]  = useState(() => glpyStore.treatment.getApplicationWeekday() || '');
+  const [applicationMonthDay, setApplicationMonthDay] = useState<number | null>(() => glpyStore.treatment.getApplicationMonthDay());
   const [dateError,           setDateError]           = useState('');
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
   const [weekdayModalOpen,    setWeekdayModalOpen]    = useState(false);
+  const [monthDayModalOpen,   setMonthDayModalOpen]   = useState(false);
   const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');
   const [fromInjection]                               = useState(() => new URLSearchParams(window.location.search).get('from') === 'injection');
 
@@ -207,10 +210,17 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
       glpyStore.treatment.saveApplicationWeekday(null);
     }
 
+    // Salvar dia do mês da aplicação (apenas para frequência Mensal)
+    if (selectedFrequency === 'Mensal' && applicationMonthDay !== null) {
+      glpyStore.treatment.saveApplicationMonthDay(applicationMonthDay);
+    } else if (selectedFrequency !== 'Mensal') {
+      glpyStore.treatment.saveApplicationMonthDay(null);
+    }
+
     glpyBlackBox.addEvent({
       type: EVENT_TYPES.TREATMENT_UPDATED, category: CATEGORIES.TREATMENT, domain: DOMAINS.TREATMENT,
       signal: SIGNALS.MEDICATION_UPDATED, screen: 'TreatmentSettingsScreen', source: 'manual',
-      payload: { fieldsChanged: ['medication', 'frequency', 'dose', 'treatmentStartDate', 'applicationWeekday'] },
+      payload: { fieldsChanged: ['medication', 'frequency', 'dose', 'treatmentStartDate', 'applicationWeekday', 'applicationMonthDay'] },
     });
     try {
       const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
@@ -231,8 +241,9 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
           onSave?.({
             medication: selectedMedication, frequency: selectedFrequency,
             customFrequencyDays, dose: doseNorm,
-            treatmentStartDate: isoDate,
-            applicationWeekday: selectedFrequency === 'Semanal' ? applicationWeekday || null : null,
+            treatmentStartDate:  isoDate,
+            applicationWeekday:  selectedFrequency === 'Semanal' ? applicationWeekday || null : null,
+            applicationMonthDay: selectedFrequency === 'Mensal'  ? applicationMonthDay : null,
           });
         }
       }, 900);
@@ -408,7 +419,40 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
             </GLPYCard>
           )}
 
-          {/* ── Card 2c — Data de início do tratamento ────────────────────────── */}
+          {/* ── Card 2c — Dia do mês (apenas Mensal) ────────────────────────────── */}
+          {selectedFrequency === 'Mensal' && (
+            <GLPYCard variant="light">
+              <div style={cardTitleRowStyle}>
+                <div style={cardIconWrap}>
+                  <CalendarDays size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+                </div>
+                <span style={cardTitleStyle}>Dia do mês da aplicação</span>
+              </div>
+              <p style={supportTextStyle}>
+                Qual dia do mês você aplica?
+              </p>
+              <div
+                style={{
+                  ...selectorRowStyle,
+                  ...(applicationMonthDay !== null ? {} : { borderColor: lightColors.border.soft }),
+                }}
+                onClick={() => setMonthDayModalOpen(true)}
+                role="button"
+                aria-haspopup="listbox"
+              >
+                <span style={{
+                  ...selectorValueStyle,
+                  color:      applicationMonthDay !== null ? lightColors.text.navy : lightColors.text.secondary,
+                  fontWeight: applicationMonthDay !== null ? '600' : '400',
+                }}>
+                  {applicationMonthDay !== null ? `Dia ${applicationMonthDay}` : 'Selecionar dia'}
+                </span>
+                <ChevronRight size={18} color={lightColors.text.secondary} strokeWidth={2} />
+              </div>
+            </GLPYCard>
+          )}
+
+          {/* ── Card 2d — Data de início do tratamento ────────────────────────── */}
           <GLPYCard variant="light">
             <div style={cardTitleRowStyle}>
               <div style={cardIconWrap}>
@@ -573,6 +617,15 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
           selected={applicationWeekday}
           onSelect={v => { setApplicationWeekday(v); setWeekdayModalOpen(false); }}
           onClose={() => setWeekdayModalOpen(false)}
+        />
+      )}
+
+      {/* ── Bottom Sheet — Dia do mês ────────────────────────────────────────── */}
+      {monthDayModalOpen && (
+        <MonthDayModal
+          selected={applicationMonthDay}
+          onSelect={d => { setApplicationMonthDay(d); setMonthDayModalOpen(false); }}
+          onClose={() => setMonthDayModalOpen(false)}
         />
       )}
     </>
@@ -811,6 +864,53 @@ function FrequencyModal({ selected, customDays, onSelect, onClose }: FrequencyMo
               Use apenas o intervalo orientado pelo seu profissional de saúde.
             </p>
           </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── MonthDayModal ─────────────────────────────────────────────────────────────
+
+interface MonthDayModalProps {
+  selected: number | null;
+  onSelect: (day: number) => void;
+  onClose:  () => void;
+}
+
+function MonthDayModal({ selected, onSelect, onClose }: MonthDayModalProps) {
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  return (
+    <>
+      <div style={sharedBackdropStyle} onClick={onClose} aria-hidden="true" />
+      <div style={sharedPanelStyle} role="listbox" aria-label="Selecionar dia do mês">
+        <div style={sharedHandleBarStyle} />
+        <div style={sharedSheetHeaderStyle}>
+          <span style={sharedSheetTitleStyle}>Qual dia do mês você aplica?</span>
+        </div>
+        <div style={sharedListStyle}>
+          {days.map(day => (
+            <SheetRow
+              key={day}
+              label={`Dia ${day}`}
+              selected={selected === day}
+              isLast={day === 31}
+              onSelect={() => onSelect(day)}
+            />
+          ))}
+        </div>
+        <div style={{ paddingLeft: padding.screen, paddingRight: padding.screen, paddingBottom: 28, flexShrink: 0 }}>
+          <p style={{
+            fontFamily: fontFamily.primary,
+            fontSize:   12,
+            color:      lightColors.text.secondary,
+            textAlign:  'center',
+            lineHeight: 1.45,
+            opacity:    0.72,
+            paddingTop: gap.small,
+          }}>
+            Use apenas o intervalo orientado pelo seu profissional de saúde.
+          </p>
         </div>
       </div>
     </>

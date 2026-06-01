@@ -17,7 +17,7 @@ import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/u
 import { glpyStore } from '../../data/glpyStore';
 import { glpyBlackBox } from '../../data/glpyBlackBox';
 import { CATEGORIES, DOMAINS, SIGNALS, EVENT_TYPES } from '../../data/glpyEventCatalog';
-import { calculateNextInjection } from '../../utils/treatmentUtils';
+import { calculateNextInjection, calcTreatmentDuration } from '../../utils/treatmentUtils';
 import { getLocalDateKey } from '../../utils/formatters';
 import { lightColors } from '../../theme/colors';
 import { fontFamily, fontSize, fontWeight } from '../../theme/typography';
@@ -63,7 +63,8 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
   const [dose]       = useState(() => glpyStore.treatment.getDose());
   const [frequency]  = useState(() => glpyStore.treatment.getFrequencia());
 
-  const nextInj = calculateNextInjection();
+  const nextInj           = calculateNextInjection();
+  const treatmentDuration = calcTreatmentDuration();
 
   function handleEditConfig(_field: string) {
     if (onNavigate) onNavigate('tratamento');
@@ -307,8 +308,20 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
             <div style={subValueStyle}>
               {nextInj.hasHistory
                 ? `${nextInj.lastDateFormatted} · ${medication}`
-                : 'Tratamento não iniciado'}
+                : (treatmentDuration ?? 'Tratamento não iniciado')}
             </div>
+            {treatmentDuration && (
+              <div style={{
+                fontFamily: fontFamily.primary,
+                fontSize:   10,
+                fontWeight: '600',
+                color:      lightColors.brand.greenDark,
+                marginTop:  4,
+                lineHeight: 1.2,
+              }}>
+                {nextInj.hasHistory ? treatmentDuration : null}
+              </div>
+            )}
           </GLPYCard>
 
         </div>
@@ -352,7 +365,30 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
             ))}
           </div>
 
-          <p style={{ ...configFooterStyle, cursor: 'pointer' }} onClick={() => handleEditConfig('')}>Toque para ajustar seus dados</p>
+          <button
+            onClick={() => handleEditConfig('')}
+            style={{
+              width:           '100%',
+              display:         'flex',
+              alignItems:      'center',
+              justifyContent:  'center',
+              gap:             6,
+              height:          40,
+              marginTop:       gap.small,
+              borderRadius:    radius.secondary,
+              background:      `${lightColors.brand.green}12`,
+              border:          `1.5px solid ${lightColors.brand.green}44`,
+              color:           lightColors.brand.greenDark,
+              fontFamily:      fontFamily.primary,
+              fontSize:        fontSize.small,
+              fontWeight:      fontWeight.h3,
+              cursor:          'pointer',
+              transition:      transition.default,
+            }}
+          >
+            <Settings2 size={13} strokeWidth={2} />
+            Ajustar dados do tratamento
+          </button>
         </GLPYCard>
 
         {/* ── Card 4 — Local da aplicação ───────────────────────────────────── */}

@@ -74,15 +74,15 @@ export function calculateNextInjection(): NextInjectionInfo {
     }
 
     // Resolver data base: última injeção > treatmentStartDate > sem dados
+    const startDateStr        = glpyStore.treatment.getTreatmentStartDate();
     let lastDate: Date | null = null;
     const hasInjectionHistory = !!(lastInjection?.savedAt);
 
     if (hasInjectionHistory) {
       lastDate = new Date(lastInjection.savedAt);
       lastDate.setHours(0, 0, 0, 0);
-    } else {
-      const startDateStr = glpyStore.treatment.getTreatmentStartDate();
-      if (startDateStr) lastDate = parseLocalDate(startDateStr);
+    } else if (startDateStr) {
+      lastDate = parseLocalDate(startDateStr);
     }
 
     if (!lastDate) return defaultInfo;
@@ -98,6 +98,51 @@ export function calculateNextInjection(): NextInjectionInfo {
     else if (diffDaysSinceLast === 1) lastDateText = 'ontem';
     else if (diffDaysSinceLast > 1)   lastDateText = `há ${diffDaysSinceLast} dias`;
     else                              lastDateText = 'hoje';
+
+    // Caso especial: Mensal + applicationMonthDay → próxima ocorrência desse dia do mês
+    if (frequency === 'Mensal') {
+      const monthDay = glpyStore.treatment.getApplicationMonthDay();
+      // Fallback: dia da data de início do tratamento
+      const startDayFallback = startDateStr ? parseInt(startDateStr.split('-')[2], 10) : null;
+      const targetDay = monthDay ?? (startDayFallback && !isNaN(startDayFallback) ? startDayFallback : null);
+
+      if (targetDay && targetDay >= 1 && targetDay <= 31) {
+        const y = today.getFullYear();
+        const m = today.getMonth();
+        const daysInCurrentMonth = new Date(y, m + 1, 0).getDate();
+        const effectiveDayThisMonth = Math.min(targetDay, daysInCurrentMonth);
+        const candidateThisMonth    = new Date(y, m, effectiveDayThisMonth);
+        candidateThisMonth.setHours(0, 0, 0, 0);
+
+        let nextDate: Date;
+        if (candidateThisMonth >= today) {
+          nextDate = candidateThisMonth;
+        } else {
+          const nm = m + 1 > 11 ? 0 : m + 1;
+          const ny = m + 1 > 11 ? y + 1 : y;
+          const daysInNextMonth    = new Date(ny, nm + 1, 0).getDate();
+          const effectiveDayNextMonth = Math.min(targetDay, daysInNextMonth);
+          nextDate = new Date(ny, nm, effectiveDayNextMonth);
+          nextDate.setHours(0, 0, 0, 0);
+        }
+
+        const diffDaysNext = Math.round((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        let nextDateFormatted = formatPortugueseDate(nextDate);
+        let daysRemainingText = '';
+        if (diffDaysNext === 0)      { daysRemainingText = 'Hoje'; nextDateFormatted = 'Hoje'; }
+        else if (diffDaysNext === 1) daysRemainingText = 'Amanhã';
+        else if (diffDaysNext < 0)   daysRemainingText = 'Atrasada';
+        else                         daysRemainingText = `em ${diffDaysNext} dias`;
+
+        return {
+          hasHistory: hasInjectionHistory,
+          nextDateFormatted,
+          daysRemainingText,
+          lastDateFormatted: lastDateText,
+          frequencyDays: 30,
+        };
+      }
+    }
 
     // Caso especial: Semanal + applicationWeekday → próxima ocorrência do dia configurado
     if (frequency === 'Semanal') {
@@ -150,5 +195,37 @@ export function calculateNextInjection(): NextInjectionInfo {
   } catch (error) {
     console.error('[GLPY] Erro ao calcular próxima injeção:', error);
     return defaultInfo;
+  }
+}
+
+/**
+ * Retorna texto motivacional com o tempo em tratamento baseado em treatmentStartDate.
+ * Retorna null se data não estiver configurada ou se ocorrer erro.
+ */
+export function calcTreatmentDuration(): string | null {
+  try {
+    const startDateStr = glpyStore.treatment.getTreatmentStartDate();
+    if (!startDateStr) return null;
+    const startDate = parseLocalDate(startDateStr);
+    if (!startDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return null;
+
+    const d = Math.max(1, diffDays);
+    if (d <= 6) {
+      return `Em tratamento há ${d} ${d === 1 ? 'dia' : 'dias'}`;
+    } else if (d <= 30) {
+      const weeks = Math.floor(d / 7);
+      return `Em tratamento há ${weeks} ${weeks === 1 ? 'semana' : 'semanas'}`;
+    } else {
+      const months = Math.floor(d / 30);
+      return `Em tratamento há ${months} ${months === 1 ? 'mês' : 'meses'}`;
+    }
+  } catch {
+    return null;
   }
 }
