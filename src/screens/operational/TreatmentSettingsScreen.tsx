@@ -33,6 +33,8 @@ interface TreatmentSettingsScreenProps {
     frequency:           string;
     customFrequencyDays: string;
     dose:                string;
+    treatmentStartDate:  string | null;
+    applicationWeekday:  string | null;
   }) => void;
 }
 
@@ -50,6 +52,37 @@ function normalizeDose(raw: string | null): string {
   return n.toFixed(2).replace('.', ',');
 }
 
+// ── Date helpers (mesmo padrão do Onboarding — data de nascimento) ────────────
+
+function maskDate(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function dateDisplayToISO(display: string): string | null {
+  const digits = display.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+}
+
+function isoToDateDisplay(iso: string): string {
+  const parts = iso.split('-');
+  if (parts.length !== 3) return '';
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function isValidCalendarDate(iso: string): boolean {
+  const parts = iso.split('-');
+  if (parts.length !== 3) return false;
+  const y = parseInt(parts[0], 10), m = parseInt(parts[1], 10), d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
 // ── Data ─────────────────────────────────────────────────────────────────────
 // MVP PLACEHOLDER — listas registráveis pelo usuário, sem recomendação clínica.
 
@@ -65,6 +98,20 @@ const FREQUENCY_OPTIONS = [
   'Ainda não defini',
 ] as const;
 
+const WEEKDAY_OPTIONS = [
+  { value: 'monday',    label: 'Segunda-feira' },
+  { value: 'tuesday',   label: 'Terça-feira'   },
+  { value: 'wednesday', label: 'Quarta-feira'  },
+  { value: 'thursday',  label: 'Quinta-feira'  },
+  { value: 'friday',    label: 'Sexta-feira'   },
+  { value: 'saturday',  label: 'Sábado'        },
+  { value: 'sunday',    label: 'Domingo'       },
+] as const;
+
+function weekdayLabel(value: string): string {
+  return WEEKDAY_OPTIONS.find(o => o.value === value)?.label ?? 'Selecionar dia';
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type TreatSaveState = 'idle' | 'saving' | 'saved';
@@ -74,8 +121,15 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   const [selectedFrequency,   setSelectedFrequency]   = useState(() => glpyStore.treatment.getFrequencia());
   const [customFrequencyDays, setCustomFrequencyDays] = useState('7');
   const [dose,                setDose]                = useState(() => normalizeDose(glpyStore.treatment.getDose()) || '2,50');
+  const [startDateDisplay,    setStartDateDisplay]    = useState(() => {
+    const iso = glpyStore.treatment.getTreatmentStartDate();
+    return iso ? isoToDateDisplay(iso) : '';
+  });
+  const [applicationWeekday,  setApplicationWeekday]  = useState(() => glpyStore.treatment.getApplicationWeekday() || '');
+  const [dateError,           setDateError]           = useState('');
   const [medModalOpen,        setMedModalOpen]        = useState(false);
   const [freqModalOpen,       setFreqModalOpen]       = useState(false);
+  const [weekdayModalOpen,    setWeekdayModalOpen]    = useState(false);
   const [saveState,           setSaveState]           = useState<TreatSaveState>('idle');
   const [fromInjection]                               = useState(() => new URLSearchParams(window.location.search).get('from') === 'injection');
 
@@ -108,6 +162,20 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
   function handleSave() {
     if (saveState !== 'idle') return;
 
+    // Validar data de início se preenchida
+    const dateDigits = startDateDisplay.replace(/\D/g, '');
+    if (dateDigits.length > 0 && dateDigits.length < 8) {
+      setDateError('Digite a data completa no formato DD/MM/AAAA.');
+      return;
+    }
+    if (dateDigits.length === 8) {
+      const isoCheck = dateDisplayToISO(startDateDisplay);
+      if (!isoCheck || !isValidCalendarDate(isoCheck)) {
+        setDateError('Data inválida. Verifique o dia e o mês informados.');
+        return;
+      }
+    }
+
     // Normalizar dose antes de qualquer coisa (cobre o caso em que o usuário
     // digitou "5" sem dar blur — garante "5,00" no input e no onSave callback).
     const parsedDose = parseFloat((dose || '').replace(',', '.').replace(/[^0-9.]/g, ''));
@@ -127,10 +195,22 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
     if (!isNaN(parsedDose) && parsedDose > 0) {
       glpyStore.treatment.saveDose(String(parsedDose));
     }
+
+    // Salvar data de início do tratamento
+    const isoDate = dateDigits.length === 8 ? dateDisplayToISO(startDateDisplay) : null;
+    glpyStore.treatment.saveTreatmentStartDate(isoDate);
+
+    // Salvar dia da semana da aplicação (apenas para frequência Semanal)
+    if (selectedFrequency === 'Semanal' && applicationWeekday) {
+      glpyStore.treatment.saveApplicationWeekday(applicationWeekday);
+    } else if (selectedFrequency !== 'Semanal') {
+      glpyStore.treatment.saveApplicationWeekday(null);
+    }
+
     glpyBlackBox.addEvent({
       type: EVENT_TYPES.TREATMENT_UPDATED, category: CATEGORIES.TREATMENT, domain: DOMAINS.TREATMENT,
       signal: SIGNALS.MEDICATION_UPDATED, screen: 'TreatmentSettingsScreen', source: 'manual',
-      payload: { fieldsChanged: ['medication', 'frequency', 'dose'] },
+      payload: { fieldsChanged: ['medication', 'frequency', 'dose', 'treatmentStartDate', 'applicationWeekday'] },
     });
     try {
       const onb = JSON.parse(localStorage.getItem('glpy_onboarding') || '{}');
@@ -148,7 +228,12 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
         if (fromInjection) {
           window.location.href = '/preview/injection';
         } else {
-          onSave?.({ medication: selectedMedication, frequency: selectedFrequency, customFrequencyDays, dose: doseNorm });
+          onSave?.({
+            medication: selectedMedication, frequency: selectedFrequency,
+            customFrequencyDays, dose: doseNorm,
+            treatmentStartDate: isoDate,
+            applicationWeekday: selectedFrequency === 'Semanal' ? applicationWeekday || null : null,
+          });
         }
       }, 900);
     }, 500);
@@ -277,7 +362,7 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
               <span style={cardTitleStyle}>Frequência</span>
             </div>
             <p style={supportTextStyle}>
-              Registre o intervalo entre suas aplicações.
+              Com que frequência você aplica?
             </p>
             <div
               style={selectorRowStyle}
@@ -288,6 +373,110 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
               <span style={selectorValueStyle}>{frequencyDisplayValue}</span>
               <ChevronRight size={18} color={lightColors.text.secondary} strokeWidth={2} />
             </div>
+          </GLPYCard>
+
+          {/* ── Card 2b — Dia da semana (apenas Semanal) ──────────────────────── */}
+          {selectedFrequency === 'Semanal' && (
+            <GLPYCard variant="light">
+              <div style={cardTitleRowStyle}>
+                <div style={cardIconWrap}>
+                  <CalendarDays size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+                </div>
+                <span style={cardTitleStyle}>Dia da semana da aplicação</span>
+              </div>
+              <p style={supportTextStyle}>
+                Qual dia da semana você aplica?
+              </p>
+              <div
+                style={{
+                  ...selectorRowStyle,
+                  ...(applicationWeekday ? {} : { borderColor: lightColors.border.soft }),
+                }}
+                onClick={() => setWeekdayModalOpen(true)}
+                role="button"
+                aria-haspopup="listbox"
+              >
+                <span style={{
+                  ...selectorValueStyle,
+                  color: applicationWeekday ? lightColors.text.navy : lightColors.text.secondary,
+                  fontWeight: applicationWeekday ? '600' : '400',
+                }}>
+                  {applicationWeekday ? weekdayLabel(applicationWeekday) : 'Selecionar dia'}
+                </span>
+                <ChevronRight size={18} color={lightColors.text.secondary} strokeWidth={2} />
+              </div>
+            </GLPYCard>
+          )}
+
+          {/* ── Card 2c — Data de início do tratamento ────────────────────────── */}
+          <GLPYCard variant="light">
+            <div style={cardTitleRowStyle}>
+              <div style={cardIconWrap}>
+                <CalendarDays size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+              </div>
+              <span style={cardTitleStyle}>Início do tratamento</span>
+            </div>
+            <p style={supportTextStyle}>
+              Quando você começou o tratamento?
+            </p>
+            <div style={{
+              height:       56,
+              borderRadius: radius.input,
+              border:       `1.5px solid ${dateError ? '#C05000' : lightColors.border.soft}`,
+              background:   lightColors.background.primary,
+              boxShadow:    lightShadows.soft,
+              paddingLeft:  20,
+              paddingRight: 20,
+              display:      'flex',
+              alignItems:   'center',
+              transition:   transition.default,
+            }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                value={startDateDisplay}
+                onChange={e => { setStartDateDisplay(maskDate(e.target.value)); setDateError(''); }}
+                placeholder="DD/MM/AAAA"
+                maxLength={10}
+                style={{
+                  width:       '100%',
+                  fontFamily:  fontFamily.primary,
+                  fontSize:    fontSize.h3,
+                  fontWeight:  '600',
+                  color:       lightColors.text.navy,
+                  background:  'transparent',
+                  border:      'none',
+                  outline:     'none',
+                  letterSpacing: '0.04em',
+                }}
+              />
+            </div>
+            {dateError ? (
+              <p style={{
+                fontFamily: fontFamily.primary,
+                fontSize:   fontSize.small,
+                color:      '#C05000',
+                marginTop:  gap.small,
+                lineHeight: 1.45,
+              }}>
+                {dateError}
+              </p>
+            ) : (
+              <p style={{
+                fontFamily: fontFamily.primary,
+                fontSize:   fontSize.small,
+                color:      lightColors.text.secondary,
+                marginTop:  gap.small,
+                lineHeight: 1.45,
+                opacity:    0.8,
+              }}>
+                Pode ser uma data aproximada, se você não lembrar exatamente.
+              </p>
+            )}
           </GLPYCard>
 
           {/* ── Card 3 — Dose atual ───────────────────────────────────────────── */}
@@ -375,6 +564,15 @@ export default function TreatmentSettingsScreen({ onBack, onSave, mode = 'edit' 
           customDays={customFrequencyDays}
           onSelect={handleSelectFrequency}
           onClose={() => setFreqModalOpen(false)}
+        />
+      )}
+
+      {/* ── Bottom Sheet — Dia da semana ─────────────────────────────────────── */}
+      {weekdayModalOpen && (
+        <WeekdayModal
+          selected={applicationWeekday}
+          onSelect={v => { setApplicationWeekday(v); setWeekdayModalOpen(false); }}
+          onClose={() => setWeekdayModalOpen(false)}
         />
       )}
     </>
@@ -613,6 +811,52 @@ function FrequencyModal({ selected, customDays, onSelect, onClose }: FrequencyMo
               Use apenas o intervalo orientado pelo seu profissional de saúde.
             </p>
           </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── WeekdayModal ──────────────────────────────────────────────────────────────
+
+interface WeekdayModalProps {
+  selected: string;
+  onSelect: (value: string) => void;
+  onClose:  () => void;
+}
+
+function WeekdayModal({ selected, onSelect, onClose }: WeekdayModalProps) {
+  return (
+    <>
+      <div style={sharedBackdropStyle} onClick={onClose} aria-hidden="true" />
+      <div style={sharedPanelStyle} role="listbox" aria-label="Selecionar dia da semana">
+        <div style={sharedHandleBarStyle} />
+        <div style={sharedSheetHeaderStyle}>
+          <span style={sharedSheetTitleStyle}>Qual dia você aplica?</span>
+        </div>
+        <div style={sharedListStyle}>
+          {WEEKDAY_OPTIONS.map((opt, i) => (
+            <SheetRow
+              key={opt.value}
+              label={opt.label}
+              selected={selected === opt.value}
+              isLast={i === WEEKDAY_OPTIONS.length - 1}
+              onSelect={() => onSelect(opt.value)}
+            />
+          ))}
+        </div>
+        <div style={{ paddingLeft: padding.screen, paddingRight: padding.screen, paddingBottom: 28, flexShrink: 0 }}>
+          <p style={{
+            fontFamily: fontFamily.primary,
+            fontSize:   12,
+            color:      lightColors.text.secondary,
+            textAlign:  'center',
+            lineHeight: 1.45,
+            opacity:    0.72,
+            paddingTop: gap.small,
+          }}>
+            Use apenas o intervalo orientado pelo seu profissional de saúde.
+          </p>
         </div>
       </div>
     </>

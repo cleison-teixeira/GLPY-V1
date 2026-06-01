@@ -71,6 +71,8 @@ const KEYS = {
   resultsSummary:               'glpy_results_summary',
   latestWeight:                 'glpy_latest_weight',
   medidasIniciais:              'glpy_medidas_iniciais',
+  treatmentStartDate:           'glpy_treatment_start_date',
+  applicationWeekday:           'glpy_application_weekday',
 } as const;
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -382,6 +384,20 @@ const treatment = {
   getEfeitosHistorico(): any[]                 { return readJSON<any[]>(KEYS.injectionEffectsHistory, []); },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   saveEfeitosHistorico(v: any[]): void         { writeJSON(KEYS.injectionEffectsHistory, v); },
+
+  // Data de início do tratamento (YYYY-MM-DD) — null se não definido
+  getTreatmentStartDate(): string | null        { const v = readString(KEYS.treatmentStartDate, ''); return v || null; },
+  saveTreatmentStartDate(v: string | null): void {
+    if (v) writeString(KEYS.treatmentStartDate, v);
+    else   removeKey(KEYS.treatmentStartDate);
+  },
+
+  // Dia da semana da aplicação para frequência semanal (monday/tuesday/...)
+  getApplicationWeekday(): string | null        { const v = readString(KEYS.applicationWeekday, ''); return v || null; },
+  saveApplicationWeekday(v: string | null): void {
+    if (v) writeString(KEYS.applicationWeekday, v);
+    else   removeKey(KEYS.applicationWeekday);
+  },
 
   // Legado — mantido por compatibilidade (não usado externamente)
   get(): GlpyTreatment | null                  { return readJSON<GlpyTreatment | null>(KEYS.medicamento, null); },
