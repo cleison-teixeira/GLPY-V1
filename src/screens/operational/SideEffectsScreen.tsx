@@ -8,7 +8,7 @@
 // Futuramente esta tela será conectada ao TreatmentTrackingEngine e à GLPY IA
 // para identificar padrões entre dose, sintomas, hidratação, alimentação e evolução.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { HeartPulse, Gauge, PenLine, Lightbulb, ChevronRight, Check } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
@@ -57,26 +57,12 @@ const INTENSITY_OPTIONS: Intensity[] = ['Leve', 'Moderada', 'Forte'];
 
 export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenProps) {
   const fromInjection = new URLSearchParams(window.location.search).get('from') === 'injection';
-  const resetMode     = new URLSearchParams(window.location.search).get('reset') === 'true';
 
   const [selectedSymptoms,  setSelectedSymptoms]  = useState<string[]>([]);
-  const [selectedIntensity, setSelectedIntensity] = useState<Intensity | ''>(() => resetMode ? '' : 'Leve');
+  const [selectedIntensity, setSelectedIntensity] = useState<Intensity | ''>('Leve');
   const [note,              setNote]              = useState('');
   const [modalOpen,         setModalOpen]         = useState(false);
   const [saved,             setSaved]             = useState(false);
-
-  // Load today's saved record on mount — skip in reset mode (new registration)
-  useEffect(() => {
-    if (resetMode) return;
-    try {
-      const rec = glpyStore.treatment.getEfeitosHoje();
-      if (!rec) return;
-      if (rec.date !== getLocalDateKey()) return; // stale — different day
-      if (Array.isArray(rec.symptoms))       setSelectedSymptoms(rec.symptoms);
-      if (rec.intensity)                     setSelectedIntensity(rec.intensity as Intensity);
-      if (typeof rec.note === 'string')      setNote(rec.note);
-    } catch {}
-  }, []);
 
   const canSave = selectedIntensity !== '';
 
@@ -119,6 +105,11 @@ export default function SideEffectsScreen({ onBack, onSave }: SideEffectsScreenP
 
     // Notify other components that listen to local-storage-change
     window.dispatchEvent(new Event('local-storage-change'));
+
+    // Reset fields so re-opening the screen starts clean
+    setSelectedSymptoms([]);
+    setSelectedIntensity('Leve');
+    setNote('');
 
     // Feedback + navigate back after short delay
     setSaved(true);

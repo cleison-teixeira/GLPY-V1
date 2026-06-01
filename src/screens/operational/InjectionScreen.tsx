@@ -11,7 +11,7 @@
 
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, Settings2, MapPin, Activity, Lightbulb, ChevronRight, History } from 'lucide-react';
 
 import { GLPYScreen, GLPYHeader, GLPYCard, GLPYButton } from '../../components/ui';
 import { glpyStore } from '../../data/glpyStore';
@@ -66,6 +66,11 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
   const nextInj           = calculateNextInjection();
   const treatmentDuration = calcTreatmentDuration();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [injectionHistory, setInjectionHistory] = useState<any[]>(
+    () => glpyStore.treatment.getInjectionHistory().slice(0, 5)
+  );
+
   function handleEditConfig(_field: string) {
     if (onNavigate) onNavigate('tratamento');
     else window.location.href = '/preview/treatment-settings?from=injection';
@@ -102,11 +107,27 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
 
   function doActualSave() {
     setSaveState('saving');
-    glpyStore.treatment.saveUltimaInjecao({ site: selectedSite, savedAt: Date.now() });
+    const now       = Date.now();
+    const todayKey  = getLocalDateKey();
+    glpyStore.treatment.saveUltimaInjecao({ site: selectedSite, savedAt: now });
+
+    // Adicionar ao histórico de aplicações
+    const record = {
+      id:         `inj_${now}`,
+      medication: medication || 'Medicação não definida',
+      dose:       dose       || '',
+      local:      selectedSite,
+      date:       todayKey,
+      timestamp:  new Date().toISOString(),
+      savedAt:    now,
+    };
+    glpyStore.treatment.addInjectionRecord(record);
+    setInjectionHistory(glpyStore.treatment.getInjectionHistory().slice(0, 5));
+
     glpyBlackBox.addEvent({
       type: EVENT_TYPES.INJECTION_LOGGED, category: CATEGORIES.INJECTION, domain: DOMAINS.TREATMENT,
       signal: SIGNALS.INJECTION_LOGGED, screen: 'InjectionScreen', source: 'manual',
-      payload: { date: getLocalDateKey() },
+      payload: { date: todayKey },
     });
     setTimeout(() => {
       setSaveState('saved');
@@ -449,6 +470,86 @@ export default function InjectionScreen({ onBack, onSave, onNavigate }: Injectio
             Registrar sua rotina de aplicação ajuda a GLPY IA a entender padrões entre
             dose, sintomas, hidratação, alimentação e evolução.
           </p>
+        </GLPYCard>
+
+        {/* ── Histórico de aplicações ───────────────────────────────────────── */}
+        <GLPYCard variant="light">
+          <div style={{ ...cardTitleRowStyle, marginBottom: gap.small }}>
+            <div style={cardIconWrap()}>
+              <History size={16} color={lightColors.brand.greenDark} strokeWidth={2} />
+            </div>
+            <span style={{ ...cardTitleStyle, fontSize: fontSize.bodyDefault, color: lightColors.text.navy }}>
+              Histórico de aplicações
+            </span>
+          </div>
+
+          {injectionHistory.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: `${gap.small}px 0` }}>
+              <p style={{
+                fontFamily: fontFamily.primary,
+                fontSize:   fontSize.small,
+                fontWeight: fontWeight.h3,
+                color:      lightColors.text.secondary,
+                marginBottom: 4,
+              }}>
+                Sem aplicações registradas
+              </p>
+              <p style={{
+                fontFamily: fontFamily.primary,
+                fontSize:   11,
+                color:      lightColors.text.secondary,
+                opacity:    0.7,
+                lineHeight: 1.4,
+              }}>
+                Quando você registrar uma aplicação, ela aparecerá aqui.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {injectionHistory.map((entry: any, i: number) => {
+                const med       = entry.medication || entry.medicamento || 'Medicação não definida';
+                const rawDose   = entry.dose || '';
+                const clean     = rawDose.replace(/\s*mg\s*/gi, '').trim().replace(',', '.');
+                const doseNum   = parseFloat(clean);
+                const doseLabel = !isNaN(doseNum) && doseNum > 0
+                  ? `Dose ${doseNum.toFixed(1).replace('.', ',')} mg`
+                  : 'Dose não definida';
+                const dateStr   = entry.date || '';
+                const dateParts = dateStr.split('-');
+                const dateFmt   = dateParts.length === 3
+                  ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+                  : dateStr || '—';
+                const isLast = i === injectionHistory.length - 1;
+
+                return (
+                  <div key={entry.id ?? i} style={{
+                    paddingTop:    12,
+                    paddingBottom: 12,
+                    borderBottom:  isLast ? 'none' : `1px solid ${lightColors.border.soft}`,
+                  }}>
+                    <p style={{
+                      fontFamily: fontFamily.primary,
+                      fontSize:   fontSize.small,
+                      fontWeight: fontWeight.h3,
+                      color:      lightColors.text.navy,
+                      lineHeight: 1.3,
+                      marginBottom: 2,
+                    }}>
+                      {med}
+                    </p>
+                    <p style={{
+                      fontFamily: fontFamily.primary,
+                      fontSize:   11,
+                      color:      lightColors.text.secondary,
+                      lineHeight: 1.3,
+                    }}>
+                      {doseLabel} · {dateFmt}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </GLPYCard>
 
         {/* ── CTA ──────────────────────────────────────────────────────────── */}

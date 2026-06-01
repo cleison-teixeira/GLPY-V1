@@ -63,6 +63,7 @@ const KEYS = {
   ultimaAplicacao:              'glpy_ultima_aplicacao',
   injectionEffectsToday:        'glpy_injection_effects_today',
   injectionEffectsHistory:      'glpy_injection_effects_history',
+  injectionHistory:             'glpy_injection_history',
   xp:                           'glpy_xp',
   streak:                       'glpy_streak',
   nivel:                        'glpy_nivel',
@@ -408,6 +409,17 @@ const treatment = {
   saveApplicationMonthDay(v: number | null): void {
     if (v !== null) writeString(KEYS.applicationMonthDay, String(v));
     else            removeKey(KEYS.applicationMonthDay);
+  },
+
+  // Histórico de aplicações (compatível com glpy_injection_history da IA)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getInjectionHistory(): any[]                 { return readJSON<any[]>(KEYS.injectionHistory, []); },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addInjectionRecord(record: { id: string; medication: string; dose: string; local: string; date: string; timestamp: string; savedAt: number }): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const history = readJSON<any[]>(KEYS.injectionHistory, []);
+    if (history.some((e: any) => e.id === record.id)) return; // deduplicação
+    writeJSON(KEYS.injectionHistory, [record, ...history].slice(0, 50));
   },
 
   // Legado — mantido por compatibilidade (não usado externamente)
