@@ -103,7 +103,7 @@ export const mockHomeData = {
     totalDays: 7,
     percentage: 14
   },
-  social: "128.450 kg eliminados sem rebote 🔥"
+  social: ""
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1976,12 +1976,18 @@ export default function HomePremiumV2({ onNavigate }: { onNavigate?: (screen: st
               </div>
             </div>
 
-            {/* CARD SOCIAL TRAFFIC BANNER */}
+            {/* CARD EVOLUÇÃO PESSOAL */}
               <div className="bg-[#FAFCFB] rounded-2xl p-3.5 border border-dashed border-[#00C27A]/30 flex items-center select-none">
-                <div className="flex items-center gap-2">
-                  <span className="text-base text-[#00C27A]">🌍</span>
+                <div className="flex flex-col">
                   <span className="text-xs font-extrabold text-[#0A1628] tracking-tight">
-                    {mockHomeData.social}
+                    {(weightStart > 0 && weightCurrent > 0 && lostKg > 0)
+                      ? `🔥 Você já eliminou ${lostKg.toFixed(1).replace('.', ',')} kg`
+                      : '🔥 Sua jornada GLPY começou'}
+                  </span>
+                  <span className="text-[10px] text-[#00C27A] font-semibold mt-0.5">
+                    {(weightStart > 0 && weightCurrent > 0 && lostKg > 0)
+                      ? 'Continue protegendo sua evolução'
+                      : 'Protegendo sua evolução um dia por vez'}
                   </span>
                 </div>
               </div>
