@@ -61,7 +61,7 @@ function isPlaceholderEmail(email: string | null): boolean {
 
 // ── Suporte WhatsApp ──────────────────────────────────────────────────────────
 
-const SUPORTE_WHATSAPP = '5548988371216';
+const SUPORTE_WHATSAPP = '5548991410761';
 
 function suporteUrl(emailHint?: string | null): string {
   const msg = `Olá, acabei de comprar o GLPY e preciso de ajuda para liberar meu acesso. Meu e-mail de compra é: ${emailHint ?? ''}`;
@@ -272,7 +272,11 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   }
 
   // ── 6. Sair e entrar com o e-mail da compra ───────────────────────────────
+  // Sprint 17B.40: limpa cache de sessão/plano para não herdar conta anterior
   async function handleSairETrocar() {
+    localStorage.removeItem('glpy_email');
+    localStorage.removeItem('glpy_nome');
+    // App.tsx onAuthStateChanged limpa glpy_user, glpy_plano, glpy_access_control
     await signOut(auth);
     setLoginStep('inicial');
     setSenha('');
@@ -535,6 +539,14 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         >
           Continuar com minha conta atual
         </button>
+        <a
+          href={suporteUrl(emailEfetivo)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-xs text-text-muted hover:text-primary mt-1 transition"
+        >
+          Precisa de ajuda? Falar com suporte no WhatsApp
+        </a>
       </>,
     );
   }
@@ -573,11 +585,15 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
         {/* Área dinâmica por loginStep */}
         <AnimatePresence mode="wait">
 
-          {/* ── Inicial: criar / entrar / Google ────────────────────────── */}
+          {/* ── Inicial: criar senha — Google removido (Sprint 17B.40) ─── */}
           {loginStep === 'inicial' && (
             <motion.div key="inicial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
               <p className="text-xs text-text-muted text-center leading-relaxed">
-                Para proteger sua conta, crie ou redefina sua senha de acesso.
+                Seu plano <strong className="text-[#0A1628]">{planoNome}</strong> está liberado para este e-mail.
+                Agora crie sua senha do GLPY para acessar o app.
+              </p>
+              <p className="text-[11px] text-text-muted text-center leading-relaxed bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
+                O acesso ao GLPY é separado da plataforma de pagamento. Use o mesmo e-mail da compra.
               </p>
 
               {erroAuth && (
@@ -586,25 +602,6 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                   <p className="text-xs leading-relaxed">{erroAuth}</p>
                 </div>
               )}
-
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-border rounded-2xl font-semibold text-sm text-[#0A1628] hover:border-primary/40 hover:bg-primary/5 transition"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Entrar com Google
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="flex-grow h-px bg-border" />
-                <span className="text-xs text-text-muted font-medium">ou com senha</span>
-                <div className="flex-grow h-px bg-border" />
-              </div>
 
               <button
                 onClick={handleCriarSenha}
@@ -619,9 +616,18 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
                   onClick={() => { setErroAuth(null); setLoginStep('form_senha'); }}
                   className="text-sm text-primary font-bold hover:underline transition"
                 >
-                  Entrar no GLPY
+                  Entrar com e-mail e senha
                 </button>
               </div>
+
+              <a
+                href={suporteUrl(emailEfetivo)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center text-xs text-text-muted hover:text-primary pt-1 transition"
+              >
+                Precisa de ajuda? Falar com suporte no WhatsApp
+              </a>
             </motion.div>
           )}
 

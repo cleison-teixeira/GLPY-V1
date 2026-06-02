@@ -1,9 +1,12 @@
 /**
  * GLPY — Tela de Planos (HeroSpark)
  * Sprint 17B.5.4
+ * Sprint 17B.40 — bloco de conta atual + logout para usuário sem plano
  */
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase.js';
 import { hasActiveAccess } from '../core/accessControl';
 import { trackViewContent } from '../services/metaPixel';
 
@@ -34,9 +37,28 @@ const OUTROS_PLANOS = [
 ];
 
 export default function Planos({ onNavigate }: PlanosProps) {
+  const [emailAtual, setEmailAtual] = useState<string | null>(null);
+  const [saindo, setSaindo] = useState(false);
+
   useEffect(() => {
     trackViewContent({ content_name: 'Planos GLPY', content_category: 'subscription' });
+    const email = auth.currentUser?.email || localStorage.getItem('glpy_email') || null;
+    setEmailAtual(email);
   }, []);
+
+  async function handleSairTrocarConta() {
+    setSaindo(true);
+    try {
+      // Limpa cache de sessão/plano antes do signOut para não herdar estado antigo
+      localStorage.removeItem('glpy_email');
+      localStorage.removeItem('glpy_nome');
+      // App.tsx onAuthStateChanged limpa glpy_user, glpy_plano, glpy_access_control
+      await signOut(auth);
+      // Após signOut, onAuthStateChanged redireciona para <Login /> automaticamente
+    } catch {
+      setSaindo(false);
+    }
+  }
 
   return (
     <div style={{
@@ -95,6 +117,63 @@ export default function Planos({ onNavigate }: PlanosProps) {
           <strong style={{ color: '#0A1628' }}>O GLPY está com você os outros 29 dias.</strong>
         </div>
       </div>
+
+      {/* Sprint 17B.40 — bloco de conta atual para usuário sem plano ativo */}
+      {emailAtual && !hasActiveAccess() && (
+        <div style={{ padding: '12px 16px 0' }}>
+          <div style={{
+            background: '#FFF8ED',
+            border: '1.5px solid #FFE4A0',
+            borderRadius: 14,
+            padding: '12px 14px',
+          }}>
+            <div style={{ fontSize: 11, color: '#7A9AAF', marginBottom: 3 }}>
+              Conta atual
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1628', wordBreak: 'break-all', marginBottom: 5 }}>
+              {emailAtual}
+            </div>
+            <div style={{ fontSize: 12, color: '#92500A', lineHeight: 1.5, marginBottom: 10 }}>
+              Este e-mail ainda não possui assinatura ativa no GLPY. Se você já comprou, entre com o e-mail usado na compra.
+            </div>
+            <button
+              onClick={handleSairTrocarConta}
+              disabled={saindo}
+              style={{
+                width: '100%',
+                background: '#0A1628',
+                color: '#fff',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '10px',
+                borderRadius: 10,
+                border: 'none',
+                cursor: saindo ? 'not-allowed' : 'pointer',
+                opacity: saindo ? 0.7 : 1,
+              }}
+            >
+              {saindo ? 'Saindo...' : 'Sair e entrar com outro e-mail'}
+            </button>
+            <a
+              href={`https://wa.me/5548991410761?text=${encodeURIComponent(`Olá, comprei o GLPY mas estou vendo a tela de planos. Pode me ajudar? Meu e-mail é: ${emailAtual ?? ''}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                fontSize: 11,
+                color: '#7A9AAF',
+                marginTop: 8,
+                textDecoration: 'underline',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Comprou e não conseguiu acessar? Suporte no WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Plano Fundador — ativo */}
       <div style={{ padding: '12px 16px 0' }}>

@@ -126,10 +126,13 @@ export default function App() {
         }
       } else {
         // Sprint 17B.9 — limpa todos os dados de sessão ao deslogar
+        // Sprint 17B.40 — inclui glpy_email e glpy_nome para evitar cache entre contas
         // Impede que plano de sessão anterior libere acesso para novo usuário
         localStorage.removeItem('glpy_user');
         localStorage.removeItem('glpy_plano');
         localStorage.removeItem('glpy_access_control');
+        localStorage.removeItem('glpy_email');
+        localStorage.removeItem('glpy_nome');
         // Sem usuário: App renderiza <Login /> (veja renderização abaixo)
         // Não precisa setar telaAtual aqui — o guard `if (!user)` cuida disso
       }
