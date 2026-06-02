@@ -9,6 +9,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { hasActiveAccess } from '../core/accessControl';
 import { trackViewContent } from '../services/metaPixel';
+import { buildSupportWhatsappUrl } from '../utils/supportWhatsapp';
 
 interface PlanosProps {
   onNavigate: (tela: string) => void;
@@ -156,7 +157,7 @@ export default function Planos({ onNavigate }: PlanosProps) {
               {saindo ? 'Saindo...' : 'Sair e entrar com outro e-mail'}
             </button>
             <a
-              href={`https://wa.me/5548991410761?text=${encodeURIComponent(`Olá, comprei o GLPY mas estou vendo a tela de planos. Pode me ajudar? Meu e-mail é: ${emailAtual ?? ''}`)}`}
+              href={buildSupportWhatsappUrl({ email: emailAtual, context: 'paywall' })}
               target="_blank"
               rel="noopener noreferrer"
               style={{

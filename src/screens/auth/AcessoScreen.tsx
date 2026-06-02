@@ -24,6 +24,7 @@ import { syncFromFirestore } from '../../services/firestore';
 import glpyLogoDark from '@/assets/logos/logo-dark.png';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Clock, HelpCircle } from 'lucide-react';
 import { trackPurchase } from '../../services/metaPixel';
+import { buildSupportWhatsappUrl } from '../../utils/supportWhatsapp';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -57,15 +58,6 @@ function parseParams(): { email: string | null; token: string | null } {
 function isPlaceholderEmail(email: string | null): boolean {
   if (!email || !email.trim()) return false;
   return email.includes('{{') || email.includes('}}');
-}
-
-// ── Suporte WhatsApp ──────────────────────────────────────────────────────────
-
-const SUPORTE_WHATSAPP = '5548991410761';
-
-function suporteUrl(emailHint?: string | null): string {
-  const msg = `Olá, acabei de comprar o GLPY e preciso de ajuda para liberar meu acesso. Meu e-mail de compra é: ${emailHint ?? ''}`;
-  return `https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent(msg)}`;
 }
 
 // ── Planos — label amigável ────────────────────────────────────────────────────
@@ -377,7 +369,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           </p>
         </div>
         <a
-          href={suporteUrl(emailEfetivo)}
+          href={buildSupportWhatsappUrl({ email: emailEfetivo })}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full block text-center bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md"
@@ -429,7 +421,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           </button>
         </form>
         <a
-          href={suporteUrl()}
+          href={buildSupportWhatsappUrl()}
           target="_blank"
           rel="noopener noreferrer"
           className="block text-center text-xs text-text-muted hover:text-primary mt-4 transition"
@@ -456,7 +448,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           )}
         </div>
         <a
-          href={suporteUrl(emailEfetivo)}
+          href={buildSupportWhatsappUrl({ email: emailEfetivo })}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full block text-center bg-primary text-white font-bold py-3.5 rounded-2xl shadow-md"
@@ -540,7 +532,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           Continuar com minha conta atual
         </button>
         <a
-          href={suporteUrl(emailEfetivo)}
+          href={buildSupportWhatsappUrl({ email: emailEfetivo })}
           target="_blank"
           rel="noopener noreferrer"
           className="block text-center text-xs text-text-muted hover:text-primary mt-1 transition"
@@ -621,7 +613,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
               </div>
 
               <a
-                href={suporteUrl(emailEfetivo)}
+                href={buildSupportWhatsappUrl({ email: emailEfetivo })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center text-xs text-text-muted hover:text-primary pt-1 transition"
