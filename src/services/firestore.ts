@@ -282,6 +282,92 @@ export async function carregarContextoIA(): Promise<ContextoIA | null> {
 }
 
 // ─────────────────────────────────────────────
+// Sprint 17B.41 — Fallback por e-mail (UID mismatch)
+// Cobre o caso onde o webhook cria users/{webhook_uid} mas o cliente
+// autentica com um UID diferente (ex: reset de senha em conta antiga).
+// ─────────────────────────────────────────────
+const EMAIL_FALLBACK_PAID_PLANS = new Set(["fundador", "essencial", "pro"]);
+
+async function resolveAccessByEmail(currentUid: string): Promise<boolean> {
+  const email = auth.currentUser?.email?.toLowerCase().trim();
+  if (!email) return false;
+
+  try {
+    const snap = await getDocs(
+      query(collection(db, "users"), where("email", "==", email), limit(5))
+    );
+    if (snap.empty) return false;
+
+    // Procura documento com plano ativo em UID diferente do atual
+    const found = snap.docs
+      .filter(d => d.id !== currentUid)
+      .map(d => d.data() as Record<string, unknown>)
+      .find(d => {
+        const planoObj = d.plano as Record<string, unknown> | undefined;
+        if (
+          planoObj?.status === "active" &&
+          EMAIL_FALLBACK_PAID_PLANS.has(String(planoObj.tipo ?? ""))
+        ) return true;
+        const hs = d.herospark as Record<string, unknown> | undefined;
+        return hs?.active === true && EMAIL_FALLBACK_PAID_PLANS.has(String(hs.plan ?? ""));
+      });
+
+    if (!found) {
+      console.info("[glpy] email_fallback: nenhum plano ativo encontrado por e-mail");
+      return false;
+    }
+
+    const planoObj = (found.plano as Record<string, unknown>) ?? {};
+    const hsObj   = (found.herospark as Record<string, unknown>) ?? {};
+    const planoTipo = String(planoObj.tipo ?? hsObj.plan ?? "").trim().toLowerCase();
+
+    if (!EMAIL_FALLBACK_PAID_PLANS.has(planoTipo)) return false;
+
+    console.info("[glpy] email_fallback: plano ativo em outro UID → espelhando para UID atual. Plano:", planoTipo);
+
+    // Monta payload de espelhamento — apenas campos de acesso/plano
+    const mirror: Record<string, unknown> = {
+      email: auth.currentUser?.email,
+      plano: {
+        tipo: planoTipo,
+        status: "active",
+        origem: String(planoObj.origem ?? "herospark_email_fallback"),
+        dataExpiracao: planoObj.dataExpiracao ?? null,
+      },
+      herospark: {
+        active: true,
+        plan: planoTipo,
+        status: "active",
+        customerEmail: auth.currentUser?.email,
+        source: "email_fallback",
+      },
+      accessResolvedBy: "email_fallback",
+      accessResolvedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    if (planoObj.dataAtivacao != null) {
+      (mirror.plano as Record<string, unknown>).dataAtivacao = planoObj.dataAtivacao;
+    }
+    if (hsObj.offerId != null) {
+      (mirror.herospark as Record<string, unknown>).offerId = String(hsObj.offerId);
+    }
+    if (hsObj.transactionId != null) {
+      (mirror.herospark as Record<string, unknown>).transactionId = String(hsObj.transactionId);
+    }
+
+    // merge: true — não apaga onboarding, checkins, protocolos, fotos etc.
+    setDoc(doc(db, "users", currentUid), mirror, { merge: true }).catch(() => {});
+
+    localStorage.setItem("glpy_plano", planoTipo);
+    console.info("[glpy] email_fallback: acesso liberado. Plano:", planoTipo);
+    return true;
+  } catch (err) {
+    console.warn("[glpy] email_fallback: erro silenciado:", err);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────
 // Popula localStorage a partir do Firestore
 // ─────────────────────────────────────────────
 export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> {
@@ -293,6 +379,16 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     // Sprint 17B.9 — limpa plano herdado de sessão anterior para impedir acesso indevido
     localStorage.removeItem('glpy_plano');
     localStorage.removeItem('glpy_access_control');
+    // Sprint 17B.41 — ADM/QA sem documento Firestore: garante acesso sem cair no Paywall
+    if (isAdmQA()) {
+      localStorage.setItem("glpy_plano", "top");
+      return { primeiroAcesso: false };
+    }
+    // Sprint 17B.41 — UID mismatch: busca plano por e-mail em outros documentos users
+    if (id) {
+      const emailResolved = await resolveAccessByEmail(id);
+      if (emailResolved) return { primeiroAcesso: true };
+    }
     return { primeiroAcesso: true };
   }
 
@@ -383,6 +479,11 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
         }
       }
     } catch { /* fallback silencioso — não bloqueia o fluxo */ }
+  }
+
+  // Sprint 17B.41 — UID mismatch: documento existe mas sem plano ativo → busca por e-mail
+  if (!localStorage.getItem("glpy_plano") && id) {
+    await resolveAccessByEmail(id);
   }
 
   // ADM/QA — força plano "top" para emails internos, independente do que Firestore retornou

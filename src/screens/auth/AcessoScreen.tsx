@@ -10,7 +10,7 @@
 //   4. Logar usuário com e-mail travado — nunca libera plano baseado apenas na URL
 //   5. Sprint 17B.11: detecta {{buyer_email}} não substituído e pede e-mail manualmente
 
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   signInWithEmailAndPassword,
@@ -141,6 +141,11 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   const [checkStatus, setCheckStatus] = useState<CheckStatus>('loading');
   const [planoNome,   setPlanoNome]   = useState<string | null>(null);
   const [loginStep,   setLoginStep]   = useState<LoginStep>('inicial');
+
+  // Sprint 17B.41 — anti-race: polling automático quando pagamento ainda não chegou
+  const MAX_POLLS = 10; // 10 × 3s = 30s
+  const pollingAttemptsRef = useRef(0);
+  const [pollingExhausted, setPollingExhausted] = useState(false);
   const [senha,       setSenha]       = useState('');
   const [verSenha,    setVerSenha]    = useState(false);
   const [erroAuth,    setErroAuth]    = useState<string | null>(null);
@@ -160,6 +165,20 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     }
     verificarPlano();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sprint 17B.41 — polling automático: retenta a cada 3s por até 30s quando pagamento ainda não chegou
+  useEffect(() => {
+    if (checkStatus !== 'nao_encontrado') return;
+    if (pollingAttemptsRef.current >= MAX_POLLS) {
+      setPollingExhausted(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      pollingAttemptsRef.current += 1;
+      verificarPlano();
+    }, 3_000);
+    return () => clearTimeout(timer);
+  }, [checkStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 2. Verificar plano via endpoint server-side (com timeout 10s) ──────────
   async function verificarPlano(emailOverride?: string) {
@@ -314,6 +333,8 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
       return;
     }
     setErroAuth(null);
+    pollingAttemptsRef.current = 0;
+    setPollingExhausted(false);
     setEmailEfetivo(trimmed);
     await verificarPlano(trimmed);
   }
@@ -433,6 +454,20 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
   }
 
   if (checkStatus === 'nao_encontrado') {
+    // Polling ativo: spinner enquanto aguarda webhook processar (até 30s)
+    if (!pollingExhausted) {
+      return (
+        <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center gap-5">
+          {renderLogo()}
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-white/70 text-sm font-medium text-center max-w-[260px] leading-relaxed">
+            Verificando seu pagamento...<br />
+            <span className="text-white/40 text-xs">Isso pode levar alguns segundos após o Pix ser confirmado.</span>
+          </p>
+        </div>
+      );
+    }
+    // Esgotado (30s sem encontrar): exibe suporte
     return renderCard(
       <>
         <div className="flex flex-col items-center gap-3 mb-6">
@@ -456,7 +491,13 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           Falar com suporte
         </a>
         <button
-          onClick={() => { setEmailManual(''); setErroAuth(null); setCheckStatus('email_ausente'); }}
+          onClick={() => {
+            pollingAttemptsRef.current = 0;
+            setPollingExhausted(false);
+            setEmailManual('');
+            setErroAuth(null);
+            setCheckStatus('email_ausente');
+          }}
           className="w-full text-center text-xs text-text-muted hover:text-primary py-2 mt-2 transition"
         >
           Tentar com outro e-mail
