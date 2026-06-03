@@ -17,6 +17,13 @@ export default defineConfig(({mode}) => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
+      proxy: {
+        '/api': {
+          target: 'https://glpy.com.br',
+          changeOrigin: true,
+          secure: true,
+        },
+      },
     },
   };
 });

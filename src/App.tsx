@@ -109,18 +109,19 @@ export default function App() {
         try {
           const { primeiroAcesso } = await syncFromFirestore();
           // Decisão centralizada — routeUser é a única fonte de verdade
-          setTelaAtual(routeUser(hasActiveAccess(), primeiroAcesso));
-        } catch {
-          // Sync falhou (rede/Firestore) — fallback conservador:
-          // Sprint 17B.5.6 fix: nunca enviar para dashboard sem plano verificado.
-          // Se temos acesso em cache (glpy_plano local), usamos; caso contrário → planos.
+          const hasPlan = hasActiveAccess();
+          console.info("[glpy] App: syncFromFirestore ok | hasPlan=", hasPlan, "| primeiroAcesso=", primeiroAcesso, "| rota=", routeUser(hasPlan, primeiroAcesso));
+          setTelaAtual(routeUser(hasPlan, primeiroAcesso));
+        } catch (err) {
+          // Sprint 17B.41B: syncFromFirestore NÃO deveria chegar aqui — loadUserData já tem try-catch.
+          // Se chegou, é erro inesperado. Log para diagnóstico.
+          console.error("[glpy] App: syncFromFirestore() lançou exceção inesperada:", err);
           const hasCachedPlan = hasActiveAccess();
           const onboardingDone = localStorage.getItem('glpy_onboarding') !== null;
+          console.warn("[glpy] App: fallback catch | hasCachedPlan=", hasCachedPlan);
           if (hasCachedPlan) {
-            // Plano em cache → deixar passar (pode ser usuário com plano e sem internet)
             setTelaAtual(onboardingDone ? 'dashboard' : 'onboarding');
           } else {
-            // Sem plano em cache → gate conservador → planos
             setTelaAtual('planos');
           }
         }

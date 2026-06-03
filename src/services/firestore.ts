@@ -282,89 +282,178 @@ export async function carregarContextoIA(): Promise<ContextoIA | null> {
 }
 
 // ─────────────────────────────────────────────
-// Sprint 17B.41 — Fallback por e-mail (UID mismatch)
-// Cobre o caso onde o webhook cria users/{webhook_uid} mas o cliente
-// autentica com um UID diferente (ex: reset de senha em conta antiga).
+// Sprint 17B.41B — Fallback robusto por e-mail (UID mismatch + regras Firestore)
+// Estratégia em 2 etapas:
+//   1. Collection query cliente (pode falhar por security rules)
+//   2. /api/acesso/check server-side (bypassa regras, usa Firebase Admin SDK)
 // ─────────────────────────────────────────────
+
 const EMAIL_FALLBACK_PAID_PLANS = new Set(["fundador", "essencial", "pro"]);
 
-async function resolveAccessByEmail(currentUid: string): Promise<boolean> {
-  const email = auth.currentUser?.email?.toLowerCase().trim();
-  if (!email) return false;
+// Verifica se o plano cacheado no localStorage é realmente válido para acesso
+// (evita que "starter" ou outros planos inválidos bloqueiem o fallback)
+function hasCachedValidPlan(): boolean {
+  const raw = localStorage.getItem("glpy_plano");
+  if (!raw || !raw.trim()) return false;
+  const p = raw.trim().toLowerCase();
+  return ["fundador","essencial","pro","top","admin","betatester","plus","vitalicio","founder","premium"].includes(p);
+}
 
+// Campos seguros para backfill automático em UID mismatch.
+// xp, streak, protocoloAtivo excluídos: sem verificação de target e risco de inconsistência
+// de subcoleção. Migração desses campos fica para Sprint 17B.42 Guardião de Dados.
+type ProfileBackfill = {
+  nome?: string;
+  onboarding?: unknown;
+  primeiroAcesso?: boolean;
+};
+
+// Espelha campos de plano/acesso para users/{currentUid} com merge.
+// merge:true protege campos NÃO incluídos no write; campos incluídos SÃO sobrescritos.
+// Por isso o backfill inclui apenas campos seguros (nome, onboarding, primeiroAcesso).
+function mirrorPlanToUid(
+  currentUid: string,
+  email: string,
+  planoTipo: string,
+  origem: string,
+  extra?: Record<string, unknown>,
+  profileData?: ProfileBackfill
+): void {
+  const profileFields: Record<string, unknown> = {};
+  if (profileData?.nome)               profileFields.nome = profileData.nome;
+  if (profileData?.onboarding != null)  profileFields.onboarding = profileData.onboarding;
+  // primeiroAcesso: copia false somente quando o usuário já concluiu o onboarding no doc fonte.
+  // Nunca copia true — não há risco de mandar usuário para onboarding sem necessidade.
+  if (profileData?.primeiroAcesso === false) profileFields.primeiroAcesso = false;
+
+  setDoc(doc(db, "users", currentUid), {
+    email,
+    emailLower: email,
+    plano: { tipo: planoTipo, status: "active", origem, dataExpiracao: null },
+    herospark: {
+      active: true, plan: planoTipo, status: "active",
+      customerEmail: email, source: origem,
+      ...(extra ?? {}),
+    },
+    ...profileFields,
+    accessResolvedBy: origem,
+    accessResolvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true }).catch(e => console.warn("[glpy] mirror write failed:", e));
+
+  // Popula localStorage imediatamente para a sessão atual (apenas campos copiados)
+  if (profileData?.nome)               localStorage.setItem("glpy_nome", profileData.nome);
+  if (profileData?.onboarding != null)  localStorage.setItem("glpy_onboarding", JSON.stringify(profileData.onboarding));
+
+  localStorage.setItem("glpy_plano", planoTipo);
+  console.info("[glpy] fallback: glpy_plano →", planoTipo, "| origem:", origem, "| profileBackfill:", Object.keys(profileFields));
+}
+
+// Etapa 1: collection query client SDK (pode ser bloqueado por security rules)
+async function tryFirestoreEmailFallback(
+  currentUid: string,
+  email: string
+): Promise<{ found: boolean; primeiroAcesso: boolean }> {
+  console.info("[glpy] fallback [1/2]: query Firestore users where email ==", email);
   try {
     const snap = await getDocs(
       query(collection(db, "users"), where("email", "==", email), limit(5))
     );
-    if (snap.empty) return false;
+    console.info("[glpy] fallback [1/2]: docs encontrados:", snap.size);
 
-    // Procura documento com plano ativo em UID diferente do atual
     const found = snap.docs
-      .filter(d => d.id !== currentUid)
-      .map(d => d.data() as Record<string, unknown>)
+      .filter(d => { const keep = d.id !== currentUid; if (!keep) console.info("[glpy] fallback [1/2]: ignorando próprio UID"); return keep; })
+      .map(d => ({ _id: d.id, ...(d.data() as Record<string, unknown>) }))
       .find(d => {
-        const planoObj = d.plano as Record<string, unknown> | undefined;
-        if (
-          planoObj?.status === "active" &&
-          EMAIL_FALLBACK_PAID_PLANS.has(String(planoObj.tipo ?? ""))
-        ) return true;
+        const p = d.plano as Record<string, unknown> | undefined;
         const hs = d.herospark as Record<string, unknown> | undefined;
-        return hs?.active === true && EMAIL_FALLBACK_PAID_PLANS.has(String(hs.plan ?? ""));
+        const validA = p?.status === "active" && EMAIL_FALLBACK_PAID_PLANS.has(String(p.tipo ?? ""));
+        const validB = hs?.active === true && EMAIL_FALLBACK_PAID_PLANS.has(String(hs.plan ?? ""));
+        console.info("[glpy] fallback [1/2]: UID", (d as {_id:string})._id, "| plano.tipo:", p?.tipo, "plano.status:", p?.status, "| herospark.active:", hs?.active, "| elegível:", validA || validB);
+        return validA || validB;
       });
 
-    if (!found) {
-      console.info("[glpy] email_fallback: nenhum plano ativo encontrado por e-mail");
-      return false;
-    }
+    if (!found) { console.info("[glpy] fallback [1/2]: nenhum doc elegível em outro UID"); return { found: false, primeiroAcesso: true }; }
 
     const planoObj = (found.plano as Record<string, unknown>) ?? {};
-    const hsObj   = (found.herospark as Record<string, unknown>) ?? {};
-    const planoTipo = String(planoObj.tipo ?? hsObj.plan ?? "").trim().toLowerCase();
+    const hsObj    = (found.herospark as Record<string, unknown>) ?? {};
+    const tipo = String(planoObj.tipo ?? hsObj.plan ?? "").trim().toLowerCase();
+    if (!EMAIL_FALLBACK_PAID_PLANS.has(tipo)) return { found: false, primeiroAcesso: true };
 
-    if (!EMAIL_FALLBACK_PAID_PLANS.has(planoTipo)) return false;
-
-    console.info("[glpy] email_fallback: plano ativo em outro UID → espelhando para UID atual. Plano:", planoTipo);
-
-    // Monta payload de espelhamento — apenas campos de acesso/plano
-    const mirror: Record<string, unknown> = {
-      email: auth.currentUser?.email,
-      plano: {
-        tipo: planoTipo,
-        status: "active",
-        origem: String(planoObj.origem ?? "herospark_email_fallback"),
-        dataExpiracao: planoObj.dataExpiracao ?? null,
-      },
-      herospark: {
-        active: true,
-        plan: planoTipo,
-        status: "active",
-        customerEmail: auth.currentUser?.email,
-        source: "email_fallback",
-      },
-      accessResolvedBy: "email_fallback",
-      accessResolvedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    // Extrai apenas campos seguros do doc fonte (xp/streak/protocoloAtivo excluídos — Sprint 17B.42)
+    const profileData: ProfileBackfill = {
+      nome:           found.nome as string | undefined,
+      onboarding:     found.onboarding,
+      primeiroAcesso: found.primeiroAcesso as boolean | undefined,
     };
-    if (planoObj.dataAtivacao != null) {
-      (mirror.plano as Record<string, unknown>).dataAtivacao = planoObj.dataAtivacao;
-    }
-    if (hsObj.offerId != null) {
-      (mirror.herospark as Record<string, unknown>).offerId = String(hsObj.offerId);
-    }
-    if (hsObj.transactionId != null) {
-      (mirror.herospark as Record<string, unknown>).transactionId = String(hsObj.transactionId);
-    }
+    const sourceCompletedOnboarding = profileData.primeiroAcesso === false;
+    console.info("[glpy] fallback [1/2]: plano ativo encontrado. Espelhando:", tipo, "| sourceCompletedOnboarding:", sourceCompletedOnboarding, "| hasNome:", !!profileData.nome, "| hasOnboarding:", profileData.onboarding != null);
 
-    // merge: true — não apaga onboarding, checkins, protocolos, fotos etc.
-    setDoc(doc(db, "users", currentUid), mirror, { merge: true }).catch(() => {});
+    mirrorPlanToUid(currentUid, email, tipo, "herospark_email_fallback", {
+      ...(hsObj.offerId != null ? { offerId: String(hsObj.offerId) } : {}),
+      ...(hsObj.transactionId != null ? { transactionId: String(hsObj.transactionId) } : {}),
+    }, profileData);
 
-    localStorage.setItem("glpy_plano", planoTipo);
-    console.info("[glpy] email_fallback: acesso liberado. Plano:", planoTipo);
-    return true;
+    return { found: true, primeiroAcesso: !sourceCompletedOnboarding };
   } catch (err) {
-    console.warn("[glpy] email_fallback: erro silenciado:", err);
-    return false;
+    console.warn("[glpy] fallback [1/2]: query falhou (possível security rule):", err);
+    return { found: false, primeiroAcesso: true };
   }
+}
+
+// Etapa 2: /api/acesso/check server-side (Firebase Admin SDK, bypassa security rules).
+// A API não retorna dados de perfil, então primeiroAcesso fica true (rota para onboarding).
+async function tryApiCheckFallback(
+  currentUid: string,
+  email: string
+): Promise<{ found: boolean; primeiroAcesso: boolean }> {
+  console.info("[glpy] fallback [2/2]: /api/acesso/check para", email);
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000);
+    const resp = await fetch(
+      `/api/acesso/check?email=${encodeURIComponent(email)}&token=GLPY2026`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timer);
+    if (!resp.ok) { console.warn("[glpy] fallback [2/2]: HTTP", resp.status); return { found: false, primeiroAcesso: true }; }
+
+    const json = await resp.json();
+    console.info("[glpy] fallback [2/2]: resposta:", JSON.stringify(json));
+
+    if (!json.ok || !json.found || !json.active) {
+      console.info("[glpy] fallback [2/2]: plano não encontrado ou inativo no servidor");
+      return { found: false, primeiroAcesso: true };
+    }
+
+    const tipo = String(json.plano ?? "").trim().toLowerCase();
+    if (!EMAIL_FALLBACK_PAID_PLANS.has(tipo)) {
+      console.info("[glpy] fallback [2/2]: plano do servidor não elegível:", tipo);
+      return { found: false, primeiroAcesso: true };
+    }
+
+    console.info("[glpy] fallback [2/2]: plano confirmado pelo servidor:", tipo);
+    mirrorPlanToUid(currentUid, email, tipo, "api_check_fallback");
+    return { found: true, primeiroAcesso: true };
+  } catch (err) {
+    console.warn("[glpy] fallback [2/2]: erro:", err);
+    return { found: false, primeiroAcesso: true };
+  }
+}
+
+// Fallback principal — tenta Firestore query, depois API server-side.
+// Retorna { found, primeiroAcesso } para que syncFromFirestore roteie corretamente.
+async function resolveAccessByEmail(
+  currentUid: string
+): Promise<{ found: boolean; primeiroAcesso: boolean }> {
+  const email = auth.currentUser?.email?.toLowerCase().trim();
+  if (!email) { console.info("[glpy] fallback: sem email autenticado"); return { found: false, primeiroAcesso: true }; }
+  console.info("[glpy] fallback: iniciando para email=", email, "| UID atual=", currentUid);
+
+  const byFirestore = await tryFirestoreEmailFallback(currentUid, email);
+  if (byFirestore.found) return byFirestore;
+
+  return tryApiCheckFallback(currentUid, email);
 }
 
 // ─────────────────────────────────────────────
@@ -372,7 +461,23 @@ async function resolveAccessByEmail(currentUid: string): Promise<boolean> {
 // ─────────────────────────────────────────────
 export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> {
   const id = uid();
-  const data = await loadUserData();
+  console.info("[glpy] syncFromFirestore: uid=", id, "| email=", auth.currentUser?.email);
+
+  // Try-catch em loadUserData para garantir que erros de Firestore (ex: security rules)
+  // não propaguem ao App.tsx e causem roteamento para Planos antes do fallback rodar.
+  let data: Record<string, unknown> | null = null;
+  try {
+    data = await loadUserData();
+    console.info("[glpy] syncFromFirestore: users/{uid} existe?", data !== null);
+    if (data !== null) {
+      const p = data.plano as Record<string, unknown> | undefined;
+      console.info("[glpy] syncFromFirestore: plano.tipo=", p?.tipo, "| plano.status=", p?.status, "| herospark.active=", (data.herospark as Record<string,unknown> | undefined)?.active);
+    }
+  } catch (err) {
+    console.warn("[glpy] syncFromFirestore: loadUserData() falhou (regras Firestore ou rede). Seguindo para fallback:", err);
+    data = null;
+  }
+
   // Sprint 17B.5.6 — usuário sem documento no Firestore é tratado como primeiro acesso.
   // Cobre o caso de registro via Firebase Auth sem passar pelo Admin (criarUsuarioNovo).
   if (!data) {
@@ -384,11 +489,15 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
       localStorage.setItem("glpy_plano", "top");
       return { primeiroAcesso: false };
     }
-    // Sprint 17B.41 — UID mismatch: busca plano por e-mail em outros documentos users
+    // Sprint 17B.41B — UID mismatch: busca plano por e-mail (Firestore query + API check)
     if (id) {
-      const emailResolved = await resolveAccessByEmail(id);
-      if (emailResolved) return { primeiroAcesso: true };
+      const result = await resolveAccessByEmail(id);
+      if (result.found) {
+        console.info("[glpy] syncFromFirestore: acesso liberado por fallback (sem doc) | primeiroAcesso=", result.primeiroAcesso);
+        return { primeiroAcesso: result.primeiroAcesso };
+      }
     }
+    console.info("[glpy] syncFromFirestore: sem doc e sem plano → primeiroAcesso: true");
     return { primeiroAcesso: true };
   }
 
@@ -481,8 +590,11 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     } catch { /* fallback silencioso — não bloqueia o fluxo */ }
   }
 
-  // Sprint 17B.41 — UID mismatch: documento existe mas sem plano ativo → busca por e-mail
-  if (!localStorage.getItem("glpy_plano") && id) {
+  // Sprint 17B.41B — fallback por e-mail: cobre UID mismatch E plano inválido (ex: "starter")
+  // hasCachedValidPlan() é mais robusto que !glpy_plano: detecta planos não elegíveis também.
+  // Neste path, primeiroAcesso vem de data.primeiroAcesso (doc existe), então ignoramos o retorno.
+  if (!hasCachedValidPlan() && id) {
+    console.info("[glpy] syncFromFirestore: plano não elegível após leitura do doc → iniciando fallback. glpy_plano atual=", localStorage.getItem("glpy_plano"));
     await resolveAccessByEmail(id);
   }
 
@@ -491,6 +603,7 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     localStorage.setItem("glpy_plano", "top");
   }
 
+  console.info("[glpy] syncFromFirestore: glpy_plano final=", localStorage.getItem("glpy_plano"), "| hasCachedValidPlan=", hasCachedValidPlan());
   return { primeiroAcesso: data.primeiroAcesso === true };
 }
 

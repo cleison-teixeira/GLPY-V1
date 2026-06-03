@@ -180,6 +180,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // e funciona tanto para doc novo quanto existente no Firestore.
       await db.collection("users").doc(uid).set({
         email,
+        emailLower: email,
         nome:      nomeCliente,
         plano: {
           tipo:                    planTipo,
