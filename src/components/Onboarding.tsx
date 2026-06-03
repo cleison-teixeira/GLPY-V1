@@ -263,6 +263,10 @@ export default function Onboarding({ onNext }: { onNext: () => void }) {
         pesoInicial: data.peso_atual ?? null,
         pesoAtual:   data.peso_atual ?? null,
       }));
+      // Sprint 17B.41C — flag explícito e permanente de conclusão do onboarding.
+      // Garante que syncFromFirestore nunca roteie para onboarding novamente,
+      // mesmo quando loadUserData() falha ou Firestore ainda não propagou primeiroAcesso:false.
+      localStorage.setItem("glpy_onboarding_completed", "true");
       if (data.nome)   localStorage.setItem("glpy_nome", String(data.nome));
       if (data.sexo)   localStorage.setItem("glpy_sexo", String(data.sexo));
       if (data.peso_atual) localStorage.setItem("glpy_peso_atual", String(data.peso_atual));

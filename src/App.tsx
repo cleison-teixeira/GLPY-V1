@@ -117,8 +117,10 @@ export default function App() {
           // Se chegou, é erro inesperado. Log para diagnóstico.
           console.error("[glpy] App: syncFromFirestore() lançou exceção inesperada:", err);
           const hasCachedPlan = hasActiveAccess();
-          const onboardingDone = localStorage.getItem('glpy_onboarding') !== null;
-          console.warn("[glpy] App: fallback catch | hasCachedPlan=", hasCachedPlan);
+          // Sprint 17B.41C — verificar ambos os flags de conclusão de onboarding
+          const onboardingDone = localStorage.getItem('glpy_onboarding_completed') === "true"
+                              || localStorage.getItem('glpy_onboarding') !== null;
+          console.warn("[glpy] App: fallback catch | hasCachedPlan=", hasCachedPlan, "| onboardingDone=", onboardingDone);
           if (hasCachedPlan) {
             setTelaAtual(onboardingDone ? 'dashboard' : 'onboarding');
           } else {

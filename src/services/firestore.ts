@@ -299,6 +299,15 @@ function hasCachedValidPlan(): boolean {
   return ["fundador","essencial","pro","top","admin","betatester","plus","vitalicio","founder","premium"].includes(p);
 }
 
+// Verifica se há evidência local de que o usuário JÁ concluiu o onboarding neste dispositivo.
+// Chaves verificadas em ordem de preferência:
+//   1. glpy_onboarding_completed = "true"  — flag explícito (adicionado Sprint 17B.41C)
+//   2. glpy_onboarding !== null            — JSON de respostas salvo ao concluir (comportamento histórico)
+function isOnboardingLocallyDone(): boolean {
+  if (localStorage.getItem("glpy_onboarding_completed") === "true") return true;
+  return localStorage.getItem("glpy_onboarding") !== null;
+}
+
 // Campos seguros para backfill automático em UID mismatch.
 // xp, streak, protocoloAtivo excluídos: sem verificação de target e risco de inconsistência
 // de subcoleção. Migração desses campos fica para Sprint 17B.42 Guardião de Dados.
@@ -493,8 +502,18 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     if (id) {
       const result = await resolveAccessByEmail(id);
       if (result.found) {
-        console.info("[glpy] syncFromFirestore: acesso liberado por fallback (sem doc) | primeiroAcesso=", result.primeiroAcesso);
-        return { primeiroAcesso: result.primeiroAcesso };
+        // Sprint 17B.41C — o fallback não tem informação de onboarding: nunca pode forçar
+        // primeiroAcesso:true se o dispositivo já tem evidência de onboarding concluído.
+        // Prioridade: local > resultado do fallback (API não tem perfil).
+        const localOnboardingDone = isOnboardingLocallyDone();
+        const primeiroAcesso = localOnboardingDone ? false : result.primeiroAcesso;
+        console.info("[glpy] syncFromFirestore: acesso por fallback | localOnboardingDone=", localOnboardingDone, "| primeiroAcesso=", primeiroAcesso);
+        // Reparar Firestore em background: garante que próximo reload não precise do fallback
+        if (localOnboardingDone) {
+          setDoc(doc(db, "users", id), { primeiroAcesso: false, updatedAt: serverTimestamp() }, { merge: true })
+            .catch(() => {});
+        }
+        return { primeiroAcesso };
       }
     }
     console.info("[glpy] syncFromFirestore: sem doc e sem plano → primeiroAcesso: true");
@@ -603,8 +622,24 @@ export async function syncFromFirestore(): Promise<{ primeiroAcesso: boolean }> 
     localStorage.setItem("glpy_plano", "top");
   }
 
-  console.info("[glpy] syncFromFirestore: glpy_plano final=", localStorage.getItem("glpy_plano"), "| hasCachedValidPlan=", hasCachedValidPlan());
-  return { primeiroAcesso: data.primeiroAcesso === true };
+  // Sprint 17B.41C — primeiroAcesso final: Firestore é fonte de verdade,
+  // mas se Firestore diz true e local tem evidência de onboarding concluído,
+  // confiar no local e reparar Firestore em background.
+  // Garante que falha de escrita do saveUserProfile não prenda usuário no onboarding.
+  const firestorePrimeiroAcesso = data.primeiroAcesso === true;
+  const localOnboardingDone = isOnboardingLocallyDone();
+  const primeiroAcesso = firestorePrimeiroAcesso && !localOnboardingDone;
+
+  if (firestorePrimeiroAcesso && localOnboardingDone && id) {
+    // Inconsistência detectada: local diz concluído, Firestore diz primeiro acesso.
+    // Reparar Firestore em background sem bloquear o fluxo.
+    setDoc(doc(db, "users", id), { primeiroAcesso: false, updatedAt: serverTimestamp() }, { merge: true })
+      .catch(() => {});
+    console.info("[glpy] syncFromFirestore: inconsistência corrigida — Firestore tinha primeiroAcesso:true mas local indica onboarding concluído");
+  }
+
+  console.info("[glpy] syncFromFirestore: glpy_plano final=", localStorage.getItem("glpy_plano"), "| firestorePrimeiroAcesso=", firestorePrimeiroAcesso, "| localOnboardingDone=", localOnboardingDone, "| primeiroAcesso=", primeiroAcesso);
+  return { primeiroAcesso };
 }
 
 // ─────────────────────────────────────────────
