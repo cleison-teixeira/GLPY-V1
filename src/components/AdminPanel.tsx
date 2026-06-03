@@ -1,82 +1,223 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2, LogOut } from "lucide-react";
+import { ShieldCheck, Loader2, CheckCircle2, XCircle, Trash2, LogOut, Copy, Check } from "lucide-react";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import emailjs from "@emailjs/browser";
 import { auth } from "../firebase.js";
 import {
-  buscarUidPorEmail,
-  criarUsuarioNovo,
-  liberarAcesso,
   revogarAcesso,
   listarAcessosManuais,
   type Grant,
 } from "../services/firestore";
 
-const EMAILJS_SERVICE  = "service_2yk9ntj";
-const EMAILJS_TEMPLATE = "template_s9fz94e";
-const EMAILJS_KEY      = "nzjByS_tk1VefLj3y";
+// ── Constantes ────────────────────────────────────────────────────────────────
 
 const ADMIN_EMAIL = "cleisonimarketing@gmail.com";
 
-const PLANOS = ["starter", "plus", "pro", "top"] as const;
-const DURACOES = [
-  { value: "7d",        label: "7 dias" },
-  { value: "15d",       label: "15 dias" },
-  { value: "30d",       label: "30 dias" },
-  { value: "90d",       label: "90 dias" },
-  { value: "vitalicio", label: "Vitalício" },
-];
+const PLANOS = [
+  { value: "fundador",  label: "Fundador — R$19,90/mês" },
+  { value: "essencial", label: "Essencial" },
+  { value: "pro",       label: "Pro" },
+] as const;
+
+const ORIGENS = [
+  { value: "pix_manual_whatsapp", label: "Pix Manual (WhatsApp)" },
+  { value: "admin_manual",        label: "Admin Manual" },
+  { value: "cortesia",            label: "Cortesia" },
+  { value: "teste_interno",       label: "Teste Interno" },
+  { value: "anfitria_celula",     label: "Anfitriã de Célula" },
+  { value: "embaixadora_glpy",    label: "Embaixadora GLPY" },
+] as const;
+
+const PRAZOS = [
+  { value: "7d",           label: "7 dias" },
+  { value: "15d",          label: "15 dias" },
+  { value: "30d",          label: "30 dias" },
+  { value: "90d",          label: "90 dias" },
+  { value: "vitalicio",    label: "Sem expiração" },
+  { value: "personalizado", label: "Personalizado" },
+] as const;
+
+const PRAZO_DIAS: Record<string, number> = {
+  "7d": 7, "15d": 15, "30d": 30, "90d": 90,
+};
+
+// Prazo padrão por origem
+const ORIGEM_PRAZO_DEFAULT: Record<string, string> = {
+  pix_manual_whatsapp: "30d",
+  admin_manual:        "vitalicio",
+  cortesia:            "personalizado",
+  teste_interno:       "7d",
+  anfitria_celula:     "90d",
+  embaixadora_glpy:    "90d",
+};
 
 const PLANO_LABELS: Record<string, string> = {
-  starter: "Starter", plus: "Plus", pro: "Pro", top: "Top",
+  fundador: "Fundador", essencial: "Essencial", pro: "Pro",
+  top: "Top", plus: "Plus", starter: "Starter",
 };
 
-const DURACAO_LABELS: Record<string, string> = {
-  "7d": "7 dias", "15d": "15 dias", "30d": "30 dias", "90d": "90 dias", "vitalicio": "Vitalício",
+const ORIGEM_LABELS: Record<string, string> = {
+  pix_manual_whatsapp: "Pix WhatsApp",
+  admin_manual:        "Admin Manual",
+  cortesia:            "Cortesia",
+  teste_interno:       "Teste Interno",
+  anfitria_celula:     "Anfitriã de Célula",
+  embaixadora_glpy:    "Embaixadora GLPY",
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(d: Date) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function fmtBR(d: Date) {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function buildLink(email: string) {
+  return `https://glpy.com.br/acesso?email=${encodeURIComponent(email)}&token=GLPY2026`;
+}
+
+function calcularExpiracao(prazo: string, prazoCustomDate: string): Date | null {
+  if (prazo === "vitalicio") return null;
+  if (prazo === "personalizado") {
+    if (!prazoCustomDate) return null;
+    return new Date(prazoCustomDate + "T23:59:59");
+  }
+  const dias = PRAZO_DIAS[prazo];
+  if (!dias) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d;
+}
+
+function buildWhatsAppMsg(
+  email: string,
+  plano: string,
+  origem: string,
+  prazo: string,
+  dataExp: Date | null,
+): string {
+  const link = buildLink(email);
+  const planoLabel = PLANO_LABELS[plano] ?? plano;
+  const footer = `\n\nAcesse:\n${link}\n\nClique em 'Criar / redefinir minha senha' e entre com o mesmo e-mail informado na compra.\n\nQualquer dificuldade, me chama aqui.`;
+  const dateStr = dataExp ? fmtBR(dataExp) : "";
+  const dias = PRAZO_DIAS[prazo];
+
+  let intro: string;
+  switch (origem) {
+    case "pix_manual_whatsapp":
+      intro = dias
+        ? `Seu acesso GLPY ${planoLabel} foi liberado por ${dias} dias 💚`
+        : `Seu acesso GLPY ${planoLabel} foi liberado 💚`;
+      break;
+    case "cortesia":
+      intro = dateStr
+        ? `Seu acesso cortesia ao GLPY foi liberado até ${dateStr} 💚`
+        : `Seu acesso cortesia ao GLPY foi liberado 💚`;
+      break;
+    case "teste_interno":
+      intro = dateStr
+        ? `Seu acesso de teste ao GLPY foi liberado até ${dateStr} 💚`
+        : `Seu acesso de teste ao GLPY foi liberado 💚`;
+      break;
+    case "anfitria_celula":
+      intro = dateStr
+        ? `Seu acesso como Anfitriã de Célula GLPY foi liberado até ${dateStr} 💚`
+        : `Seu acesso como Anfitriã de Célula GLPY foi liberado 💚`;
+      break;
+    case "embaixadora_glpy":
+      intro = dateStr
+        ? `Seu acesso como Embaixadora GLPY foi liberado até ${dateStr} 💚`
+        : `Seu acesso como Embaixadora GLPY foi liberado 💚`;
+      break;
+    default:
+      intro = `Seu acesso GLPY foi liberado 💚`;
+  }
+
+  return intro + footer;
+}
+
+function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition"
+    >
+      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? "Copiado!" : label}
+    </button>
+  );
+}
+
+type SuccessData = {
+  email: string;
+  nome: string;
+  plano: string;
+  origem: string;
+  prazo: string;
+  dataExp: Date | null;
+  link: string;
+  whatsappMsg: string;
+};
+
+// ── Componente ────────────────────────────────────────────────────────────────
+
 export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => void }) {
-  // Auth state
-  const [verificando, setVerificando] = useState(true);
-  const [autorizado, setAutorizado] = useState(false);
-  const [negado, setNegado] = useState(false);
-
-  // Login state
+  // Auth
+  const [verificando,  setVerificando]  = useState(true);
+  const [autorizado,   setAutorizado]   = useState(false);
+  const [negado,       setNegado]       = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginError,   setLoginError]   = useState<string | null>(null);
 
-  // Admin panel state
-  const [email, setEmail] = useState("");
-  const [plano, setPlano] = useState<string>("plus");
-  const [duracao, setDuracao] = useState("30d");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [grants, setGrants] = useState<Grant[]>([]);
+  // Form
+  const [nome,           setNome]           = useState("");
+  const [email,          setEmail]          = useState("");
+  const [telefone,       setTelefone]       = useState("");
+  const [plano,          setPlano]          = useState("fundador");
+  const [origem,         setOrigem]         = useState("pix_manual_whatsapp");
+  const [prazo,          setPrazo]          = useState(ORIGEM_PRAZO_DEFAULT["pix_manual_whatsapp"]);
+  const [prazoCustomDate, setPrazoCustomDate] = useState("");
+  const [valorPago,      setValorPago]      = useState("");
+  const [observacao,     setObservacao]     = useState("");
+  const [comprovanteUrl, setComprovanteUrl] = useState("");
+
+  // Panel
+  const [loading,       setLoading]       = useState(false);
+  const [errorMsg,      setErrorMsg]      = useState<string | null>(null);
+  const [successData,   setSuccessData]   = useState<SuccessData | null>(null);
+  const [grants,        setGrants]        = useState<Grant[]>([]);
   const [loadingGrants, setLoadingGrants] = useState(false);
-  const [revogando, setRevogando] = useState<string | null>(null);
+  const [revogando,     setRevogando]     = useState<string | null>(null);
+
+  // Auto-ajuste de prazo quando origem muda
+  useEffect(() => {
+    setPrazo(ORIGEM_PRAZO_DEFAULT[origem] ?? "30d");
+    setPrazoCustomDate("");
+  }, [origem]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user?.email === ADMIN_EMAIL) {
         setAutorizado(true);
         setNegado(false);
-        // Carrega grants só quando autorizado
         setLoadingGrants(true);
         listarAcessosManuais()
           .then(setGrants)
           .catch(() => {})
           .finally(() => setLoadingGrants(false));
       } else if (user) {
-        // Usuário logado mas não é o admin
         setNegado(true);
         setAutorizado(false);
       } else {
-        // Não logado — mostra formulário de login
         setAutorizado(false);
         setNegado(false);
       }
@@ -90,7 +231,6 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
     setLoginError(null);
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-      // onAuthStateChanged vai disparar e atualizar o estado
     } catch {
       setLoginError("Falha ao abrir o login com Google. Tente novamente.");
     } finally {
@@ -100,47 +240,86 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
 
   const handleLiberar = async () => {
     const emailLimpo = email.trim().toLowerCase();
-    if (!emailLimpo) { setMsg({ type: "err", text: "Informe o email do usuário." }); return; }
+    if (!emailLimpo)   { setErrorMsg("Informe o e-mail do cliente."); return; }
+    if (!nome.trim())  { setErrorMsg("Informe o nome do cliente."); return; }
+    if (prazo === "personalizado" && !prazoCustomDate) {
+      setErrorMsg("Informe a data de expiração para o prazo personalizado.");
+      return;
+    }
+
+    const dataExp = calcularExpiracao(prazo, prazoCustomDate);
+    const accessType: "temporario" | "sem_expiracao" | "personalizado" =
+      prazo === "vitalicio"    ? "sem_expiracao"  :
+      prazo === "personalizado" ? "personalizado" : "temporario";
+    const durationDays = PRAZO_DIAS[prazo] ?? null;
+
     setLoading(true);
-    setMsg(null);
+    setErrorMsg(null);
+    setSuccessData(null);
+
     try {
-      let targetUid = await buscarUidPorEmail(emailLimpo);
-      let isNew = false;
+      // Obter ID token do admin para autenticação server-side
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Sessão expirada. Faça login novamente.");
 
-      if (!targetUid) {
-        // Cria conta Firebase Auth + doc Firestore via app secundário
-        targetUid = await criarUsuarioNovo(emailLimpo);
-        isNew = true;
+      console.log("[admin] chamando /api/admin/manual-access", {
+        email: emailLimpo, plano, origem, prazo, accessType, durationDays,
+        dataExpiracao: dataExp?.toISOString() ?? null,
+      });
+
+      const resp = await fetch("/api/admin/manual-access", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          nome:           nome.trim(),
+          email:          emailLimpo,
+          telefone:       telefone.trim(),
+          plano,
+          origem,
+          valorPago:      valorPago.trim(),
+          observacao:     observacao.trim(),
+          comprovanteUrl: comprovanteUrl.trim(),
+          accessType,
+          durationDays,
+          dataExpiracao:  dataExp?.toISOString() ?? null,
+          adminEmail:     auth.currentUser?.email ?? ADMIN_EMAIL,
+        }),
+      });
+
+      const result = await resp.json() as { ok: boolean; error?: string; code?: string; action?: string; uid?: string };
+
+      console.log("[admin] resposta /api/admin/manual-access:", result);
+
+      if (!result.ok) {
+        const detalhe = result.error ? ` (${result.error})` : "";
+        const msgErro =
+          result.error === "unauthorized"   ? "Sessão inválida. Faça login novamente." :
+          result.error === "forbidden"      ? "Acesso negado: apenas o admin pode liberar acessos." :
+          result.error === "missing_email"  ? "E-mail inválido." :
+          result.error === "missing_nome"   ? "Nome obrigatório." :
+          result.error === "invalid_token"  ? "Token de sessão inválido. Faça logout e login novamente." :
+          `Erro ao liberar acesso${detalhe}`;
+        throw new Error(msgErro);
       }
 
-      await liberarAcesso(targetUid, emailLimpo, plano, duracao);
+      const link = buildLink(emailLimpo);
+      const whatsappMsg = buildWhatsAppMsg(emailLimpo, plano, origem, prazo, dataExp);
 
-      if (isNew) {
-        // Envia email de boas-vindas com senha provisória
-        emailjs.send(
-          EMAILJS_SERVICE,
-          EMAILJS_TEMPLATE,
-          {
-            to_email: emailLimpo,
-            to_name: "Usuário",
-            plano: PLANO_LABELS[plano] ?? plano,
-            senha: "GLPY@2026",
-            app_url: "https://glpy.com.br",
-          },
-          EMAILJS_KEY,
-        ).catch(() => {}); // falha silenciosa — não bloqueia o fluxo
+      console.log("[admin] acesso liberado com sucesso:", { uid: result.uid, action: result.action, link });
 
-        setMsg({ type: "ok", text: `✅ Conta criada e acesso ${PLANO_LABELS[plano]} liberado para ${emailLimpo}. Email com senha enviado!` });
-      } else {
-        setMsg({ type: "ok", text: `✅ Acesso ${PLANO_LABELS[plano]} liberado para ${emailLimpo}` });
-      }
+      setSuccessData({ email: emailLimpo, nome: nome.trim(), plano, origem, prazo, dataExp, link, whatsappMsg });
 
-      setEmail("");
-      const updated = await listarAcessosManuais();
-      setGrants(updated);
+      setNome(""); setEmail(""); setTelefone("");
+      setValorPago(""); setObservacao(""); setComprovanteUrl("");
+
+      listarAcessosManuais().then(setGrants).catch(() => {});
     } catch (e) {
-      setMsg({ type: "err", text: "Erro ao liberar acesso. Verifique o console." });
-      console.error(e);
+      const msg = e instanceof Error ? e.message : "Erro ao liberar acesso. Verifique o console.";
+      setErrorMsg(msg);
+      console.error("[admin] handleLiberar erro:", e);
     } finally {
       setLoading(false);
     }
@@ -158,8 +337,7 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
     }
   };
 
-  // ── Estados de espera e bloqueio ──────────────────────────────────────────
-
+  // ── Verificando ───────────────────────────────────────────────────────────
   if (verificando) {
     return (
       <div className="min-h-screen bg-[#0A1628] flex items-center justify-center">
@@ -168,6 +346,7 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
     );
   }
 
+  // ── Acesso negado ─────────────────────────────────────────────────────────
   if (negado) {
     return (
       <div className="min-h-screen bg-[#0A1628] flex flex-col items-center justify-center gap-4 px-5">
@@ -184,6 +363,7 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
     );
   }
 
+  // ── Login ─────────────────────────────────────────────────────────────────
   if (!autorizado) {
     return (
       <div className="min-h-screen bg-[#0A1628] flex items-center justify-center px-5">
@@ -236,9 +416,9 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
   }
 
   // ── Painel admin ──────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-[#F4F6F8] pb-12">
+    <div className="min-h-screen bg-[#F4F6F8] pb-16">
+
       {/* Header */}
       <div className="bg-[#0A1628] px-5 pt-14 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -260,47 +440,159 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
 
       <div className="px-5 py-5 space-y-5 max-w-lg mx-auto">
 
-        {/* Formulário */}
+        {/* ── Formulário ─────────────────────────────────────────────────── */}
         <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
-          <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Liberar acesso manual</p>
+          <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Liberar acesso manual Pix</p>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-text-muted">Email do usuário</label>
+            <label className="text-xs font-semibold text-text-muted">
+              Nome do cliente <span className="text-red-400">*</span>
+            </label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="usuario@email.com"
+              type="text"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              placeholder="Maria Silva"
               className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
             />
           </div>
 
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-muted">
+              E-mail do cliente <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="cliente@email.com"
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-muted">WhatsApp / Telefone</label>
+            <input
+              type="tel"
+              value={telefone}
+              onChange={e => setTelefone(e.target.value)}
+              placeholder="(48) 99999-9999"
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+            />
+          </div>
+
+          {/* Plano + Origem */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-muted">Plano</label>
+              <label className="text-xs font-semibold text-text-muted">
+                Plano <span className="text-red-400">*</span>
+              </label>
               <select
                 value={plano}
                 onChange={e => setPlano(e.target.value)}
                 className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-[#F4F6F8] focus:outline-none focus:border-primary"
               >
                 {PLANOS.map(p => (
-                  <option key={p} value={p}>{PLANO_LABELS[p]}</option>
+                  <option key={p.value} value={p.value}>{p.label}</option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-muted">Duração</label>
+              <label className="text-xs font-semibold text-text-muted">
+                Origem <span className="text-red-400">*</span>
+              </label>
               <select
-                value={duracao}
-                onChange={e => setDuracao(e.target.value)}
+                value={origem}
+                onChange={e => setOrigem(e.target.value)}
                 className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-[#F4F6F8] focus:outline-none focus:border-primary"
               >
-                {DURACOES.map(d => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
+                {ORIGENS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Prazo */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-text-muted">
+              Prazo de acesso <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={prazo}
+              onChange={e => { setPrazo(e.target.value); setPrazoCustomDate(""); }}
+              className="w-full border border-border rounded-xl px-3 py-3 text-sm bg-[#F4F6F8] focus:outline-none focus:border-primary"
+            >
+              {PRAZOS.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+
+            {/* Data personalizada */}
+            <AnimatePresence>
+              {prazo === "personalizado" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-1 pt-1">
+                    <label className="text-xs font-semibold text-text-muted">
+                      Data de expiração <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={prazoCustomDate}
+                      onChange={e => setPrazoCustomDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Preview de expiração */}
+            {prazo !== "vitalicio" && prazo !== "personalizado" && (
+              <p className="text-xs text-text-muted px-1">
+                Expira em: {fmt(calcularExpiracao(prazo, "") ?? new Date())}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-muted">Valor pago</label>
+            <input
+              type="text"
+              value={valorPago}
+              onChange={e => setValorPago(e.target.value)}
+              placeholder="R$19,90"
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-muted">Observação</label>
+            <input
+              type="text"
+              value={observacao}
+              onChange={e => setObservacao(e.target.value)}
+              placeholder="Ex: Compra via grupo WhatsApp"
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-muted">Link do comprovante (opcional)</label>
+            <input
+              type="url"
+              value={comprovanteUrl}
+              onChange={e => setComprovanteUrl(e.target.value)}
+              placeholder="https://..."
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary bg-[#F4F6F8]"
+            />
           </div>
 
           <motion.button
@@ -313,27 +605,64 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
           </motion.button>
 
           <AnimatePresence>
-            {msg && (
+            {errorMsg && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className={`flex items-start gap-2 p-3 rounded-xl text-sm font-medium ${
-                  msg.type === "ok"
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "bg-red-50 text-red-600 border border-red-200"
-                }`}
+                className="flex items-start gap-2 p-3 rounded-xl text-sm font-medium bg-red-50 text-red-600 border border-red-200"
               >
-                {msg.type === "ok"
-                  ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  : <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
-                {msg.text}
+                <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                {errorMsg}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Lista de acessos */}
+        {/* ── Resultado de sucesso ────────────────────────────────────────── */}
+        <AnimatePresence>
+          {successData && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="bg-white border border-primary/20 rounded-2xl p-5 shadow-sm space-y-4"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-primary">
+                    Acesso {PLANO_LABELS[successData.plano] ?? successData.plano} liberado
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {successData.nome} · {ORIGEM_LABELS[successData.origem] ?? successData.origem}
+                    {successData.dataExp
+                      ? ` · até ${fmtBR(successData.dataExp)}`
+                      : " · sem expiração"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Link de acesso</p>
+                <div className="bg-[#F4F6F8] rounded-xl px-3 py-2.5 text-xs text-text-main font-mono break-all leading-relaxed">
+                  {successData.link}
+                </div>
+                <CopyButton text={successData.link} label="Copiar link de acesso" />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Mensagem WhatsApp</p>
+                <div className="bg-[#F4F6F8] rounded-xl px-3 py-2.5 text-xs text-text-main whitespace-pre-line leading-relaxed">
+                  {successData.whatsappMsg}
+                </div>
+                <CopyButton text={successData.whatsappMsg} label="Copiar mensagem WhatsApp" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Histórico de liberações ─────────────────────────────────────── */}
         <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
           <p className="text-xs font-bold text-text-muted uppercase tracking-wide mb-4">
             Acessos ativos (últimos 10)
@@ -346,41 +675,70 @@ export default function AdminPanel({ onNavigate }: { onNavigate: (s: string) => 
           ) : grants.length === 0 ? (
             <p className="text-sm text-text-muted text-center py-4">Nenhum acesso liberado ainda.</p>
           ) : (
-            <div className="space-y-3">
-              {grants.map(g => (
-                <div
-                  key={g.id}
-                  className="flex items-start justify-between gap-3 py-3 border-b border-border last:border-0"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#0A1628] truncate">{g.email}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <div className="space-y-4">
+              {grants.map(g => {
+                const grantLink = buildLink(g.email);
+                const grantWhatsApp = buildWhatsAppMsg(g.email, g.plano, g.origem ?? "admin_manual", g.duracao ?? "vitalicio", g.dataExpiracao);
+                return (
+                  <div key={g.id} className="py-3 border-b border-border last:border-0 space-y-2">
+                    {/* Nome + email + revogar */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#0A1628] truncate">
+                          {g.nome ?? g.email}
+                        </p>
+                        <p className="text-xs text-text-muted truncate">{g.email}</p>
+                        {g.telefone && (
+                          <p className="text-xs text-text-muted">{g.telefone}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRevogar(g)}
+                        disabled={revogando === g.id}
+                        className="flex-shrink-0 p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition disabled:opacity-50"
+                        title="Revogar acesso"
+                      >
+                        {revogando === g.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
                         {PLANO_LABELS[g.plano] ?? g.plano}
                       </span>
-                      <span className="text-xs text-text-muted">
-                        {DURACAO_LABELS[g.duracao] ?? g.duracao}
-                      </span>
-                      {g.dataExpiracao && (
-                        <span className="text-xs text-text-muted">
-                          até {fmt(g.dataExpiracao)}
+                      {g.origem && (
+                        <span className="text-xs bg-[#F4F6F8] text-text-muted px-2 py-0.5 rounded-full">
+                          {ORIGEM_LABELS[g.origem] ?? g.origem}
                         </span>
                       )}
+                      {g.valorPago && (
+                        <span className="text-xs text-text-muted font-medium">{g.valorPago}</span>
+                      )}
                     </div>
-                    <p className="text-xs text-text-muted mt-0.5">em {fmt(g.liberadoEm)}</p>
+
+                    {/* Prazo */}
+                    <div className="flex items-center gap-2 text-xs text-text-muted">
+                      {g.dataExpiracao
+                        ? <span>Expira: <strong className="text-text-main">{fmt(g.dataExpiracao)}</strong></span>
+                        : <span className="text-green-600 font-medium">Sem expiração</span>
+                      }
+                      {g.durationDays && (
+                        <span className="text-text-muted/60">({g.durationDays} dias)</span>
+                      )}
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs text-text-muted">em {fmt(g.liberadoEm)}</p>
+                      <CopyButton text={grantLink} label="Copiar link" />
+                      <CopyButton text={grantWhatsApp} label="Copiar WhatsApp" />
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleRevogar(g)}
-                    disabled={revogando === g.id}
-                    className="flex-shrink-0 p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition disabled:opacity-50"
-                    title="Revogar"
-                  >
-                    {revogando === g.id
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

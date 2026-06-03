@@ -653,11 +653,34 @@ export type Grant = {
   id: string;
   uid: string;
   email: string;
+  nome?: string;
+  telefone?: string;
   plano: string;
+  origem?: string;
+  valorPago?: string;
   duracao: string;
+  accessType?: "temporario" | "sem_expiracao" | "personalizado";
+  durationDays?: number | null;
   dataExpiracao: Date | null;
   liberadoEm: Date;
+  status?: string;
 };
+
+export interface ManualAccessParams {
+  uid: string;
+  email: string;
+  nome: string;
+  telefone: string;
+  plano: string;
+  origem: string;
+  valorPago: string;
+  observacao: string;
+  comprovanteUrl: string;
+  adminEmail: string;
+  dataExpiracao: Date | null;
+  accessType: "temporario" | "sem_expiracao" | "personalizado";
+  durationDays: number | null;
+}
 
 export async function buscarUidPorEmail(email: string): Promise<string | null> {
   const snap = await getDocs(
@@ -667,7 +690,11 @@ export async function buscarUidPorEmail(email: string): Promise<string | null> {
   return snap.docs[0].id;
 }
 
-export async function criarUsuarioNovo(email: string): Promise<string> {
+export async function criarUsuarioNovo(
+  email: string,
+  nome = "Usuário GLPY",
+  telefone = "",
+): Promise<string> {
   // Usa app secundário para não derrubar a sessão do admin
   const secondaryApp = initializeApp(app.options, `admin-create-${Date.now()}`);
   const secondaryAuth = getAuth(secondaryApp);
@@ -679,10 +706,11 @@ export async function criarUsuarioNovo(email: string): Promise<string> {
   } finally {
     await deleteApp(secondaryApp);
   }
-  // Cria documento base no Firestore
   await setDoc(doc(db, "users", newUid), {
     email: email.toLowerCase(),
-    nome: "Usuário GLPY",
+    emailLower: email.toLowerCase(),
+    nome,
+    telefone,
     primeiroAcesso: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -690,41 +718,73 @@ export async function criarUsuarioNovo(email: string): Promise<string> {
   return newUid;
 }
 
-export async function liberarAcesso(
-  uid: string,
-  email: string,
-  plano: string,
-  duracao: string,
-): Promise<string> {
-  const dias = DURACAO_DIAS[duracao];
-  let dataExpiracao: Date | null = null;
-  if (dias !== null && dias !== undefined) {
-    dataExpiracao = new Date();
-    dataExpiracao.setDate(dataExpiracao.getDate() + dias);
-  }
+export async function liberarAcesso(params: ManualAccessParams): Promise<string> {
+  const {
+    uid, email, nome, telefone, plano, origem,
+    valorPago, observacao, comprovanteUrl, adminEmail,
+    dataExpiracao, accessType, durationDays,
+  } = params;
 
-  const planoData = {
-    tipo: plano,
-    status: "active",
-    origem: "manual",
-    dataExpiracao: dataExpiracao ? Timestamp.fromDate(dataExpiracao) : null,
-    liberadoPor: "admin",
-  };
+  const expTs = dataExpiracao ? Timestamp.fromDate(dataExpiracao) : null;
 
-  // setDoc merge funciona para doc novo e existente
+  // Duracao string legada para compatibilidade com admin_grants antigos
+  const duracao = accessType === "sem_expiracao" ? "vitalicio"
+    : accessType === "personalizado" ? "personalizado"
+    : `${durationDays}d`;
+
+  // Atualiza users/{uid} com merge — nunca apaga dados existentes
   await setDoc(doc(db, "users", uid), {
-    plano: planoData,
+    email,
+    emailLower: email,
+    nome,
+    telefone,
+    plano: {
+      tipo: plano,
+      status: "active",
+      origem,
+      dataAtivacao: serverTimestamp(),
+      dataExpiracao: expTs,
+    },
+    // herospark.active/plan mantidos para compatibilidade com hasActiveAccess e fallback email
+    herospark: {
+      active: true,
+      plan: plano,
+      status: "active",
+      customerEmail: email,
+      source: "manual_admin",
+    },
+    manualAccess: {
+      active: true,
+      source: origem,
+      accessType,
+      durationDays,
+      expiresAt: expTs,
+      value: valorPago,
+      comprovanteUrl,
+      observacao,
+      createdAt: serverTimestamp(),
+      createdBy: adminEmail,
+    },
     updatedAt: serverTimestamp(),
   }, { merge: true });
 
   const ref = await addDoc(collection(db, "admin_grants"), {
     uid,
     email,
+    nome,
+    telefone,
     plano,
+    origem,
+    valorPago,
+    observacao,
+    comprovanteUrl,
     duracao,
-    dataExpiracao: dataExpiracao ? Timestamp.fromDate(dataExpiracao) : null,
+    accessType,
+    durationDays,
+    dataExpiracao: expTs,
     liberadoEm: serverTimestamp(),
     status: "active",
+    adminEmail,
   });
   return ref.id;
 }
@@ -758,10 +818,17 @@ export async function listarAcessosManuais(): Promise<Grant[]> {
       id: d.id,
       uid: data.uid,
       email: data.email,
+      nome: data.nome ?? undefined,
+      telefone: data.telefone ?? undefined,
       plano: data.plano,
-      duracao: data.duracao,
+      origem: data.origem ?? undefined,
+      valorPago: data.valorPago ?? undefined,
+      duracao: data.duracao ?? "vitalicio",
+      accessType: data.accessType ?? undefined,
+      durationDays: data.durationDays ?? undefined,
       dataExpiracao: data.dataExpiracao?.toDate?.() ?? null,
       liberadoEm: data.liberadoEm?.toDate?.() ?? new Date(),
+      status: data.status,
     };
   });
 }
