@@ -135,9 +135,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const apiKey = process.env.GEMINI_KEY;
+  // Aceita GEMINI_KEY (nome canônico) ou GEMINI_API_KEY (nome legado em .env.example)
+  const apiKey = process.env.GEMINI_KEY ?? process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.error('[GeminiVision] Variável de ambiente ausente: GEMINI_KEY');
+    console.error('[GeminiVision] Variável de ambiente ausente: GEMINI_KEY (ou GEMINI_API_KEY)');
     res.status(500).json({
       success: false,
       error:   'Serviço de visão não configurado no servidor.',
