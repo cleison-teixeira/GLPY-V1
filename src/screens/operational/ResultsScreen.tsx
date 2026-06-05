@@ -116,6 +116,7 @@ interface BodyPhoto {
   date:         string;
   weight:       number | null;
   imageDataUrl: string;
+  role?:        string;
 }
 
 function readBodyPhotos(): BodyPhoto[] {
@@ -139,8 +140,16 @@ export default function ResultsScreen({ onBack, onNavigate }: ResultsScreenProps
   const atividade  = readAtividadeHoje();
   const streak     = readStreak();
   const bodyPhotos = readBodyPhotos();
-  const bodyPhotoFirst = bodyPhotos.length > 0 ? bodyPhotos[0]                 : null;
-  const bodyPhotoLast  = bodyPhotos.length > 1 ? bodyPhotos[bodyPhotos.length - 1] : null;
+  // Antes: última com role='before', senão primeira foto (mesma lógica do PhotoTimelineScreen)
+  const beforeCandidates = bodyPhotos.filter(p => p.role === 'before');
+  const bodyPhotoFirst = beforeCandidates.length > 0
+    ? beforeCandidates[beforeCandidates.length - 1]
+    : (bodyPhotos.length > 0 ? bodyPhotos[0] : null);
+  // Depois: última com role='after', senão última foto (requer 2+)
+  const afterCandidates = bodyPhotos.filter(p => p.role === 'after');
+  const bodyPhotoLast = afterCandidates.length > 0
+    ? afterCandidates[afterCandidates.length - 1]
+    : (bodyPhotos.length > 1 ? bodyPhotos[bodyPhotos.length - 1] : null);
 
   const pesoInicial: number | null = (() => {
     // Mesma cascata usada pela Home
