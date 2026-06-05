@@ -170,11 +170,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (!attempt.ok) {
       const errText = await attempt.text();
-      console.error(`[GeminiVision][${model}] erro ${attempt.status}: ${errText.slice(0, 150).replace(/[\n\r]/g, ' ')}`);
+      console.error(`[GeminiVision][${model}] erro ${attempt.status}: ${errText.slice(0, 300).replace(/[\n\r]/g, ' ')}`);
+
+      let userError = 'Não conseguimos identificar os alimentos automaticamente agora.';
+      if (attempt.status === 401 || attempt.status === 403) {
+        userError = 'Chave de API inválida ou sem permissão. Contate o suporte.';
+      } else if (attempt.status === 429) {
+        userError = 'Limite de requisições da API atingido. Aguarde alguns minutos e tente novamente.';
+      } else if (attempt.status === 400) {
+        userError = 'Imagem não reconhecida ou formato inválido. Tente com outra foto.';
+      } else if (attempt.status >= 500) {
+        userError = 'Serviço de visão temporariamente indisponível. Tente em instantes.';
+      }
+
       // Erro não-404 (ex: 400, 429, 500) → não tenta próximo modelo
       res.status(502).json({
         success: false,
-        error:   'Não conseguimos identificar os alimentos automaticamente agora.',
+        error:   userError,
+        debug:   { stage: `gemini_http_${attempt.status}`, modelsTried },
       } satisfies ErrorResponse);
       return;
     }

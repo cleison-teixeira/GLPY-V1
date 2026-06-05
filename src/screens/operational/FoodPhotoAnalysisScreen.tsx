@@ -163,6 +163,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: 
   const limiteF = LIMITES_FOTO[plano] ?? 3;
   const [fotosHoje,       setFotosHoje]       = useState(() => getFotosHoje());
   const [showLimiteModal, setShowLimiteModal] = useState(false);
+  const [retryCount,      setRetryCount]      = useState(0);
 
   // ── File capture ─────────────────────────────────────────────────────────
 
@@ -174,6 +175,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: 
     setSavedFeedback(false);
     setSaveError(null);
     setErrorMessage(null);
+    setRetryCount(0);
     setFatSecretItems(null);
     setFatSecretError(false);
     setSelectedFsIdx(0);
@@ -368,6 +370,7 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: 
     setDeepSeekState('idle');
     setDeepSeekAnalysis(null);
     setSaveError(null);
+    setRetryCount(0);
   }
 
   function handleSave() {
@@ -483,9 +486,10 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: 
               {phase === 'analyzing' && 'Analisando refeição...'}
               {phase === 'results'   && 'Análise concluída'}
               {phase === 'error'     && 'Erro na análise'}
-              {limiteF !== Infinity && (
-                <span className="ml-2 font-semibold text-primary">{fotosHoje}/{limiteF} hoje</span>
-              )}
+              {limiteF < 50
+                ? <span className="ml-2 font-semibold text-primary">{fotosHoje}/{limiteF} hoje</span>
+                : <span className="ml-2 font-semibold text-primary">{fotosHoje} hoje</span>
+              }
             </p>
           </div>
           {(phase === 'captured' || phase === 'results' || phase === 'error') && (
@@ -658,14 +662,34 @@ export default function FoodPhotoAnalysisScreen({ onBack, onNavigate, onSave }: 
                   {errorMessage && (
                     <p className="text-xs text-text-muted mt-2 leading-relaxed">{errorMessage}</p>
                   )}
+                  {retryCount >= 2 && (
+                    <p className="text-xs text-amber-600 mt-2 leading-relaxed font-medium">
+                      O serviço pode estar temporariamente indisponível. Registre sua refeição manualmente por enquanto.
+                    </p>
+                  )}
                 </div>
+
+                {retryCount < 3 && (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { setRetryCount(c => c + 1); setPhase('captured'); }}
+                    className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw size={15} /> Tentar novamente
+                  </motion.button>
+                )}
+
                 <motion.button
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setPhase('captured')}
-                  className="w-full bg-primary text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
+                  onClick={() => {
+                    if (imageUrl) sessionStorage.setItem('glpy_manual_photo', imageUrl);
+                    onNavigate?.('refeicao');
+                  }}
+                  className="w-full bg-white border border-primary text-primary font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
                 >
-                  <RotateCcw size={15} /> Tentar novamente
+                  <PenLine size={15} /> Registrar refeição manualmente
                 </motion.button>
+
                 <button onClick={reset} className="text-xs text-text-muted underline">
                   Escolher outra foto
                 </button>

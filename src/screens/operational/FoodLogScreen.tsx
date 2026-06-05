@@ -92,6 +92,12 @@ function formatMealTime(entry: any): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: FoodLogScreenProps) {
+  const [referencePhoto] = useState<string | null>(() => {
+    const photo = sessionStorage.getItem('glpy_manual_photo');
+    if (photo) sessionStorage.removeItem('glpy_manual_photo');
+    return photo;
+  });
+
   const [mealType,       setMealType]       = useState<MealType>('lunch');
   const [description,    setDescription]    = useState('');
   const [analysisPhase,  setAnalysisPhase]  = useState<AnalysisPhase>('idle');
@@ -471,8 +477,33 @@ export default function FoodLogScreen({ onBack, onNavigateToPhoto, onSave }: Foo
 
         {/* ── Subtítulo ────────────────────────────────────────────────── */}
         <p style={subtitleStyle}>
-          Digite o que você comeu. O GLPY estima os macros automaticamente para você.
+          {referencePhoto
+            ? 'Não conseguimos analisar automaticamente agora, mas você ainda pode registrar sua refeição manualmente.'
+            : 'Digite o que você comeu. O GLPY estima os macros automaticamente para você.'
+          }
         </p>
+
+        {/* ── Foto de referência (vinda de FoodPhotoAnalysisScreen) ────── */}
+        {referencePhoto && (
+          <div style={{
+            display:      'flex',
+            alignItems:   'center',
+            gap:          12,
+            background:   '#F4F6F8',
+            borderRadius: 16,
+            padding:      '10px 12px',
+            border:       '1px solid #E2E8F0',
+          }}>
+            <img
+              src={referencePhoto}
+              alt="Foto da refeição"
+              style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+            />
+            <p style={{ fontFamily: 'inherit', fontSize: 12, color: '#64748B', lineHeight: 1.45, margin: 0 }}>
+              Use a foto como referência para descrever sua refeição abaixo.
+            </p>
+          </div>
+        )}
 
         {/* ── Tipo de refeição ─────────────────────────────────────────── */}
         <GLPYCard variant="light">
