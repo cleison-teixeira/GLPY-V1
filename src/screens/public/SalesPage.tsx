@@ -7,8 +7,8 @@ import {
   Heart, Dumbbell, BarChart3, ClipboardList, ChevronDown, ChevronUp,
   Sparkles, Shield, Zap, Menu, X, ArrowRight, Users,
 } from 'lucide-react';
-import glpyLogoDark  from '@/assets/logos/logo-dark.png';
-import glpyLogoLight from '@/assets/logos/logo-light.png';
+import glpySymbolDark  from '@/assets/logos/logo-symbol-dark.png';
+import glpySymbolLight from '@/assets/logos/logo-symbol-light.png';
 import { trackPageView, trackViewContent, trackInitiateCheckout } from '../../services/metaPixel';
 
 // ── Checkout links oficiais HeroSpark ─────────────────────────────────────────
@@ -197,25 +197,6 @@ function PhoneMockup() {
         </div>
       </div>
 
-      <div className="hidden lg:block absolute" style={{ left: -8, top: '52%', zIndex: 20 }}>
-        <div className="bg-white rounded-2xl px-3 py-2.5 shadow-xl border border-border flex items-center gap-2.5 whitespace-nowrap">
-          <span className="text-lg">💉</span>
-          <div>
-            <p className="text-[11px] font-bold text-[#0A1628]">Aplicação registrada</p>
-            <p className="text-[10px] text-text-muted">hoje, 08:30</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="hidden lg:block absolute" style={{ right: -8, bottom: 80, zIndex: 20 }}>
-        <div className="bg-white rounded-2xl px-3 py-2.5 shadow-xl border border-border flex items-center gap-2.5 whitespace-nowrap">
-          <span className="text-lg">📊</span>
-          <div>
-            <p className="text-[11px] font-bold text-[#0A1628]">Evolução visual</p>
-            <p className="text-[11px] font-bold" style={{ color: PRIMARY }}>−4,2 kg</p>
-          </div>
-        </div>
-      </div>
 
       {/* Phone shell */}
       <div className="relative" style={{ width: 256, flexShrink: 0 }}>
@@ -264,17 +245,17 @@ function PhoneMockup() {
                 <div
                   style={{
                     width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
-                    background: `conic-gradient(${PRIMARY} 0% 60%, rgba(255,255,255,0.07) 60% 100%)`,
+                    background: `conic-gradient(${PRIMARY} 0% 65%, rgba(255,255,255,0.07) 65% 100%)`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#1A2D45', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 9, color: '#fff', fontWeight: 800 }}>60%</span>
+                    <span style={{ fontSize: 14 }}>✓</span>
                   </div>
                 </div>
                 <div>
-                  <p style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>3 de 5 tarefas</p>
-                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Continue assim!</p>
+                  <p style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>Rotina do dia</p>
+                  <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Em progresso</p>
                 </div>
               </div>
             </div>
@@ -286,10 +267,7 @@ function PhoneMockup() {
                   <span style={{ fontSize: 12 }}>💧</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <p style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>Água</p>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>1,8L / 3L</p>
-                  </div>
+                  <p style={{ fontSize: 10, color: '#fff', fontWeight: 700, marginBottom: 4 }}>Água do dia</p>
                   <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999 }}>
                     <div style={{ width: '60%', height: '100%', background: '#3b82f6', borderRadius: 999 }} />
                   </div>
@@ -304,10 +282,7 @@ function PhoneMockup() {
                   <span style={{ fontSize: 12 }}>🥩</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <p style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>Proteína</p>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>68g / 130g</p>
-                  </div>
+                  <p style={{ fontSize: 10, color: '#fff', fontWeight: 700, marginBottom: 4 }}>Proteína</p>
                   <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999 }}>
                     <div style={{ width: '52%', height: '100%', background: PRIMARY, borderRadius: 999 }} />
                   </div>
@@ -326,7 +301,7 @@ function PhoneMockup() {
                   <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>em 3 dias</p>
                 </div>
               </div>
-              <span style={{ fontSize: 9, background: 'rgba(168,85,247,0.15)', color: '#c084fc', padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>quinta</span>
+              <span style={{ fontSize: 9, background: 'rgba(168,85,247,0.15)', color: '#c084fc', padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>em 3 dias</span>
             </div>
 
             {/* AI */}
@@ -358,7 +333,7 @@ function PhoneMockup() {
 
       {/* Mobile floating tags (below phone) */}
       <div className="lg:hidden flex flex-wrap justify-center gap-2 mt-6 absolute bottom-0 left-0 right-0 px-4">
-        {['🛡️ Anti-Rebote', '✦ IA GLPY', '💉 Aplicação', '📊 Evolução'].map((t, i) => (
+        {['🛡️ Anti-Rebote', '✦ IA GLPY', '💧 Água', '💉 Aplicação'].map((t, i) => (
           <span key={i} className="bg-white/10 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20">
             {t}
           </span>
@@ -390,8 +365,9 @@ export default function SalesPage() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <a href="/" className="flex-shrink-0">
-            <img src={glpyLogoDark} alt="GLPY" className="h-8 w-auto" />
+          <a href="/" className="flex-shrink-0 flex items-center gap-2">
+            <img src={glpySymbolDark} alt="" className="h-8 w-auto flex-shrink-0" />
+            <span className="font-black text-[#0A1628] text-lg tracking-tight leading-none">GLPY</span>
           </a>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-text-muted">
@@ -460,7 +436,10 @@ export default function SalesPage() {
             </span>
 
             <div className="space-y-3">
-              <img src={glpyLogoLight} alt="GLPY" className="h-10 w-auto" />
+              <div className="flex items-center gap-2.5">
+                <img src={glpySymbolLight} alt="" className="h-10 w-auto flex-shrink-0" />
+                <span className="font-black text-white text-2xl tracking-tight leading-none">GLPY</span>
+              </div>
               <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 O app da jornada<br />
                 <span className="text-primary">GLP-1</span>
@@ -906,7 +885,10 @@ export default function SalesPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <img src={glpyLogoDark} alt="GLPY" className="h-7 w-auto" />
+              <div className="flex items-center gap-2">
+                <img src={glpySymbolDark} alt="" className="h-7 w-auto flex-shrink-0" />
+                <span className="font-black text-[#0A1628] text-base tracking-tight leading-none">GLPY</span>
+              </div>
               <p className="text-xs text-text-muted leading-relaxed max-w-xs">
                 Ferramenta educativa e de acompanhamento comportamental. Não substitui orientação médica, nutricional ou psicológica.
               </p>
