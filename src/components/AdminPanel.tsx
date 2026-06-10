@@ -15,7 +15,9 @@ const ADMIN_EMAIL = "cleisonimarketing@gmail.com";
 
 const PLANOS = [
   { value: "fundador",  label: "Fundador — R$19,90/mês" },
-  { value: "essencial", label: "Essencial" },
+  { value: "essencial", label: "Essencial — R$49,90/mês" },
+  { value: "semestral", label: "Semestral — R$249,90" },
+  { value: "anual",     label: "Anual — R$447,00" },
   { value: "pro",       label: "Pro" },
 ] as const;
 
@@ -52,8 +54,14 @@ const ORIGEM_PRAZO_DEFAULT: Record<string, string> = {
 };
 
 const PLANO_LABELS: Record<string, string> = {
-  fundador: "Fundador", essencial: "Essencial", pro: "Pro",
-  top: "Top", plus: "Plus", starter: "Starter",
+  fundador:  "Fundador",
+  essencial: "Essencial",
+  semestral: "Semestral",
+  anual:     "Anual",
+  pro:       "Pro",
+  top:       "Top",
+  plus:      "Plus",
+  starter:   "Starter",
 };
 
 const ORIGEM_LABELS: Record<string, string> = {
