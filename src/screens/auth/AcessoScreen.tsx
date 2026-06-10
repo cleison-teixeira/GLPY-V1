@@ -1,14 +1,16 @@
 // GLPY — AcessoScreen
 // Sprint 17B.5  — Tela pós-compra com e-mail de compra travado
 // Sprint 17B.11 — Tratamento de {{buyer_email}} ausente + WhatsApp real
+// Sprint 17B.42 — Suporte a plan=essencial/semestral/anual + accessDays/expiresAt
 //
-// Rota: /acesso?email={{buyer_email}}&token=GLPY2026
+// Rota: /acesso?email={{buyer_email}}&token=GLPY2026[&plan=essencial|semestral|anual]
 // Responsabilidades:
 //   1. Validar token localmente
 //   2. Confirmar plano ativo via /api/acesso/check (server-side — não confia só na URL)
 //   3. Exibir estado correto: confirmado / aguardando / não encontrado / token inválido
 //   4. Logar usuário com e-mail travado — nunca libera plano baseado apenas na URL
 //   5. Sprint 17B.11: detecta {{buyer_email}} não substituído e pede e-mail manualmente
+//   6. Sprint 17B.42: lê plan= da URL; salva expiresAt para semestral/anual
 
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -46,11 +48,16 @@ interface AcessoScreenProps {
 
 // ── Params da URL ─────────────────────────────────────────────────────────────
 
-function parseParams(): { email: string | null; token: string | null } {
+// Sprint 17B.42: planos aceitos via URL — qualquer outro valor faz fallback para essencial
+const VALID_PLANS = new Set(['essencial', 'semestral', 'anual']);
+
+function parseParams(): { email: string | null; token: string | null; plan: string } {
   const p = new URLSearchParams(window.location.search);
+  const rawPlan = p.get('plan')?.trim().toLowerCase() ?? '';
   return {
     email: p.get('email')?.trim().toLowerCase() ?? null,
     token: p.get('token')?.trim() ?? null,
+    plan:  VALID_PLANS.has(rawPlan) ? rawPlan : 'essencial',
   };
 }
 
@@ -65,19 +72,34 @@ function isPlaceholderEmail(email: string | null): boolean {
 const PLANO_LABEL: Record<string, string> = {
   fundador:  'GLPY Fundador',
   essencial: 'GLPY Essencial',
+  semestral: 'GLPY Semestral',
+  anual:     'GLPY Anual',
   pro:       'GLPY Pro',
   top:       'GLPY Top',
+};
+
+// Sprint 17B.42: configuração de acesso por plano
+interface PlanoConfig { type: 'recurring' | 'one_time'; accessDays: number | null }
+const PLANO_CONFIG: Record<string, PlanoConfig> = {
+  fundador:  { type: 'recurring', accessDays: null },
+  essencial: { type: 'recurring', accessDays: null },
+  semestral: { type: 'one_time',  accessDays: 180 },
+  anual:     { type: 'one_time',  accessDays: 365 },
+  pro:       { type: 'recurring', accessDays: null },
 };
 
 // ── Sprint 17B.19 — Purchase tracking ─────────────────────────────────────────
 
 // Planos que geram Purchase (top/admin não entram)
-const PURCHASE_PLANS = new Set(['fundador', 'essencial', 'pro']);
+const PURCHASE_PLANS = new Set(['fundador', 'essencial', 'semestral', 'anual', 'pro']);
 
 // Offer IDs HeroSpark — usados apenas localmente na chave anti-duplicidade
+// TODO: confirmar se 524492 é o offer_id real do Essencial ou se pertencia ao plano fundador
 const PLANO_OFFER_IDS: Record<string, string> = {
   fundador:  '524346',
   essencial: '524492',
+  semestral: '526680',
+  anual:     '526681',
   pro:       '524494',
 };
 
@@ -129,7 +151,7 @@ function traduzirErroAuth(code: string): string {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
-  const { email: emailParam, token } = parseParams();
+  const { email: emailParam, token, plan: planParam } = parseParams();
 
   // Sprint 17B.11: emailEfetivo é null quando {{buyer_email}} não foi substituído.
   // Será populado quando o usuário digitar o e-mail manualmente.
@@ -189,7 +211,7 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
     const timer = setTimeout(() => controller.abort(), 10_000);
     try {
       const resp = await fetch(
-        `/api/acesso/check?email=${encodeURIComponent(emailToUse)}&token=${token}`,
+        `/api/acesso/check?email=${encodeURIComponent(emailToUse)}&token=${token}&plan=${planParam}`,
         { signal: controller.signal },
       );
       const json = await resp.json();
@@ -213,6 +235,24 @@ export default function AcessoScreen({ user, authLoading }: AcessoScreenProps) {
           const eventId = await buildEventId(json.plano, emailToUse);
           trackPurchase(json.plano, eventId);
           localStorage.setItem(purchaseKey, '1');
+        }
+      }
+
+      // Sprint 17B.42 — Semestral/Anual: salva expiresAt no localStorage apenas uma vez
+      const planoConfig = PLANO_CONFIG[json.plano];
+      if (planoConfig?.type === 'one_time' && planoConfig.accessDays && emailToUse) {
+        const expiryKey = `glpy_access_expiry_${normalizarEmail(emailToUse)}`;
+        if (!localStorage.getItem(expiryKey)) {
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + planoConfig.accessDays * 24 * 60 * 60 * 1000);
+          localStorage.setItem(expiryKey, JSON.stringify({
+            plan:       json.plano,
+            planLabel:  PLANO_LABEL[json.plano] ?? json.plano,
+            accessType: 'one_time',
+            accessDays: planoConfig.accessDays,
+            activatedAt: now.toISOString(),
+            expiresAt:   expiresAt.toISOString(),
+          }));
         }
       }
     } catch (err: unknown) {

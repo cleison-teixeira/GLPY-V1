@@ -23,7 +23,7 @@ if (!getApps().length) {
 const db = getFirestore();
 
 // Planos pagos que confirmam acesso ativo
-const PAID_PLANS = new Set(["fundador", "essencial", "pro", "top"]);
+const PAID_PLANS = new Set(["fundador", "essencial", "semestral", "anual", "pro", "top"]);
 
 // Tokens aceitos para este endpoint (leitura apenas — não altera dados)
 const VALID_TOKENS = new Set(["GLPY2026"]);
