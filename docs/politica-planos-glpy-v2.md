@@ -37,73 +37,70 @@ Novos clientes entram por R$49,90/mês ou pelos pacotes semestral/anual.
 
 ---
 
-## 2. Planos sugeridos — tabela de preços
+## 2. Planos oficiais — tabela de preços e labels comerciais
+
+### Tabela oficial de planos
+
+| Plano | Preço | Equivalente mensal | Label comercial |
+|---|---:|---:|---|
+| GLPY Essencial Mensal | R$49,90/mês | R$49,90/mês | Entrada simples |
+| GLPY Essencial Semestral | R$249,90 | R$41,65/mês | Mais recomendado |
+| GLPY Essencial Anual | R$447,00 | R$37,25/mês | Melhor economia |
+| Legado / Fundador / Beta | R$19,90/mês | — | fora das campanhas públicas |
+
+---
 
 ### Mensal
 
 ```txt
 Nome: GLPY Essencial
 Preço: R$49,90/mês
-Posição: plano principal — ideal para validação e aquisição recorrente
+Label: "Entrada simples"
+Posição: plano de entrada — ideal para quem quer começar sem compromisso maior
+Indicado para: tráfego frio, teste de produto, clientes indecisos
 ```
 
 ### Semestral
 
 ```txt
 Nome: GLPY Essencial — 6 meses
-Preço sugerido: R$249,90 (equivalente a R$41,65/mês)
-Economia percebida pelo cliente: ~R$49,90 de desconto vs. 6x mensal
-Posição: oferta intermediária, boa para parceiros que querem comissão maior de uma vez
+Preço: R$249,90 (equivalente a R$41,65/mês)
+Label: "Mais recomendado"
+Economia percebida: ~R$49,90 vs. 6x mensal
+Posição: oferta principal para tráfego frio e indicação de parceiro
+Indicado para: campanha de tráfego pago, parceiros com audiência fria
 ```
 
-### Anual — duas opções
-
-#### Opção A — R$397,00 (oferta agressiva)
+### Anual — decisão final
 
 ```txt
-Nome: GLPY Essencial — Anual Acessível
-Preço: R$397,00
-Equivalente: R$33,08/mês
-Economia percebida: ~R$201,80 vs. 12x mensal
-
-Prós:
-- Alta conversão: preço mais baixo na percepção
-- Ideal para público sensível a preço que já conhece o produto
-- Aumenta ticket médio no ato da venda
-
-Contras:
-- Margem menor por usuário ao longo do ano
-- Comissão de parceiro menor: R$198,50 (único pagamento)
-- Maior risco de chargeback em valor alto pago à vista
-- Pode desvalorizar posicionamento premium no longo prazo
+Nome: GLPY Essencial — Anual
+Preço: R$447,00 (equivalente a R$37,25/mês)
+Label: "Melhor economia"
+Economia percebida: ~R$151,80 vs. 12x mensal
+Posição: oferta premium — melhor caixa antecipado e comissão máxima para parceiro
+Indicado para: parceiros com audiência qualificada, retargeting, clientes que já conhecem o produto
 ```
 
-#### Opção B — R$497,00 (oferta com mais margem)
+---
+
+### Análise dos valores anual descartados (referência histórica)
 
 ```txt
-Nome: GLPY Essencial — Anual Premium
-Preço: R$497,00
-Equivalente: R$41,42/mês
-Economia percebida: ~R$101,80 vs. 12x mensal
+R$397,00 (descartado):
+- Equivalente: R$33,08/mês — abaixo do semestral, mas margem muito comprimida
+- Parceiro receberia R$198,50 — menos atrativo
+- Decisão: agressivo demais, prejudicava margem sem vantagem proporcional de conversão
 
-Prós:
-- Margem maior por usuário/ano
-- Comissão de parceiro maior: R$248,50 (único pagamento)
-- Mantém posicionamento premium consistente
-- Melhor para campanha de parceiros com comissão de impacto
+R$497,00 (descartado):
+- Equivalente: R$41,42/mês — praticamente igual ao semestral (R$41,65/mês)
+- Não criava vantagem clara de desconto percebido para o cliente
+- Decisão: o cliente não enxergaria diferença real em relação ao semestral
 
-Contras:
-- Menor conversão imediata para público frio
-- Requer aquecimento ou relacionamento prévio (parceiros têm vantagem aqui)
-- Desconto menor percebido vs. mensal
-```
-
-#### Recomendação
-
-```txt
-Lançamento inicial: usar R$397,00 para validar volume e parceiros.
-Após 90 dias com base sólida: testar R$497,00 para parceiros com audiência qualificada.
-Ambos podem coexistir como produtos separados na HeroSpark.
+R$447,00 (aprovado):
+- Ponto de equilíbrio entre conversão, margem e atratividade para parceiro
+- Abaixo dos R$40/mês na percepção do cliente
+- Diferença clara e real em relação ao semestral
 ```
 
 ---
@@ -116,8 +113,7 @@ Ambos podem coexistir como produtos separados na HeroSpark.
 |---|---:|---:|
 | Mensal | R$49,90/mês | R$24,95/mês |
 | Semestral | R$249,90 | R$124,95 |
-| Anual R$397,00 | R$397,00 | R$198,50 |
-| Anual R$497,00 | R$497,00 | R$248,50 |
+| Anual | R$447,00 | R$223,50 |
 
 ### Regras de comissionamento
 
@@ -301,12 +297,12 @@ Para você, parceiro, significa:
 1. Atualizar paywall no app com novo preço R$49,90/mês como oferta principal.
 2. Criar produto "GLPY Essencial Mensal R$49,90" na HeroSpark.
 3. Criar produto "GLPY Essencial Semestral R$249,90" na HeroSpark.
-4. Criar produto "GLPY Essencial Anual R$397,00" na HeroSpark.
-5. Criar produto "GLPY Essencial Anual R$497,00" na HeroSpark (opcional/campanha).
-6. Mapear product IDs novos no sistema de webhook.
-7. Preparar checkout para mensal, semestral e anual.
-8. Preparar política de liberação de acesso: manual ou via webhook conforme plano.
-9. Ajustar textos comerciais dentro do app (paywall, tela de upgrade, descrição de plano).
+4. Criar produto "GLPY Essencial Anual R$447,00" na HeroSpark.
+5. Mapear product IDs novos no sistema de webhook.
+6. Preparar checkout para mensal, semestral e anual.
+7. Preparar política de liberação de acesso: manual ou via webhook conforme plano.
+8. Ajustar textos comerciais dentro do app (paywall, tela de upgrade, descrição de plano).
+9. Aplicar labels comerciais no paywall: "Entrada simples", "Mais recomendado", "Melhor economia".
 10. Criar estrutura de programa de parceiros na HeroSpark (co-produtor ou afiliado com 50%).
 11. Criar links rastreáveis por parceiro.
 12. Preparar materiais de divulgação para parceiros (copy, imagem, argumentário).
@@ -336,41 +332,60 @@ Comissão parceiro (50%): R$124,95
 Líquido GLPY após parceiro: R$113,45 por venda
 ```
 
-### Anual R$397,00
+### Anual R$447,00
 
 ```txt
-Taxa HeroSpark estimada (4,6%): R$18,26
-Líquido bruto estimado: R$378,74
-Comissão parceiro (50%): R$198,50
-Líquido GLPY após parceiro: R$180,24 por venda
-```
-
-### Anual R$497,00
-
-```txt
-Taxa HeroSpark estimada (4,6%): R$22,86
-Líquido bruto estimado: R$474,14
-Comissão parceiro (50%): R$248,50
-Líquido GLPY após parceiro: R$225,64 por venda
+Taxa HeroSpark estimada (4,6%): R$20,56
+Líquido bruto estimado: R$426,44
+Comissão parceiro (50%): R$223,50
+Líquido GLPY após parceiro: R$202,94 por venda
 ```
 
 ---
 
-## 11. Decisão final aprovada — V2
+## 11. Decisão final do plano anual
+
+### Por que R$447,00
 
 ```txt
-Plano principal público:     GLPY Essencial — R$49,90/mês
-Plano semestral:             GLPY Essencial — R$249,90
-Plano anual (opção A):       GLPY Essencial — R$397,00 (agressivo, mais conversão)
-Plano anual (opção B):       GLPY Essencial — R$497,00 (mais margem, parceiros qualificados)
-Plano legado/fundador:       R$19,90/mês (mantido para quem já assinou, não promovido)
+R$397,00 — descartado:
+Boa conversão, mas margem agressiva demais.
+Comissão de parceiro baixa (R$198,50) e não criava caixa suficiente para sustentar tráfego pago.
+
+R$497,00 — descartado:
+Equivalente mensal de R$41,42 ficava praticamente igual ao semestral (R$41,65/mês).
+O cliente não enxergaria vantagem real de pagar à vista por um ano.
+Conversão comprometida pela falta de percepção de desconto.
+
+R$447,00 — aprovado:
+- Equivalente: R$37,25/mês — abaixo dos R$40/mês, percepção clara de desconto.
+- Diferença real vs. semestral: R$4,40/mês a menos — visível e defensável.
+- Comissão de parceiro: R$223,50 — relevante o suficiente para motivar indicação de qualidade.
+- Caixa antecipado: R$426,44 líquido estimado por venda — sustenta CAC mais alto com segurança.
+- Melhor equilíbrio entre conversão, margem e atratividade para parceiro.
+```
+
+---
+
+## 12. Decisão final aprovada — V2 (atualizada)
+
+```txt
+Plano mensal:          GLPY Essencial — R$49,90/mês    | Label: "Entrada simples"
+Plano semestral:       GLPY Essencial — R$249,90        | Label: "Mais recomendado"
+Plano anual (final):   GLPY Essencial — R$447,00        | Label: "Melhor economia"
+Plano legado/fundador: R$19,90/mês (mantido para quem já assinou, não promovido)
 Comissão parceiro fundador:  50% sobre qualquer plano vendido
 Comissão afiliado futuro:    30% a 40% (a definir)
+
+Orientação de tráfego:
+- Tráfego frio:        destacar Semestral como oferta recomendada
+- Tráfego quente/parceiro: destacar Anual como melhor economia
+- Mensal:              entrada simples para quem ainda não decidiu o prazo
 ```
 
 ---
 
-## 12. Observações finais
+## 13. Observações finais
 
 ```txt
 - Este documento é de orientação estratégica.
@@ -383,4 +398,5 @@ Comissão afiliado futuro:    30% a 40% (a definir)
 
 ---
 
-*Documento criado em 2026-06-10 — GLPY Política Comercial V2*
+*Documento criado em 2026-06-10 — GLPY Política Comercial V2*  
+*Atualizado em 2026-06-10 — anual definido em R$447,00 como decisão final*
