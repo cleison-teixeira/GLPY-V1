@@ -25,25 +25,31 @@ Status:              produto ativo (já criado)
 ### Produto 2 — GLPY Semestral
 
 ```txt
-Nome na HeroSpark:   GLPY Semestral
+Nome na HeroSpark:    GLPY Semestral
 Tipo recomendado MVP: pagamento único
-Preço:               R$249,90
-Plano interno GLPY:  semestral
-Duração de acesso:   6 meses / 180 dias a partir da data da compra
-Label comercial:     "Mais recomendado"
-Status:              a criar na HeroSpark
+Preço:                R$249,90
+Plano interno GLPY:   semestral
+Duração de acesso:    6 meses / 180 dias a partir da data da compra
+Label comercial:      "Mais recomendado"
+Slug/checkout:        glpy-semestral-526680
+Checkout direto:      https://pay.herospark.com/glpy-semestral-526680
+Página de vendas:     https://cleison-teixeira.herospark.co/glpy-semestral
+Status:               CRIADO — pendente: configurar link pós-compra e validar /acesso com plan=semestral
 ```
 
 ### Produto 3 — GLPY Anual
 
 ```txt
-Nome na HeroSpark:   GLPY Anual
+Nome na HeroSpark:    GLPY Anual
 Tipo recomendado MVP: pagamento único
-Preço:               R$447,00
-Plano interno GLPY:  anual
-Duração de acesso:   12 meses / 365 dias a partir da data da compra
-Label comercial:     "Melhor economia"
-Status:              a criar na HeroSpark
+Preço:                R$447,00
+Plano interno GLPY:   anual
+Duração de acesso:    12 meses / 365 dias a partir da data da compra
+Label comercial:      "Melhor economia"
+Slug/checkout:        glpy-anual-526681
+Checkout direto:      https://pay.herospark.com/glpy-anual-526681
+Página de vendas:     https://cleison-teixeira.herospark.co/glpy-anual
+Status:               CRIADO — pendente: configurar link pós-compra e validar /acesso com plan=anual
 ```
 
 ---
@@ -229,24 +235,82 @@ Fase posterior:
 
 ---
 
-## 10. Checklist manual para criação na HeroSpark
+## 10. Produtos criados na HeroSpark — links reais
+
+> Atualizado em 2026-06-10 com dados reais após criação manual na HeroSpark.
+
+### Tabela completa de produtos e links
+
+| Produto | Valor | Tipo | Acesso | Página de vendas | Checkout direto | Link pós-compra | Status |
+|---|---:|---|---|---|---|---|---|
+| GLPY Essencial | R$49,90/mês | assinatura mensal | recorrente | (confirmar) | (confirmar) | `https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026` | ativo |
+| GLPY Semestral | R$249,90 | pagamento único | 180 dias | [abrir](https://cleison-teixeira.herospark.co/glpy-semestral) | [checkout](https://pay.herospark.com/glpy-semestral-526680) | `https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=semestral` | criado — pós-compra pendente |
+| GLPY Anual | R$447,00 | pagamento único | 365 dias | [abrir](https://cleison-teixeira.herospark.co/glpy-anual) | [checkout](https://pay.herospark.com/glpy-anual-526681) | `https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=anual` | criado — pós-compra pendente |
+
+---
+
+### Links de ativação pós-compra por plano
+
+```txt
+GLPY Essencial (mensal):
+https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026
+
+GLPY Semestral:
+https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=semestral
+
+GLPY Anual:
+https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=anual
+```
+
+> Esses links devem ser configurados no campo "URL de redirecionamento pós-compra" de cada produto/oferta na HeroSpark.
+
+---
+
+### Observação técnica — parâmetro plan= na rota /acesso
+
+```txt
+SITUAÇÃO ATUAL:
+A rota /acesso existe e funciona para o plano mensal (Essencial).
+O parâmetro plan= (ex: plan=semestral, plan=anual) ainda NÃO está implementado na rota /acesso.
+
+O QUE FALTA:
+A rota /acesso precisa ser atualizada para:
+1. Ler o parâmetro plan= da URL.
+2. Registrar o plano correto (semestral/anual) ao liberar acesso.
+3. Calcular expiresAt conforme accessDays do plano (180 ou 365 dias).
+
+QUANDO FAZER:
+Essa implementação deve ser feita em tarefa técnica separada, antes de ativar os
+links de pós-compra do Semestral e Anual na HeroSpark.
+
+NÃO ATIVAR os links pós-compra do Semestral e Anual antes de validar /acesso com plan=.
+```
+
+---
+
+## 11. Checklist manual para criação na HeroSpark
 
 ### Criar os produtos
 
-- [ ] GLPY Semestral — R$249,90 (pagamento único, acesso por 180 dias)
-- [ ] GLPY Anual — R$447,00 (pagamento único, acesso por 365 dias)
+- [x] GLPY Semestral — R$249,90 (pagamento único, acesso por 180 dias) ✓ criado
+- [x] GLPY Anual — R$447,00 (pagamento único, acesso por 365 dias) ✓ criado
 
-### Salvar após criação
+### Salvar links e IDs após criação
 
-- [ ] Link de checkout GLPY Essencial
-- [ ] Link de checkout GLPY Semestral
-- [ ] Link de checkout GLPY Anual
-- [ ] ID do produto Essencial (`product_id`)
-- [ ] ID do produto Semestral (`product_id`)
-- [ ] ID do produto Anual (`product_id`)
-- [ ] ID da oferta Essencial (`offer_id`) — conferir se difere do `product_id`
-- [ ] ID da oferta Semestral (`offer_id`)
-- [ ] ID da oferta Anual (`offer_id`)
+- [ ] Link de checkout GLPY Essencial (confirmar)
+- [x] Link de checkout GLPY Semestral → https://pay.herospark.com/glpy-semestral-526680
+- [x] Link de checkout GLPY Anual → https://pay.herospark.com/glpy-anual-526681
+- [ ] ID do produto Essencial (`product_id`) — a confirmar via webhook ou painel
+- [ ] ID do produto Semestral (`product_id`) — a confirmar via webhook ou painel
+- [ ] ID do produto Anual (`product_id`) — a confirmar via webhook ou painel
+- [ ] ID da oferta Essencial (`offer_id`) — 524346 é fundador; confirmar Essencial
+- [ ] ID da oferta Semestral (`offer_id`) — slug visível: 526680 (confirmar se é offer_id)
+- [ ] ID da oferta Anual (`offer_id`) — slug visível: 526681 (confirmar se é offer_id)
+
+### Configurar link pós-compra na HeroSpark
+
+- [ ] Configurar URL pós-compra do Semestral (aguardando validação de /acesso com plan=semestral)
+- [ ] Configurar URL pós-compra do Anual (aguardando validação de /acesso com plan=anual)
 
 ### Configurar automações na HeroSpark
 
@@ -256,35 +320,51 @@ Fase posterior:
 - [ ] Automação de **cancelamento** → webhook GLPY (Essencial mensal)
 - [ ] Automação de **reembolso** → webhook GLPY (todos os produtos)
 
+### Validações técnicas pendentes
+
+- [ ] Implementar leitura do parâmetro plan= na rota /acesso
+- [ ] Validar /acesso com plan=semestral (compra de teste)
+- [ ] Validar /acesso com plan=anual (compra de teste)
+- [ ] Confirmar que Firebase registra plano semestral com expiresAt = hoje + 180 dias
+- [ ] Confirmar que Firebase registra plano anual com expiresAt = hoje + 365 dias
+
 ---
 
-## 11. Links e IDs — a preencher após criação
+## 12. Links e IDs — registro oficial
 
-> Preencher manualmente após criar os produtos na HeroSpark.
+> Atualizado em 2026-06-10 com dados reais dos produtos criados.
 
 ```txt
-GLPY Essencial:
-  Página de vendas: (preencher)
-  Link de checkout: (preencher)
-  product_id:       (preencher)
-  offer_id:         524346 (fundador — confirmar se Essencial terá ID diferente)
+GLPY Essencial (mensal):
+  Página de vendas: (confirmar — produto ativo)
+  Link de checkout: (confirmar)
+  Slug visível:     (confirmar)
+  product_id:       (a confirmar via payload do webhook)
+  offer_id:         524346 (era fundador — confirmar se Essencial usa ID diferente)
+  Link pós-compra:  https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026
 
 GLPY Semestral:
-  Página de vendas: (a criar)
-  Link de checkout: (a criar)
-  product_id:       (a preencher após criação)
-  offer_id:         (a preencher após criação)
+  Página de vendas: https://cleison-teixeira.herospark.co/glpy-semestral
+  Link de checkout: https://pay.herospark.com/glpy-semestral-526680
+  Slug visível:     glpy-semestral-526680
+  product_id:       (a confirmar via payload do webhook após compra de teste)
+  offer_id:         526680 (slug visível — confirmar se é o offer_id real)
+  Link pós-compra:  https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=semestral
+  Status:           CRIADO — link pós-compra pendente de validação técnica
 
 GLPY Anual:
-  Página de vendas: (a criar)
-  Link de checkout: (a criar)
-  product_id:       (a preencher após criação)
-  offer_id:         (a preencher após criação)
+  Página de vendas: https://cleison-teixeira.herospark.co/glpy-anual
+  Link de checkout: https://pay.herospark.com/glpy-anual-526681
+  Slug visível:     glpy-anual-526681
+  product_id:       (a confirmar via payload do webhook após compra de teste)
+  offer_id:         526681 (slug visível — confirmar se é o offer_id real)
+  Link pós-compra:  https://glpy.com.br/acesso?email={{buyer_email}}&token=GLPY2026&plan=anual
+  Status:           CRIADO — link pós-compra pendente de validação técnica
 ```
 
 ---
 
-## 12. Próxima etapa técnica futura
+## 13. Próxima etapa técnica futura
 
 Depois que os produtos forem criados na HeroSpark e os IDs coletados:
 
@@ -302,7 +382,7 @@ Depois que os produtos forem criados na HeroSpark e os IDs coletados:
 
 ---
 
-## 13. Observações finais
+## 14. Observações finais
 
 ```txt
 - Este documento é de mapeamento técnico-comercial.
@@ -315,4 +395,5 @@ Depois que os produtos forem criados na HeroSpark e os IDs coletados:
 
 ---
 
-*Documento criado em 2026-06-10 — GLPY HeroSpark Produtos V1*
+*Documento criado em 2026-06-10 — GLPY HeroSpark Produtos V1*  
+*Atualizado em 2026-06-10 — links reais de Semestral e Anual registrados após criação na HeroSpark*
