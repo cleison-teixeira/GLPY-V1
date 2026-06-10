@@ -52,9 +52,11 @@ export function trackMetaEvent(name: string, p?: Record<string, unknown>): void 
 
 // Parâmetros oficiais por plano — sem dados pessoais
 export const PLANO_PIXEL_PARAMS: Record<string, Record<string, unknown>> = {
-  fundador: { content_name: 'GLPY Fundador',  content_category: 'subscription', value: 19.90, currency: 'BRL', plan: 'fundador'  },
-  essencial: { content_name: 'GLPY Essencial', content_category: 'subscription', value: 29.90, currency: 'BRL', plan: 'essencial' },
-  pro:       { content_name: 'GLPY Pro',        content_category: 'subscription', value: 59.90, currency: 'BRL', plan: 'pro'       },
+  fundador:  { content_name: 'GLPY Fundador',  content_category: 'subscription', value:  19.90, currency: 'BRL', plan: 'fundador'  },
+  essencial: { content_name: 'GLPY Essencial', content_category: 'subscription', value:  49.90, currency: 'BRL', plan: 'essencial' },
+  semestral: { content_name: 'GLPY Semestral', content_category: 'subscription', value: 249.90, currency: 'BRL', plan: 'semestral' },
+  anual:     { content_name: 'GLPY Anual',     content_category: 'subscription', value: 447.00, currency: 'BRL', plan: 'anual'     },
+  pro:       { content_name: 'GLPY Pro',        content_category: 'subscription', value:  59.90, currency: 'BRL', plan: 'pro'       },
 };
 
 // Sprint 17B.19 — Purchase client-side com eventID para futura deduplicação CAPI
