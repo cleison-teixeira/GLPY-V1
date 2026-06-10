@@ -12,6 +12,7 @@ import { syncFromFirestore } from './services/firestore';
 import { getLocalDateKey } from './utils/formatters';
 import { hasActiveAccess } from './core/accessControl';
 import Login from './components/Login';
+import SalesPage from './screens/public/SalesPage';
 import Onboarding from './components/Onboarding';
 import HomePremiumV2 from './components/HomePremiumV2';
 import ProtocolHub from './components/ProtocolHub';
@@ -301,9 +302,10 @@ export default function App() {
     );
   }
 
-  // Sem usuário autenticado → Login
+  // Sem usuário autenticado → SalesPage (raiz) ou Login (rota /login)
   if (!user) {
-    return <Login />;
+    if (window.location.pathname === '/login') return <Login />;
+    return <SalesPage />;
   }
 
   // Usuário autenticado — renderiza tela determinada por routeUser()
