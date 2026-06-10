@@ -15,12 +15,14 @@ import { createHash } from 'node:crypto';
 // ── Plano → parâmetros de conversão ──────────────────────────────────────────
 
 const PLANO_CAPI: Record<string, { value: number; contentName: string }> = {
-  fundador:  { value: 19.90, contentName: 'GLPY Fundador'  },
-  essencial: { value: 29.90, contentName: 'GLPY Essencial' },
-  pro:       { value: 59.90, contentName: 'GLPY Pro'       },
+  fundador:  { value:  19.90, contentName: 'GLPY Fundador'  },
+  essencial: { value:  49.90, contentName: 'GLPY Essencial' },
+  semestral: { value: 249.90, contentName: 'GLPY Semestral' },
+  anual:     { value: 447.00, contentName: 'GLPY Anual'     },
+  pro:       { value:  59.90, contentName: 'GLPY Pro'       },
 };
 
-const PURCHASE_PLANS = new Set(['fundador', 'essencial', 'pro']);
+const PURCHASE_PLANS = new Set(['fundador', 'essencial', 'semestral', 'anual', 'pro']);
 
 // ── Helpers de hash ───────────────────────────────────────────────────────────
 
