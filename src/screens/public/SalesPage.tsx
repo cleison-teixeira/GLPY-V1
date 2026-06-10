@@ -7,8 +7,8 @@ import {
   Heart, Dumbbell, BarChart3, ClipboardList, ChevronDown, ChevronUp,
   Sparkles, Shield, Zap, Menu, X, ArrowRight, Users,
 } from 'lucide-react';
-import glpySymbolDark  from '@/assets/logos/logo-symbol-dark.png';
-import glpySymbolLight from '@/assets/logos/logo-symbol-light.png';
+import glpyLogoLight from '@/assets/logos/logo-light.png';
+import glpyLogoDark  from '@/assets/logos/logo-dark.png';
 import { trackPageView, trackViewContent, trackInitiateCheckout } from '../../services/metaPixel';
 
 // ── Checkout links oficiais HeroSpark ─────────────────────────────────────────
@@ -365,9 +365,8 @@ export default function SalesPage() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <a href="/" className="flex-shrink-0 flex items-center gap-2">
-            <img src={glpySymbolDark} alt="" className="h-8 w-auto flex-shrink-0" />
-            <span className="font-black text-[#0A1628] text-lg tracking-tight leading-none">GLPY</span>
+          <a href="/" className="flex-shrink-0">
+            <img src={glpyLogoLight} alt="GLPY" className="h-9 w-auto object-contain" />
           </a>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-text-muted">
@@ -436,10 +435,7 @@ export default function SalesPage() {
             </span>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-2.5">
-                <img src={glpySymbolLight} alt="" className="h-10 w-auto flex-shrink-0" />
-                <span className="font-black text-white text-2xl tracking-tight leading-none">GLPY</span>
-              </div>
+              <img src={glpyLogoDark} alt="GLPY" className="h-12 w-auto object-contain" />
               <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 O app da jornada<br />
                 <span className="text-primary">GLP-1</span>
@@ -885,10 +881,7 @@ export default function SalesPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <img src={glpySymbolDark} alt="" className="h-7 w-auto flex-shrink-0" />
-                <span className="font-black text-[#0A1628] text-base tracking-tight leading-none">GLPY</span>
-              </div>
+              <img src={glpyLogoLight} alt="GLPY" className="h-8 w-auto object-contain" />
               <p className="text-xs text-text-muted leading-relaxed max-w-xs">
                 Ferramenta educativa e de acompanhamento comportamental. Não substitui orientação médica, nutricional ou psicológica.
               </p>
