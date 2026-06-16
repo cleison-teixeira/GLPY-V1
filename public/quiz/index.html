@@ -49,7 +49,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 
 /* QUIZ */
 #p-quiz{padding:0;align-items:stretch}
-.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px calc(180px + env(safe-area-inset-bottom))}
+.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px calc(110px + env(safe-area-inset-bottom))}
 .quiz-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
 .quiz-logo img{height:30px;width:auto}
 .quiz-counter{font-size:12px;color:var(--tm)}
@@ -70,7 +70,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 .risk-high{background:rgba(226,75,74,.15);color:var(--red)}
 .risk-med{background:rgba(239,159,39,.15);color:var(--amber)}
 .risk-low{background:rgba(0,200,150,.15);color:var(--g)}
-.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:calc(28px + env(safe-area-inset-bottom))}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:calc(16px + env(safe-area-inset-bottom))}
 .btn-back{background:none;border:1px solid rgba(255,255,255,.12);color:var(--tm);font-size:14px;padding:11px 22px;border-radius:10px;cursor:pointer;transition:all .2s}
 .btn-back:hover{border-color:rgba(255,255,255,.25);color:#fff}
 .btn-next{background:var(--g);color:var(--n);font-weight:700;font-size:14px;padding:13px 28px;border-radius:11px;border:none;cursor:pointer;transition:all .2s}
@@ -467,10 +467,18 @@ function renderQ(){
   document.getElementById("btn-next").textContent=cur===QUESTIONS.length-1?"Ver meu resultado →":"Próxima →";
 }
 
-function scrollToNav(){
+function scrollToNavIfNeeded(){
   const nav=document.querySelector(".quiz-nav");
   if(!nav)return;
-  setTimeout(()=>nav.scrollIntoView({behavior:"smooth",block:"center"}),120);
+  setTimeout(()=>{
+    const rect=nav.getBoundingClientRect();
+    const safeBottom=150;
+    const vh=window.innerHeight||document.documentElement.clientHeight;
+    if(rect.bottom>vh-safeBottom){
+      const delta=rect.bottom-(vh-safeBottom);
+      window.scrollBy({top:delta+20,behavior:"smooth"});
+    }
+  },120);
 }
 
 function selectOpt(i){
@@ -480,7 +488,7 @@ function selectOpt(i){
   if(btn)btn.disabled=false;
   const q=QUESTIONS[cur];
   if(q.insight){const ins=document.getElementById("q-insight");if(ins){ins.textContent=q.insight;ins.className="q-insight show";}}
-  scrollToNav();
+  scrollToNavIfNeeded();
 }
 
 function nextQ(){
