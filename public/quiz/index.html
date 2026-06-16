@@ -49,7 +49,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 
 /* QUIZ */
 #p-quiz{padding:0;align-items:stretch}
-.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px 72px}
+.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px calc(120px + env(safe-area-inset-bottom))}
 .quiz-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
 .quiz-logo img{height:30px;width:auto}
 .quiz-counter{font-size:12px;color:var(--tm)}
@@ -70,7 +70,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 .risk-high{background:rgba(226,75,74,.15);color:var(--red)}
 .risk-med{background:rgba(239,159,39,.15);color:var(--amber)}
 .risk-low{background:rgba(0,200,150,.15);color:var(--g)}
-.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:calc(28px + env(safe-area-inset-bottom))}
 .btn-back{background:none;border:1px solid rgba(255,255,255,.12);color:var(--tm);font-size:14px;padding:11px 22px;border-radius:10px;cursor:pointer;transition:all .2s}
 .btn-back:hover{border-color:rgba(255,255,255,.25);color:#fff}
 .btn-next{background:var(--g);color:var(--n);font-weight:700;font-size:14px;padding:13px 28px;border-radius:11px;border:none;cursor:pointer;transition:all .2s}
@@ -105,7 +105,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 
 /* RESULTADO */
 #p-result{padding:0;align-items:stretch}
-.result-wrap{width:100%;max-width:620px;margin:0 auto;padding:36px 20px 80px}
+.result-wrap{width:100%;max-width:620px;margin:0 auto;padding:36px 20px calc(120px + env(safe-area-inset-bottom))}
 .result-logo{text-align:center;margin-bottom:28px}
 .result-logo img{height:36px;width:auto}
 .result-card{border-radius:20px;padding:28px;margin-bottom:18px;border:1px solid;text-align:center;position:relative;overflow:hidden;animation:cardIn .5s ease both}
@@ -317,8 +317,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
     <div class="vsl-section">
       <div class="vsl-inner">
         <div style="width:100%;max-width:340px;margin:0 auto">
-          <vturb-smartplayer id="vid-6a310d3d60d7b743ade4dd06" style="display:block;margin:0 auto;width:100%;"></vturb-smartplayer>
-          <script type="text/javascript">var s=document.createElement("script");s.src="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a310d3d60d7b743ade4dd06/v4/player.js",s.async=!0,document.head.appendChild(s);</script>
+          <div id="vsl-container" style="min-height:200px;background:#000;border-radius:14px"></div>
         </div>
         </div>
       <div class="vsl-info">
@@ -580,6 +579,7 @@ function showResult(){
   document.getElementById("anchor-final").innerHTML="💡 R$"+canetoVal+" na caneta por mês. R$49,90 no GLPY. Menos de "+glpyPct+"% para proteger 100% do seu investimento.";
 
   showPage("p-result");
+  loadVturb();
 
   // Count-up animado
   setTimeout(()=>countUp(rs,pct,1200),300);
@@ -597,10 +597,17 @@ function showResult(){
   },400);
 }
 
-// ── VTURB ──
+// ── VTURB — carrega somente na tela de resultado ──
+var _vslLoaded=false;
 function loadVturb(){
+  if(_vslLoaded)return;
+  _vslLoaded=true;
   const c=document.getElementById("vsl-container");
-  c.innerHTML='<!-- COLE AQUI O EMBED VTURB (JavaScript ou iFrame) --> <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0d1b2e;color:rgba(255,255,255,.4);font-size:13px;padding:20px;text-align:center">Cole o embed VTurb aqui no HTML</div>';
+  c.innerHTML='<vturb-smartplayer id="vid-6a310d3d60d7b743ade4dd06" style="display:block;margin:0 auto;width:100%;"></vturb-smartplayer>';
+  var s=document.createElement("script");
+  s.src="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a310d3d60d7b743ade4dd06/v4/player.js";
+  s.async=true;
+  document.head.appendChild(s);
 }
 
 
