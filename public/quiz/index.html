@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz GLPY — Descubra seu protocolo</title>
+  <meta name="description" content="Responda 6 perguntas e descubra qual protocolo GLPY é o certo para você agora." />
+  <meta property="og:title" content="Quiz GLPY — Qual é o seu risco na jornada da caneta?" />
+  <meta property="og:description" content="Responda 6 perguntas e descubra qual protocolo protege sua jornada." />
+  <meta property="og:image" content="https://glpy.com.br/icon-512-v5.png" />
+  <link rel="icon" href="https://glpy.com.br/apple-touch-icon-v5.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #6AD28F;
+      --green-dark: #3FAE68;
+      --green-glow: rgba(106, 210, 143, 0.25);
+      --navy: #16213E;
+      --secondary: #6B7280;
+      --border: #E5E7EB;
+      --bg: #F7F8FA;
+      --white: #FFFFFF;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --shadow-card: 0 8px 24px rgba(0,0,0,0.06);
+      --shadow-soft: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--navy);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      background: var(--white);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 20px 24px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px var(--green-glow);
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg { display: block; }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.5px;
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      padding: 20px 24px 0;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--secondary);
+    }
+
+    .progress-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .progress-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), var(--green-dark));
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Screen ── */
+    .screen {
+      display: none;
+      padding: 24px 24px 32px;
+      animation: fadeSlideIn 0.35s ease forwards;
+    }
+
+    .screen.active { display: block; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeSlideBack {
+      from { opacity: 0; transform: translateX(-24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .screen.slide-back { animation: fadeSlideBack 0.3s ease forwards; }
+
+    /* ── Intro ── */
+    .intro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(106, 210, 143, 0.12);
+      color: var(--green-dark);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .intro-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .intro-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--navy);
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .intro-title span {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .intro-desc {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--secondary);
+      margin-bottom: 28px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--secondary);
+      line-height: 1.3;
+    }
+
+    /* ── Question ── */
+    .q-step {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green-dark);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .q-title {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--navy);
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .q-subtitle {
+      font-size: 14px;
+      color: var(--secondary);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--white);
+      text-align: left;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .option:active { transform: scale(0.98); }
+
+    .option.selected {
+      border-color: var(--green);
+      background: rgba(106, 210, 143, 0.06);
+      box-shadow: 0 0 0 3px rgba(106, 210, 143, 0.15);
+    }
+
+    .option-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .option.selected .option-icon {
+      background: rgba(106, 210, 143, 0.15);
+    }
+
+    .option-text {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.4;
+    }
+
+    .option-check {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .option.selected .option-check {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .option.selected .option-check::after {
+      content: '';
+      width: 5px;
+      height: 9px;
+      border: 2px solid white;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) translateY(-1px);
+      display: block;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      height: 56px;
+      border-radius: var(--radius-lg);
+      border: none;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: white;
+      box-shadow: 0 8px 20px rgba(106, 210, 143, 0.35);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--secondary);
+      border: 1.5px solid var(--border);
+      margin-top: 10px;
+    }
+
+    .btn-wrap { margin-top: 28px; }
+
+    /* ── Result ── */
+    .result-header {
+      text-align: center;
+      padding: 8px 0 24px;
+    }
+
+    .result-emoji {
+      font-size: 56px;
+      margin-bottom: 12px;
+      display: block;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.3); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .result-badge.alto   { background: #FEE2E2; color: #DC2626; }
+    .result-badge.medio  { background: #FEF3C7; color: #D97706; }
+    .result-badge.baixo  { background: rgba(106, 210, 143, 0.15); color: var(--green-dark); }
+
+    .result-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.25;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .result-desc {
+      font-size: 15px;
+      color: var(--secondary);
+      line-height: 1.6;
+      padding: 0 4px;
+    }
+
+    .protocol-card {
+      background: linear-gradient(135deg, #0B1020, #121A2E);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      margin: 24px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .protocol-card::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(106,210,143,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .protocol-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .protocol-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .protocol-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.5;
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 0 0 24px;
+    }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+    }
+
+    .item-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .item-text {
+      font-size: 14px;
+      color: var(--navy);
+      line-height: 1.5;
+    }
+
+    .item-text strong { font-weight: 600; }
+
+    .cta-section { text-align: center; }
+
+    .cta-note {
+      font-size: 13px;
+      color: var(--secondary);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    .price-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .price-current {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .price-period {
+      font-size: 14px;
+      color: var(--secondary);
+      font-weight: 500;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    /* ── Loading ── */
+    .loading-screen {
+      display: none;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .loading-screen.active { display: block; }
+
+    .loading-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 20px 0 8px;
+    }
+
+    .loading-desc {
+      font-size: 14px;
+      color: var(--secondary);
+      line-height: 1.6;
+    }
+
+    .spinner {
+      width: 56px; height: 56px;
+      margin: 0 auto 4px;
+      position: relative;
+    }
+
+    .spinner::before, .spinner::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .spinner::before {
+      inset: 0;
+      border: 4px solid var(--border);
+    }
+
+    .spinner::after {
+      inset: 0;
+      border: 4px solid transparent;
+      border-top-color: var(--green);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-steps {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--secondary);
+      opacity: 0;
+      animation: stepReveal 0.4s ease forwards;
+    }
+
+    .loading-step .step-dot {
+      width: 8px; height: 8px;
+      background: var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .loading-step.done .step-dot { background: var(--green); }
+    .loading-step.done { color: var(--navy); font-weight: 500; }
+
+    @keyframes stepReveal {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 360px) {
+      .intro-title { font-size: 24px; }
+      .q-title { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-mark">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 2C7.5 2 5.5 3.5 5.5 5.5C5.5 7 6.5 8.2 8 8.8L8 10.5C8 11.3 8.7 12 9.5 12H10.5C11.3 12 12 11.3 12 10.5L12 8.8C13.5 8.2 14.5 7 14.5 5.5C14.5 3.5 12.5 2 10 2Z" fill="white" opacity="0.9"/>
+        <path d="M8.5 13H11.5L12 17H8L8.5 13Z" fill="white" opacity="0.7"/>
+        <path d="M7 17H13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="logo-text">GLPY</span>
+  </header>
+
+  <!-- Progress bar (hidden on intro + result) -->
+  <div class="progress-wrap" id="progressWrap" style="display:none">
+    <div class="progress-meta">
+      <span class="progress-label">Sua jornada</span>
+      <span class="progress-count" id="progressCount">1 de 6</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:16%"></div>
+    </div>
+  </div>
+
+  <!-- ── Screen: Intro ── -->
+  <section class="screen active" id="screen-intro">
+    <div class="intro-badge"><span class="dot"></span> Diagnóstico gratuito • 2 minutos</div>
+    <h1 class="intro-title">Qual é o seu risco na <span>jornada da caneta?</span></h1>
+    <p class="intro-desc">Responda 6 perguntas rápidas e descubra qual protocolo GLPY protege sua jornada agora.</p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-number">10</div>
+        <div class="stat-label">protocolos específicos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">IA</div>
+        <div class="stat-label">contextual da jornada</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">1 dia</div>
+        <div class="stat-label">por vez, sem pressa</div>
+      </div>
+    </div>
+
+    <div class="btn-wrap">
+      <button class="btn btn-primary" onclick="startQuiz()">Começar diagnóstico →</button>
+    </div>
+  </section>
+
+  <!-- ── Q1: Situação atual ── -->
+  <section class="screen" id="screen-q1">
+    <div class="q-step">Pergunta 1 de 6</div>
+    <h2 class="q-title">Qual é a sua situação com a caneta hoje?</h2>
+    <p class="q-subtitle">Ozempic, Mounjaro, Wegovy, Saxenda ou similar.</p>
+    <div class="options" id="options-q1">
+      <button class="option" onclick="selectOption('q1', 0, this)">
+        <div class="option-icon">💉</div>
+        <span class="option-text">Já uso há algumas semanas ou meses</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q1', 1, this)">
+        <div class="option-icon">📦</div>
+        <span class="option-text">Tenho em casa mas ainda não comecei</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q1', 2, this)">
+        <div class="option-icon">🔍</div>
+        <span class="option-text">Estou considerando usar em breve</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q1', 3, this)">
+        <div class="option-icon">🏁</div>
+        <span class="option-text">Já usei e estou pensando em parar</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q1" disabled onclick="nextQuestion(2)">Próxima →</button>
+    </div>
+  </section>
+
+  <!-- ── Q2: Maior medo ── -->
+  <section class="screen" id="screen-q2">
+    <div class="q-step">Pergunta 2 de 6</div>
+    <h2 class="q-title">Qual é o seu maior medo agora?</h2>
+    <p class="q-subtitle">Escolha o que mais ressoa com você.</p>
+    <div class="options" id="options-q2">
+      <button class="option" onclick="selectOption('q2', 0, this)" data-weight="rebote">
+        <div class="option-icon">🔄</div>
+        <span class="option-text">Efeito rebote — engordar tudo de volta</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q2', 1, this)" data-weight="musculo">
+        <div class="option-icon">💪</div>
+        <span class="option-text">Perder músculo junto com a gordura</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q2', 2, this)" data-weight="cabelo">
+        <div class="option-icon">💇</div>
+        <span class="option-text">Queda de cabelo durante o emagrecimento</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q2', 3, this)" data-weight="efeitos">
+        <div class="option-icon">😣</div>
+        <span class="option-text">Náuseas, cansaço e efeitos colaterais</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q2', 4, this)" data-weight="rotina">
+        <div class="option-icon">❓</div>
+        <span class="option-text">Não saber o que estou fazendo de errado</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q2', 5, this)" data-weight="energia">
+        <div class="option-icon">🔋</div>
+        <span class="option-text">Falta de energia e disposição</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q2" disabled onclick="nextQuestion(3)">Próxima →</button>
+      <button class="btn btn-secondary" onclick="goBack(1)">← Voltar</button>
+    </div>
+  </section>
+
+  <!-- ── Q3: Acompanhamento ── -->
+  <section class="screen" id="screen-q3">
+    <div class="q-step">Pergunta 3 de 6</div>
+    <h2 class="q-title">Como está seu acompanhamento hoje?</h2>
+    <p class="q-subtitle">Seja honesta — isso define seu nível de risco.</p>
+    <div class="options" id="options-q3">
+      <button class="option" onclick="selectOption('q3', 0, this)">
+        <div class="option-icon">🩺</div>
+        <span class="option-text">Tenho médico e nutricionista acompanhando</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q3', 1, this)">
+        <div class="option-icon">👤</div>
+        <span class="option-text">Tenho algum acompanhamento, mas é limitado</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q3', 2, this)">
+        <div class="option-icon">😶</div>
+        <span class="option-text">Estou praticamente por conta própria</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q3', 3, this)">
+        <div class="option-icon">🌐</div>
+        <span class="option-text">Sigo dicas da internet e de amigas</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q3" disabled onclick="nextQuestion(4)">Próxima →</button>
+      <button class="btn btn-secondary" onclick="goBack(2)">← Voltar</button>
+    </div>
+  </section>
+
+  <!-- ── Q4: Alimentação ── -->
+  <section class="screen" id="screen-q4">
+    <div class="q-step">Pergunta 4 de 6</div>
+    <h2 class="q-title">Como está sua alimentação na jornada?</h2>
+    <p class="q-subtitle">A caneta reduz o apetite. Isso muda tudo.</p>
+    <div class="options" id="options-q4">
+      <button class="option" onclick="selectOption('q4', 0, this)">
+        <div class="option-icon">🥗</div>
+        <span class="option-text">Consigo me alimentar bem, tenho rotina</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q4', 1, this)">
+        <div class="option-icon">😕</div>
+        <span class="option-text">Minha alimentação está desorganizada</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q4', 2, this)">
+        <div class="option-icon">🍽️</div>
+        <span class="option-text">Quase não consigo comer por causa do apetite baixo</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q4', 3, this)">
+        <div class="option-icon">🤷</div>
+        <span class="option-text">Não sei se estou comendo o suficiente ou certo</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q4" disabled onclick="nextQuestion(5)">Próxima →</button>
+      <button class="btn btn-secondary" onclick="goBack(3)">← Voltar</button>
+    </div>
+  </section>
+
+  <!-- ── Q5: Emocional ── -->
+  <section class="screen" id="screen-q5">
+    <div class="q-step">Pergunta 5 de 6</div>
+    <h2 class="q-title">Como você se sente emocionalmente nessa jornada?</h2>
+    <p class="q-subtitle">Seja honesta. Não há resposta certa ou errada.</p>
+    <div class="options" id="options-q5">
+      <button class="option" onclick="selectOption('q5', 0, this)">
+        <div class="option-icon">😌</div>
+        <span class="option-text">Tranquila e confiante no processo</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q5', 1, this)">
+        <div class="option-icon">😰</div>
+        <span class="option-text">Ansiosa com os resultados e o que vem depois</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q5', 2, this)">
+        <div class="option-icon">😔</div>
+        <span class="option-text">Com medo de não sustentar o resultado</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q5', 3, this)">
+        <div class="option-icon">😞</div>
+        <span class="option-text">Sozinha, perdida, sem saber se estou no caminho certo</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q5" disabled onclick="nextQuestion(6)">Próxima →</button>
+      <button class="btn btn-secondary" onclick="goBack(4)">← Voltar</button>
+    </div>
+  </section>
+
+  <!-- ── Q6: Objetivo ── -->
+  <section class="screen" id="screen-q6">
+    <div class="q-step">Pergunta 6 de 6</div>
+    <h2 class="q-title">O que você mais precisa agora?</h2>
+    <p class="q-subtitle">Última pergunta. Escolha o que faz mais sentido para você.</p>
+    <div class="options" id="options-q6">
+      <button class="option" onclick="selectOption('q6', 0, this)">
+        <div class="option-icon">📋</div>
+        <span class="option-text">Estrutura e rotina clara para cada dia</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q6', 1, this)">
+        <div class="option-icon">🎯</div>
+        <span class="option-text">Um protocolo específico para minha dor</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q6', 2, this)">
+        <div class="option-icon">🤖</div>
+        <span class="option-text">IA que entende meu contexto e me orienta</span>
+        <div class="option-check"></div>
+      </button>
+      <button class="option" onclick="selectOption('q6', 3, this)">
+        <div class="option-icon">🤝</div>
+        <span class="option-text">Comunidade de pessoas na mesma jornada</span>
+        <div class="option-check"></div>
+      </button>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-primary" id="btn-q6" disabled onclick="showLoading()">Ver meu resultado →</button>
+      <button class="btn btn-secondary" onclick="goBack(5)">← Voltar</button>
+    </div>
+  </section>
+
+  <!-- ── Loading ── -->
+  <div class="loading-screen" id="screen-loading">
+    <div class="spinner"></div>
+    <div class="loading-title">Analisando seu perfil…</div>
+    <div class="loading-desc">Identificando seu protocolo ideal</div>
+    <div class="loading-steps">
+      <div class="loading-step" id="lstep1" style="animation-delay:0.2s">
+        <div class="step-dot"></div> Mapeando sua fase de jornada
+      </div>
+      <div class="loading-step" id="lstep2" style="animation-delay:0.6s">
+        <div class="step-dot"></div> Calculando nível de risco
+      </div>
+      <div class="loading-step" id="lstep3" style="animation-delay:1.0s">
+        <div class="step-dot"></div> Selecionando protocolo personalizado
+      </div>
+      <div class="loading-step" id="lstep4" style="animation-delay:1.4s">
+        <div class="step-dot"></div> Seu resultado está pronto
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Result ── -->
+  <section class="screen" id="screen-result">
+    <div class="result-header">
+      <span class="result-emoji" id="result-emoji">🔄</span>
+      <div class="result-badge" id="result-badge"></div>
+      <h2 class="result-title" id="result-title"></h2>
+      <p class="result-desc" id="result-desc"></p>
+    </div>
+
+    <div class="protocol-card">
+      <div class="protocol-label">Protocolo recomendado</div>
+      <div class="protocol-name" id="protocol-name"></div>
+      <div class="protocol-desc" id="protocol-desc"></div>
+    </div>
+
+    <div class="items-list" id="result-items"></div>
+
+    <div class="divider"></div>
+
+    <div class="cta-section">
+      <div class="price-line">
+        <span class="price-current" id="cta-price">R$249,90</span>
+        <span class="price-period">acesso por 6 meses</span>
+      </div>
+      <button class="btn btn-primary" id="cta-btn" onclick="goToCheckout()">
+        Quero começar meu protocolo →
+      </button>
+      <p class="cta-note">Acesso completo ao GLPY · Protocolo ativo · IA contextual · Comunidade</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const answers = {};
+  let currentQ = 0;
+
+  function startQuiz() {
+    document.getElementById('screen-intro').classList.remove('active');
+    document.getElementById('progressWrap').style.display = 'block';
+    showScreen('screen-q1');
+    updateProgress(1);
+  }
+
+  function showScreen(id, back = false) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'slide-back'));
+    const el = document.getElementById(id);
+    if (back) el.classList.add('slide-back');
+    el.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function selectOption(q, idx, el) {
+    document.querySelectorAll(`#options-${q} .option`).forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    const weight = el.dataset.weight || String(idx);
+    answers[q] = weight;
+    document.getElementById(`btn-${q}`).disabled = false;
+  }
+
+  function updateProgress(step) {
+    currentQ = step;
+    const pct = Math.round((step / 6) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressCount').textContent = `${step} de 6`;
+  }
+
+  function nextQuestion(step) {
+    showScreen(`screen-q${step}`);
+    updateProgress(step);
+  }
+
+  function goBack(step) {
+    showScreen(`screen-q${step}`, true);
+    updateProgress(step);
+  }
+
+  function showLoading() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('screen-loading').classList.add('active');
+
+    const steps = ['lstep1','lstep2','lstep3','lstep4'];
+    steps.forEach((id, i) => {
+      setTimeout(() => {
+        document.getElementById(id).classList.add('done');
+      }, 600 + i * 500);
+    });
+
+    setTimeout(() => {
+      document.getElementById('screen-loading').classList.remove('active');
+      buildResult();
+      showScreen('screen-result');
+    }, 3200);
+  }
+
+  function buildResult() {
+    const mainFear = answers.q2 || 'rebote';
+    const support  = parseInt(answers.q3 || '2');
+    const emotion  = parseInt(answers.q4 || '1');
+
+    const riskScore = (support >= 2 ? 2 : 0) + (emotion >= 2 ? 1 : 0);
+    const level = riskScore >= 2 ? 'alto' : riskScore === 1 ? 'medio' : 'baixo';
+
+    const protocols = {
+      rebote:  { name: 'Anti-Rebote', desc: 'Uma missão por dia para reforçar água, proteína, rotina e construir uma proteção real para o resultado conquistado.' },
+      musculo: { name: 'Não Perca Músculo', desc: 'Missões de estímulo, proteína e consciência corporal para perder gordura sem sacrificar o que o corpo construiu.' },
+      cabelo:  { name: 'Anti-Queda de Cabelo', desc: 'Missões de nutrição capilar, micro ações diárias e monitoramento tranquilo em vez de pânico.' },
+      efeitos: { name: 'Controle de Efeitos Colaterais', desc: 'Missões de identificação, hidratação, alimentação suave e registro de contexto para quem enfrenta sintomas.' },
+      rotina:  { name: 'Sobrevivendo às Canetas', desc: 'Estrutura e clareza desde o primeiro dia. Missões que ensinam o básico — hidratação, proteína, ritmo, sintomas.' },
+      energia: { name: 'Energia Baixa', desc: 'Missões de descanso, reposição, movimento leve e rotina energizante para recuperar a vitalidade.' },
+    };
+
+    const levelData = {
+      alto:  { badge: '⚠️ Risco alto', emoji: '⚠️', title: 'Sua jornada precisa de estrutura urgente', desc: 'Com pouco acompanhamento e incerteza no dia a dia, o risco de perder o resultado ou enfrentar o rebote é real. A boa notícia: um protocolo guiado muda isso em poucos dias.' },
+      medio: { badge: '📊 Risco moderado', emoji: '📊', title: 'Você está no caminho, mas falta estrutura', desc: 'Você tem alguma base, mas ainda há lacunas que podem comprometer sua jornada. Um protocolo claro e acompanhamento diário vão fechar essas lacunas.' },
+      baixo: { badge: '✅ Risco controlado', emoji: '✅', title: 'Boa base — agora é proteger o resultado', desc: 'Você tem consciência da sua jornada. O próximo passo é usar um protocolo específico para blindar seu resultado e avançar com mais intenção.' },
+    };
+
+    const ld = levelData[level];
+    const proto = protocols[mainFear] || protocols.rebote;
+
+    document.getElementById('result-emoji').textContent = ld.emoji;
+    const badge = document.getElementById('result-badge');
+    badge.textContent = ld.badge;
+    badge.className = 'result-badge ' + level;
+    document.getElementById('result-title').textContent = ld.title;
+    document.getElementById('result-desc').textContent = ld.desc;
+    document.getElementById('protocol-name').textContent = proto.name;
+    document.getElementById('protocol-desc').textContent = proto.desc;
+
+    const items = [
+      { icon: '📋', text: '<strong>Protocolo ativo imediatamente</strong> — ' + proto.name + ' liberado no primeiro acesso' },
+      { icon: '🤖', text: '<strong>GLPY IA contextual</strong> — entende o que você está vivendo e orienta com base no seu dia' },
+      { icon: '🏠', text: '<strong>Home diária personalizada</strong> — água, proteína, refeições, atividade e check-in em um lugar' },
+      { icon: '🤝', text: '<strong>Comunidade GLPY</strong> — pessoas na mesma jornada. Você não atravessa isso sozinha' },
+    ];
+
+    const list = document.getElementById('result-items');
+    list.innerHTML = items.map(i =>
+      `<div class="item"><span class="item-icon">${i.icon}</span><span class="item-text">${i.text}</span></div>`
+    ).join('');
+  }
+
+  function goToCheckout() {
+    window.location.href = 'https://pay.herospark.com/glpy-semestral-526680';
+  }
+</script>
+</body>
+</html>
