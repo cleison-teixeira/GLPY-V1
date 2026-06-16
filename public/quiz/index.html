@@ -206,6 +206,12 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
   <link rel="dns-prefetch" href="https://scripts.converteai.net">
   <link rel="dns-prefetch" href="https://images.converteai.net">
   <link rel="dns-prefetch" href="https://license.vturb.com">
+  <!-- Meta Pixel -->
+  <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1213243594080057');fbq('track','PageView');</script>
+  <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1213243594080057&ev=PageView&noscript=1"/></noscript>
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RVGGY2ZT0G"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-RVGGY2ZT0G');</script>
 </head>
 <body>
 
@@ -347,7 +353,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
           <li>Comunidade de mulheres na mesma jornada</li>
           <li>Acesso imediato — sem fidelidade, sem multa</li>
         </ul>
-        <a href="https://www.glpy.com.br/go/essencial" class="plan-btn">Garantir meu acesso agora →</a>
+        <a href="https://www.glpy.com.br/go/essencial" class="plan-btn" onclick="if(typeof fbq==='function')fbq('track','InitiateCheckout',{content_name:'GLPY Essencial',content_category:'checkout_glpy',value:49.90,currency:'BRL'});if(typeof gtag==='function')gtag('event','begin_checkout',{currency:'BRL',value:49.90});">Garantir meu acesso agora →</a>
       </div>
       <div class="guarantee"><div class="guarantee-ico">🛡️</div><div><div class="guarantee-title">Pagamento seguro · Acesso imediato</div><div class="guarantee-sub">Cancele a qualquer momento. Sem perguntas, sem multa.</div></div></div>
       <div class="anchor-final" id="anchor-final">💡 Você investe na caneta. O GLPY protege esse investimento por menos de 4% do valor.</div>
@@ -441,7 +447,11 @@ const QUESTIONS=[
 let cur=0,answers=[],totalRisk=0;
 const canetoValues=[300,450,800,1200];
 
-function startQuiz(){showPage("p-quiz");renderQ()}
+function startQuiz(){
+  showPage("p-quiz");renderQ();
+  if(typeof fbq==='function')fbq('track','ViewContent',{content_name:'Quiz GLPY',content_category:'quiz_glp1'});
+  if(typeof gtag==='function')gtag('event','quiz_start',{event_category:'quiz'});
+}
 
 function renderQ(){
   const q=QUESTIONS[cur];
@@ -593,6 +603,8 @@ function showResult(){
 
   showPage("p-result");
   loadVturb();
+  if(typeof fbq==='function')fbq('track','Lead',{content_name:'Resultado Quiz GLPY',content_category:'quiz_glp1'});
+  if(typeof gtag==='function')gtag('event','quiz_result',{event_category:'quiz'});
 
   // Count-up animado
   setTimeout(()=>countUp(rs,pct,1200),300);
@@ -617,9 +629,9 @@ function loadVturb(){
   _vslLoaded=true;
   const c=document.getElementById("vsl-container");
   if(!c)return;
-  c.innerHTML='<vturb-smartplayer id="vid-6a310d3d60d7b743ade4dd06" style="display:block;margin:0 auto;width:100%;"></vturb-smartplayer>';
+  c.innerHTML='<vturb-smartplayer id="vid-6a31ce79e0302d90e0a29393" style="display:block;margin:0 auto;width:100%;max-width:400px;"></vturb-smartplayer>';
   var s=document.createElement("script");
-  s.src="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a310d3d60d7b743ade4dd06/v4/player.js";
+  s.src="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a31ce79e0302d90e0a29393/v4/player.js";
   s.async=true;
   document.head.appendChild(s);
 }
