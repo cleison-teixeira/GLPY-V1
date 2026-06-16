@@ -49,7 +49,7 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 
 /* QUIZ */
 #p-quiz{padding:0;align-items:stretch}
-.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px calc(120px + env(safe-area-inset-bottom))}
+.quiz-wrap{width:100%;max-width:600px;margin:0 auto;padding:36px 20px calc(180px + env(safe-area-inset-bottom))}
 .quiz-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
 .quiz-logo img{height:30px;width:auto}
 .quiz-counter{font-size:12px;color:var(--tm)}
@@ -200,11 +200,6 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 .faq-item.open .faq-icon{transform:rotate(45deg)}
 </style>
 
-  <!-- VTurb otimização de velocidade -->
-  <script>!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);</script>
-  <link rel="preload" href="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a310d3d60d7b743ade4dd06/v4/player.js" as="script">
-  <link rel="preload" href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js" as="script">
-  <link rel="preload" href="https://cdn.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/6a310cf7d2f2d3c2b99c80cb/main.m3u8" as="fetch">
   <link rel="dns-prefetch" href="https://cdn.converteai.net">
   <link rel="dns-prefetch" href="https://scripts.converteai.net">
   <link rel="dns-prefetch" href="https://images.converteai.net">
@@ -472,12 +467,20 @@ function renderQ(){
   document.getElementById("btn-next").textContent=cur===QUESTIONS.length-1?"Ver meu resultado →":"Próxima →";
 }
 
+function scrollToNav(){
+  const nav=document.querySelector(".quiz-nav");
+  if(!nav)return;
+  setTimeout(()=>nav.scrollIntoView({behavior:"smooth",block:"center"}),120);
+}
+
 function selectOpt(i){
   answers[cur]=i;
   document.querySelectorAll(".opt").forEach((el,idx)=>el.classList.toggle("sel",idx===i));
-  document.getElementById("btn-next").disabled=false;
+  const btn=document.getElementById("btn-next");
+  if(btn)btn.disabled=false;
   const q=QUESTIONS[cur];
-  if(q.insight){const ins=document.getElementById("q-insight");ins.textContent=q.insight;ins.className="q-insight show";}
+  if(q.insight){const ins=document.getElementById("q-insight");if(ins){ins.textContent=q.insight;ins.className="q-insight show";}}
+  scrollToNav();
 }
 
 function nextQ(){
@@ -603,12 +606,15 @@ function loadVturb(){
   if(_vslLoaded)return;
   _vslLoaded=true;
   const c=document.getElementById("vsl-container");
+  if(!c)return;
   c.innerHTML='<vturb-smartplayer id="vid-6a310d3d60d7b743ade4dd06" style="display:block;margin:0 auto;width:100%;"></vturb-smartplayer>';
   var s=document.createElement("script");
   s.src="https://scripts.converteai.net/61b4968a-0f7c-4a75-9370-bb86d3094d7d/players/6a310d3d60d7b743ade4dd06/v4/player.js";
   s.async=true;
   document.head.appendChild(s);
 }
+
+console.log('[GLPY Quiz] loaded');
 
 
 function toggleFaq(btn){
