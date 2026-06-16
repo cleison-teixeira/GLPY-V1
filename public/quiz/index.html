@@ -20,6 +20,8 @@ body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(
 
 .page{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:flex-start}
 .page.active{display:flex;animation:fadeUp .35s ease both}
+/* FCP fix: #p-intro must be visible immediately — sem opacity:0, sem delay */
+#p-intro.page.active{animation:none;opacity:1;transform:none}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
 /* INTRO */
